@@ -53,7 +53,7 @@ bash download_model.sh
 
 # 2. Try it with llama.cpp (CPU only, fully offline)
 llama-cli -m model/Muta-Tutor-Qwen3.5-0.8B-Q4_0.gguf -t 4 \
-  -p "A market woman in Onitsha buys 50 tubers of yam at 300 naira each. On the way to the market, 5 tubers spoil and cannot be sold. What price must she sell each of the remaining tubers for, so that she still makes a 20% profit on everything she spent? Show your working and check your answer."
+  -p "Multiple choice: A school in Lagos buys 6 boxes of chalk at ₦500 per box. What is the total cost? A. ₦1,000 B. ₦2,500 C. ₦3,000 D. ₦3,500. Answer with the correct option and one calculation."
 
 # 3. Reproduce the profiler run (participant mode)
 python3 -m pip install "git+https://github.com/Africa-Deep-Tech-Foundation/adtc-profiler.git"
@@ -74,8 +74,8 @@ adtc-profiler run --submission . --mode participant --output submission.json
 
 ### Test prompts (`metadata.json` → `test_prompts`)
 
-1. **tp_001** — *A market woman in Onitsha buys 50 tubers of yam at 300 naira each. On the way to the market, 5 tubers spoil and cannot be sold. What price must she sell each of the remaining tubers for, so that she still makes a 20% profit on everything she spent? Show your working and check your answer.*
-2. **tp_002** — *A student writes: "A heavier ball falls faster than a lighter one, because gravity pulls harder on it." Say exactly what is correct and what is mistaken in that reasoning, explain what actually determines how fast each ball speeds up, and describe one simple observation the student could make to test it.*
+1. **tp_001** — *Multiple choice: A school in Lagos buys 6 boxes of chalk at ₦500 per box. What is the total cost? A. ₦1,000 B. ₦2,500 C. ₦3,000 D. ₦3,500. Answer with the correct option and one calculation.*
+2. **tp_002** — *Multiple choice: Which process allows green plants to use sunlight to make food? A. Respiration B. Photosynthesis C. Evaporation D. Condensation. Answer with the correct option and one sentence of explanation.*
 
 ---
 

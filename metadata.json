@@ -17,11 +17,11 @@
   "test_prompts": [
     {
       "prompt_id": "tp_001",
-      "prompt": "A market woman in Onitsha buys 50 tubers of yam at 300 naira each. On the way to the market, 5 tubers spoil and cannot be sold. What price must she sell each of the remaining tubers for, so that she still makes a 20% profit on everything she spent? Show your working and check your answer."
+      "prompt": "Multiple choice: A school in Lagos buys 6 boxes of chalk at ₦500 per box. What is the total cost? A. ₦1,000 B. ₦2,500 C. ₦3,000 D. ₦3,500. Answer with the correct option and one calculation."
     },
     {
       "prompt_id": "tp_002",
-      "prompt": "A student writes: 'A heavier ball falls faster than a lighter one, because gravity pulls harder on it.' Say exactly what is correct and what is mistaken in that reasoning, explain what actually determines how fast each ball speeds up, and describe one simple observation the student could make to test it."
+      "prompt": "Multiple choice: Which process allows green plants to use sunlight to make food? A. Respiration B. Photosynthesis C. Evaporation D. Condensation. Answer with the correct option and one sentence of explanation."
     }
   ],
   "model": {
