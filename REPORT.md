@@ -1,7 +1,7 @@
 # Technical Report — [Your Submission Title]
 
 **Team ID:** your-team-id  
-**Domain:** coding_assistants  
+**Domain:** math_scientific_reasoning  
 **Model:** YourModel-Q4_K_M
 
 ---

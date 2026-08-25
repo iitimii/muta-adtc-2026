@@ -1,27 +1,27 @@
 {
   "team_id": "your-team-id",
-  "domain": "coding_assistants",
+  "domain": "math_scientific_reasoning",
   "language_scope": ["en"],
-  "african_alpha_claim": false,
+  "african_alpha_claim": true,
   "budget_laptop_claim": true,
   "submitter": {
-    "name": "your-name",
-    "email": "your-email@domain.com",
-    "github_handle": "your-github"
+    "name": "Timi Owolabi",
+    "email": "timiiowolabi@gmail.com",
+    "github_handle": "iitimii"
   },
   "cross_disciplinary_pairing": {
     "discipline": "education",
     "load_bearing": true,
-    "description": "Brief description of how your model serves a real-world domain."
+    "description": "Muta: an offline, adaptive maths and science tutor for African secondary-school students"
   },
   "test_prompts": [
     {
       "prompt_id": "tp_001",
-      "prompt": "Write a Python function that reads a CSV file and returns the column with the highest mean value."
+      "prompt": "A trader buys 24 identical crates for 18000 naira and sells them at a 25% profit. What is the selling price of one crate? Show your working."
     },
     {
       "prompt_id": "tp_002",
-      "prompt": "Explain the difference between a list and a tuple in Python, and give one example where each is the better choice."
+      "prompt": "I think 1/2 + 1/3 = 2/5. Where did I go wrong?"
     }
   ],
   "model": {
