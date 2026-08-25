@@ -11,6 +11,10 @@ View our comprehensive report [here](https://muta-iq.vercel.app/).
 
 **Deployment target:** CPU-only consumer laptops
 
+> **Submitted model:** `Muta-Tutor-Qwen3.5-0.8B-Q4_0.gguf` — fine-tuned Qwen3.5 0.8B, GGUF Q4_0
+> (SHA-256 `552de22f7ea6f161a458985900e2c961d7578baa1ea9c23018ae27151623ff26`).
+> The Qwen2.5 1.5B Q4_K_M model discussed below was our strongest *alternative* and was **not** submitted.
+
 ---
 
 ## Problem
@@ -33,7 +37,7 @@ This is particularly important to our broader vision for Muta: **Muta is not the
 
 ### Base model
 
-Our current vector-configuration candidate is a **fine-tuned Qwen2.5 1.5B Instruct model**, deployed as GGUF using **Q4_K_M quantization**.
+Our submitted model is a **fine-tuned Qwen3.5 0.8B**, deployed as GGUF using **Q4_0 quantization**. Our strongest alternative was a fine-tuned Qwen2.5 1.5B Instruct at Q4_K_M; the rest of this section explains why the smaller model won.
 
 We did not begin by assuming that this would be the final model.
 
@@ -58,7 +62,7 @@ The most accurate model was therefore not necessarily the best model to deploy.
 
 ### Quantization
 
-We selected **Q4_K_M** for the Qwen2.5 1.5B vector candidate.
+We selected **Q4_0** for the submitted Qwen3.5 0.8B model. (Q4_K_M was used for the Qwen2.5 1.5B alternative.)
 
 One of our most important findings was that quantization cannot be considered independently of the CPU kernel that executes it.
 
@@ -130,9 +134,9 @@ This became important during live tests. Unrestricted reasoning could consume th
 
 We did not arrive at the current model through a single quantization experiment. Several optimization paths were investigated and either adopted, rejected, or retained only for the full Muta product.
 
-### Qwen3.5 0.8B Q4_0
+### Qwen3.5 0.8B Q4_0 — submitted
 
-This remains our **scalar-profiler leader**.
+This is our **scalar-profiler leader** and the model we submitted.
 
 After fine-tuning, it achieved:
 
@@ -141,11 +145,11 @@ After fine-tuning, it achieved:
 * approximately **691 MiB estimated profiler RSS**
 * **80.3664** fixed-15 scalar score
 
-It is currently the safer choice if the final evaluator uses the same scalar kernel configuration as the supplied participant profiler.
+The official ADTC profiler builds llama.cpp with `GGML_AVX`, `AVX2`, `FMA` and `F16C` all **off** (see its Dockerfile), i.e. the scalar kernel path — the configuration in which this candidate leads on the combined objective.
 
-### Qwen2.5 1.5B Q4_K_M
+### Qwen2.5 1.5B Q4_K_M — not submitted
 
-This is our **vector-configuration leader** and current candidate where AVX2/FMA/F16C are available.
+This is our **vector-configuration leader** where AVX2/FMA/F16C are available.
 
 After fine-tuning, it achieved:
 
@@ -154,7 +158,7 @@ After fine-tuning, it achieved:
 * approximately **1,706 MiB estimated profiler RSS**
 * **84.1387** fixed-15 vector score
 
-It sacrifices some memory efficiency relative to the 0.8B candidate but gains enough reasoning accuracy and vectorized throughput to win the combined objective.
+It wins the combined objective only when AVX2 vector kernels are available. Under the scalar kernels the official profiler uses, it drops to ~5.6 tok/s and loses to the 0.8B model, so it was not submitted.
 
 ### Math-Expert 0.6B
 
@@ -279,9 +283,35 @@ Those product-level controls are separate from the submitted GGUF, but the same 
 
 ## Benchmarks
 
-Our current benchmark evidence is deliberately separated by CPU configuration because we discovered that CPU instruction-set support can change the model ranking.
+Our benchmark evidence is deliberately separated by CPU configuration because we discovered that CPU instruction-set support can change the model ranking. The official profiler uses the scalar configuration.
 
-### Current vector candidate
+### Submitted model — Qwen3.5 0.8B Q4_0
+
+Development sweep (scalar build, matched 500-item evaluation):
+
+| Metric                 | Value                   |
+| ---------------------- | ----------------------- |
+| Model                  | Fine-tuned Qwen3.5 0.8B |
+| Quantization           | Q4_0                    |
+| ARC-Easy accuracy      | **70.2%**, n=500        |
+| Generation speed       | **13.60 tok/s**         |
+| Estimated profiler RSS | **691 MiB**             |
+| Fixed-15 scalar total  | **80.3664**             |
+
+Official-profiler run on the submitted GGUF (`adtc-profiler 0.1.0`, participant mode, llama-bench 512 prompt / 128 generated tokens):
+
+| Metric                                 | Value                                                                 |
+| -------------------------------------- | --------------------------------------------------------------------- |
+| Machine                                | Intel Xeon @ 2.80 GHz (4 vCPU), 7.8 GB RAM, no GPU, Ubuntu 22.04.5    |
+| Generation speed                       | **12.98 tok/s**                                                       |
+| Time to first token (512-token prompt) | ≈ 15.0 s (profiler approximation from prompt-processing rate)         |
+| Peak RSS                               | **674 MB** (steady state 629 MB)                                      |
+| ARC-Easy acc_norm (n=50)               | **0.72**                                                              |
+| CPU utilisation p99                    | 54.2 %                                                                |
+| Temperature                            | Not exposed by the benchmark host                                     |
+| Thermal throttling                     | Not flagged                                                           |
+
+### Alternative (vector build, not submitted) — Qwen2.5 1.5B Q4_K_M
 
 | Metric                   | Value                                        |
 | ------------------------ | -------------------------------------------- |
@@ -302,20 +332,7 @@ Our current benchmark evidence is deliberately separated by CPU configuration be
 
 These are **self-reported development measurements**, not official ADTC evaluation results.
 
-### Scalar fallback candidate
-
-Because the supplied participant profiler uses a different kernel configuration, we also retain a separate scalar candidate:
-
-| Metric                 | Value                   |
-| ---------------------- | ----------------------- |
-| Model                  | Fine-tuned Qwen3.5 0.8B |
-| Quantization           | Q4_0                    |
-| ARC-Easy accuracy      | **70.2%**, n=500        |
-| Generation speed       | **13.60 tok/s**         |
-| Estimated profiler RSS | **691 MiB**             |
-| Fixed-15 scalar total  | **80.3664**             |
-
-Q4_K_M performs strongly when the appropriate AVX2 vector kernels are available, while Q4_0 remains much more competitive under the supplied scalar profiler configuration.
+Q4_K_M performs strongly when the appropriate AVX2 vector kernels are available, while Q4_0 remains much more competitive under the scalar configuration the official profiler uses.
 
 ---
 
@@ -342,7 +359,7 @@ The current candidate is therefore the result of an empirical optimization campa
 
 ---
 
-## Current Status and Final Validation
+## Final Decision
 
 At the time of this report, our measured leaders are:
 
@@ -352,4 +369,4 @@ Fine-tuned **Qwen3.5 0.8B Q4_0**
 **AVX2 vector configuration:**
 Fine-tuned **Qwen2.5 1.5B Q4_K_M**
 
-And if we're to pick, we'd pick **Qwen3.5 0.8B Q4_0**, to be safe!
+**Submitted: fine-tuned Qwen3.5 0.8B Q4_0 (`Muta-Tutor-Qwen3.5-0.8B-Q4_0.gguf`).** It leads under the scalar CPU configuration the official profiler uses, runs at ≈0.67 GB peak RSS, and is the model referenced by `metadata.json` and `download_model.sh`. Qwen2.5 1.5B Q4_K_M remains our vector-build alternative for the full Muta product.
