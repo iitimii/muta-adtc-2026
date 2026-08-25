@@ -1,13 +1,13 @@
 {
   "team_id": "muta",
   "domain": "math_scientific_reasoning",
-  "language_scope": ["en"],
+  "language_scope": ["en", "aa", "af", "am", "ar", "bem", "din", "ff", "ha", "ig", "kg", "mg", "ny", "rn", "rw", "sn", "so", "ss", "st", "sw", "tn", "xh", "yo", "zu", "es", "fr", "pt", "de"],
   "african_alpha_claim": true,
   "budget_laptop_claim": true,
   "submitter": {
-    "name": "Timi Owolabi",
+    "name": "Nelson Elijah",
     "email": "nelson.ifechukwu@gmail.com",
-    "github_handle": "iitimii"
+    "github_handle": "nelsonifechukwu"
   },
   "cross_disciplinary_pairing": {
     "discipline": "education",
