@@ -12,7 +12,7 @@
   "cross_disciplinary_pairing": {
     "discipline": "education",
     "load_bearing": true,
-    "description": "Muta: an offline tutor that teaches African secondary-school students to reason through maths and science problems"
+    "description": "Muta: an offline tutor that teaches African students at every level to reason through maths and science problems"
   },
   "test_prompts": [
     {
