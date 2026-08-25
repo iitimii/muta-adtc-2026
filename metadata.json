@@ -12,26 +12,26 @@
   "cross_disciplinary_pairing": {
     "discipline": "education",
     "load_bearing": true,
-    "description": "Muta: an offline, adaptive maths and science tutor for African secondary-school students"
+    "description": "Muta: an offline tutor that teaches African secondary-school students to reason through maths and science problems"
   },
   "test_prompts": [
     {
       "prompt_id": "tp_001",
-      "prompt": "A trader buys 24 identical crates for 18000 naira and sells them at a 25% profit. What is the selling price of one crate? Show your working."
+      "prompt": "A market woman in Onitsha buys 50 tubers of yam at 300 naira each. On the way to the market, 5 tubers spoil and cannot be sold. What price must she sell each of the remaining tubers for, so that she still makes a 20% profit on everything she spent? Show your working and check your answer."
     },
     {
       "prompt_id": "tp_002",
-      "prompt": "I think 1/2 + 1/3 = 2/5. Where did I go wrong?"
+      "prompt": "A student writes: 'A heavier ball falls faster than a lighter one, because gravity pulls harder on it.' Say exactly what is correct and what is mistaken in that reasoning, explain what actually determines how fast each ball speeds up, and describe one simple observation the student could make to test it."
     }
   ],
   "model": {
-    "name": "SmolLM2-135M-Instruct-Q4_K_M",
+    "name": "Muta-Tutor-Qwen3.5-0.8B-Q4_0.gguf",
     "runtime": "llama.cpp",
-    "quantization": "GGUF Q4_K_M",
-    "parameters_estimate": "135M",
+    "quantization": "GGUF Q4_0",
+    "parameters_estimate": "800M",
     "packaging": "binary_bundle"
   },
   "_runtime": {
-    "model_path": "model/SmolLM2-135M-Instruct-Q4_K_M.gguf"
+    "model_path": "model/Muta-Tutor-Qwen3.5-0.8B-Q4_0.gguf"
   }
 }
