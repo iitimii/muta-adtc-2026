@@ -79,23 +79,9 @@ adtc-profiler run --submission . --mode participant --output submission.json
 
 ---
 
-## Self-reported benchmarks
+## Benchmarks
 
-Measured with `adtc-profiler 0.1.0` in participant mode (llama-bench `-p 512 -n 128`, seed 42) on a cloud CPU proxy standing in for the target laptop:
-
-| Metric | Value |
-|---|---|
-| Machine | Intel Xeon @ 2.80 GHz (4 vCPU), 7.8 GB RAM, no GPU, Ubuntu 22.04.5 |
-| Generation speed | 12.98 tok/s |
-| Time to first token (512-token prompt) | ≈ 15.0 s (profiler approximation from prompt-processing rate) |
-| Peak RSS | 674 MB (steady state 629 MB) |
-| ARC-Easy `acc_norm` (profiler, n = 50) | 0.72 |
-| ARC-Easy `acc_norm` (development sweep, n = 500) | 70.2 % (base model control: 55.2 %) |
-| CPU utilisation p99 | 54.2 % |
-| Thermal throttling | Not flagged (core temperature not exposed on this host) |
-| GGUF header check | 772.8M params, arch `qwen35` — matches the declared 800M estimate |
-
-These are self-reported development benchmarks. Official scores are measured by the ADTC profiler on the standard evaluation machine.
+Development benchmarks (throughput, memory, accuracy) are in [REPORT.md](REPORT.md#benchmarks). Official scores are measured by the ADTC profiler on the standard evaluation machine.
 
 ---
 
