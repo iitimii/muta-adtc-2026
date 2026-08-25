@@ -1,190 +1,133 @@
-# ADTC 2026 — Submission Template
+# Muta — ADTC 2026 Laptop LLM Submission
 
-This is the official template repository for the **Africa Deep Tech Challenge 2026** Laptop LLM track.
+**Muta** is an offline tutor that teaches African students to *reason through* mathematics and science problems — working, principle, and self-check — on an ordinary 8 GB, CPU-only laptop with no internet connection.
 
-Fork this repository, fill in the required files, and submit your repository URL via [adtc-2026.devpost.com](https://adtc-2026.devpost.com).
+This repository is Muta's entry for the **Africa Deep Tech Challenge 2026** Laptop LLM track, domain **`math_scientific_reasoning`**. It follows the official [ADTC 2026 submission template](https://github.com/Africa-Deep-Tech-Foundation/adtc-2026-submission-template).
 
----
-
-## ✅ Submission Checklist
-
-Before submitting, confirm every item:
-
-- [x] Your repository is **public** on GitHub
-- [x] `metadata.json` is fully filled in — no placeholder values remain
-- [x] `metadata.json` contains exactly **2 test prompts** in the `test_prompts` array, written for your chosen domain
-- [x] `download_model.sh` successfully downloads your model to `model/`
-- [x] The downloaded file is a valid **GGUF format** (`.gguf`) weight file
-- [x] `model/*.gguf` is listed in `.gitignore` — do **not** commit large weight files
-- [x] `REPORT.md` is filled in with your technical writeup
-- [x] Running `bash download_model.sh` completes without errors
-- [x] Your model runs entirely **offline** — zero external network calls during inference
+- 📄 Technical report: [REPORT.md](REPORT.md) · extended experiment report: [muta-iq.vercel.app](https://muta-iq.vercel.app/)
+- 🤗 Model weights: [timiiowolabi/Muta-Tutor-Qwen3.5-0.8B-ADTC-GGUF](https://huggingface.co/timiiowolabi/Muta-Tutor-Qwen3.5-0.8B-ADTC-GGUF)
+- 🏁 Challenge: [adtc-2026.devpost.com](https://adtc-2026.devpost.com)
 
 ---
 
-## 📁 Required File Structure
+## Submission at a glance
+
+| Field | Value |
+|---|---|
+| Team ID | `muta` |
+| Domain | `math_scientific_reasoning` |
+| Submitter | Nelson Elijah · [@nelsonifechukwu](https://github.com/nelsonifechukwu) |
+| Cross-disciplinary pairing | Education (load-bearing) |
+| Model | `Muta-Tutor-Qwen3.5-0.8B-Q4_0.gguf` — fine-tuned [Qwen/Qwen3.5-0.8B](https://huggingface.co/Qwen/Qwen3.5-0.8B) |
+| Runtime | `llama.cpp` |
+| Quantization | GGUF Q4_0 |
+| Parameters | ~800M (772,845,888 in the GGUF header) |
+| File size | 513 MB |
+| Packaging | `binary_bundle` |
+| Language scope | `en` plus 27 further interface languages (see [metadata.json](metadata.json)) |
+| African Use Case bonus | Claimed |
+| Budget laptop profile | Claimed (4 vCPU · 8 GB RAM · integrated GPU · CPU-only inference) |
+
+---
+
+## Repository layout
 
 ```
-your-submission/
-├── metadata.json          ← Required. Team, model, and test prompt metadata.
-├── download_model.sh      ← Required. Downloads your .gguf model weight file.
-├── REPORT.md              ← Required. Technical writeup (problem, design, benchmarks).
+muta-adtc-2026/
+├── metadata.json          ← Team, model, and test-prompt metadata (read by the ADTC profiler)
+├── download_model.sh      ← Fetches the GGUF from Hugging Face into model/ (idempotent, no credentials)
+├── REPORT.md              ← Technical writeup: problem, design decisions, constraints, benchmarks
 ├── model/
-│   └── your-model.gguf   ← Downloaded by the script above. Do NOT commit.
-└── .gitignore             ← Must exclude *.gguf and model/ from version control.
+│   └── Muta-Tutor-Qwen3.5-0.8B-Q4_0.gguf   ← Downloaded by the script. Not committed.
+├── .gitignore             ← Excludes model/*.gguf and local profiler output
+└── LICENSE                ← GPL-3.0 (inherited from the template)
 ```
 
 ---
 
-## 📝 metadata.json
-
-Fill in every field. No field should remain at its placeholder value.
-
-```json
-{
-  "team_id": "your-team-id",
-  "domain": "coding_assistants",
-  "language_scope": ["en"],
-  "african_alpha_claim": false,
-  "budget_laptop_claim": true,
-  "submitter": {
-    "name": "your-name",
-    "email": "your-email@domain.com",
-    "github_handle": "your-github"
-  },
-  "cross_disciplinary_pairing": {
-    "discipline": "education",
-    "load_bearing": true,
-    "description": "Brief description of how your model serves a real-world domain."
-  },
-  "test_prompts": [
-    {
-      "prompt_id": "tp_001",
-      "prompt": "Your first test prompt, written for your chosen domain."
-    },
-    {
-      "prompt_id": "tp_002",
-      "prompt": "Your second test prompt, written for your chosen domain."
-    }
-  ],
-  "model": {
-    "name": "YourModel-Q4_K_M",
-    "runtime": "llama.cpp",
-    "quantization": "GGUF Q4_K_M",
-    "parameters_estimate": "1.1B",
-    "packaging": "binary_bundle"
-  },
-  "_runtime": {
-    "model_path": "model/your-model.gguf"
-  }
-}
-```
-
-### Field Reference
-
-| Field | Required | Description |
-|---|---|---|
-| `team_id` | ✅ | Your unique team ID as registered on the ADTF portal |
-| `domain` | ✅ | Your challenge track. One of: `math_scientific_reasoning`, `healthcare_medical`, `agriculture`, `creative_writing`, `coding_assistants`, `corporate_enterprise`, `autonomous_ai_agents` |
-| `language_scope` | ✅ | Array of BCP-47 language codes. Must include at least one. |
-| `african_alpha_claim` | ✅ | `true` only if claiming the African Use Case Bonus |
-| `budget_laptop_claim` | ✅ | Must be `true` — all submissions target the 8 GB RAM laptop profile |
-| `submitter.name` | ✅ | Full name of the team member submitting the run |
-| `submitter.email` | ✅ | Valid email address linked to the registered team |
-| `submitter.github_handle` | ✅ | Verifiable GitHub username |
-| `cross_disciplinary_pairing.discipline` | ✅ | The deep-tech discipline your model serves |
-| `cross_disciplinary_pairing.load_bearing` | ✅ | `true` if the pairing is integral to the submission, not cosmetic |
-| `test_prompts` | ✅ | **Exactly 2 prompts** in your chosen domain. Organizers will add 2 hidden prompts to test for overfitting. |
-| `model.runtime` | ✅ | Must be `llama.cpp`. No other runtime is accepted. |
-| `model.quantization` | ✅ | Must be a GGUF quantization format (e.g. `GGUF Q4_K_M`, `GGUF Q5_K_M`) |
-| `model.parameters_estimate` | ✅ | Approximate parameter count (e.g. `135M`, `1.1B`, `7B`) |
-| `model.packaging` | ✅ | How the model is packaged. One of: `docker_image`, `docker_build_from_repo`, `binary_bundle` |
-| `_runtime.model_path` | ✅ | Relative path from repo root to your `.gguf` file (e.g. `model/my-model.gguf`) |
-
----
-
-## 📥 download_model.sh
-
-This script **must** download your model weight file to the `model/` directory.
-
-Rules:
-- Must be idempotent — safe to run multiple times without re-downloading.
-- Must work without any credentials — your weights must be publicly accessible.
-- The downloaded file path must exactly match `_runtime.model_path` in `metadata.json`.
-
-Recommended hosting options for your weights:
-- [Hugging Face](https://huggingface.co) — public model repos (free, best for GGUF files)
-- GitHub Release Assets — attach the `.gguf` file to a GitHub Release
-- Any stable public URL (GCS public bucket, S3 public object, etc.)
-
----
-
-## 📄 REPORT.md
-
-Your technical writeup. Judges and the LLM-based audit system will read this to understand your submission. Cover:
-
-1. **Problem** — What problem are you solving? Who is the target user in an African context?
-2. **Design Decisions** — What model did you start from? Why that quantization level? What alternatives did you evaluate?
-3. **Constraints** — What hardware, connectivity, or data constraints shaped your approach?
-4. **Benchmarks** — What inference speed and memory numbers did you observe on your development machine?
-
-Keep it factual and specific. One to three pages is ideal.
-
----
-
-## 🧪 Local Testing
-
-The ADTC profiler is open source. Install it directly from the official repository:
+## Quick start
 
 ```bash
-pip install "git+https://github.com/Africa-Deep-Tech-Foundation/adtc-profiler.git"
-```
-
-Then run a local smoke test before submitting:
-
-```bash
-# 1. Download your weights
+# 1. Download the weights (513 MB, public Hugging Face URL, safe to re-run)
 bash download_model.sh
 
-# 2. Run the profiler in participant mode
-adtc-profiler run \
-  --submission . \
-  --mode participant \
-  --output submission.json \
-  --skip-accuracy
+# 2. Try it with llama.cpp (CPU only, fully offline)
+llama-cli -m model/Muta-Tutor-Qwen3.5-0.8B-Q4_0.gguf -t 4 \
+  -p "A market woman in Onitsha buys 50 tubers of yam at 300 naira each. On the way to the market, 5 tubers spoil and cannot be sold. What price must she sell each of the remaining tubers for, so that she still makes a 20% profit on everything she spent? Show your working and check your answer."
 
-# 3. Review your report
-cat submission.json
+# 3. Reproduce the profiler run (participant mode)
+python3 -m pip install "git+https://github.com/Africa-Deep-Tech-Foundation/adtc-profiler.git"
+adtc-profiler run --submission . --mode participant --output submission.json
 ```
 
-A valid run produces a `submission.json` with `"measured_on": "participant_laptop"`.
+`download_model.sh` writes to exactly the path declared in `metadata.json` → `_runtime.model_path` (`model/Muta-Tutor-Qwen3.5-0.8B-Q4_0.gguf`), skips the download if the file already exists, and needs only `curl` or `wget`.
 
-The profiler source code, including the thermal monitoring logic and scoring formulas, is publicly readable at:
-[github.com/Africa-Deep-Tech-Foundation/adtc-profiler](https://github.com/Africa-Deep-Tech-Foundation/adtc-profiler)
-
----
-
-## ⚠️ Rules
-
-1. **Public repository required.** Your repository must be public at the time of evaluation.
-2. **No model weights in git.** Add `*.gguf` and `model/` to your `.gitignore`. The evaluator downloads weights fresh via `download_model.sh`.
-3. **100% offline during evaluation.** Your model must run with zero external network dependencies during our testing window. `download_model.sh` runs before the profiler starts, but once profiling begins, no outbound requests are permitted.
-4. **llama.cpp only.** All models must use GGUF weights and run through `llama.cpp`. No other runtime is supported by our evaluation framework.
-5. **8 GB RAM limit.** Your model must run within the standard laptop profile (4 vCPU, 8 GB RAM, integrated GPU only). Out-of-memory errors during evaluation result in automatic disqualification.
-6. **No size restriction.** There is no parameter count or file size cap — but the 8 GB RAM constraint is strict. Plan your quantization level accordingly.
-7. **Two test prompts required.** Your `metadata.json` must include exactly 2 prompts in the `test_prompts` array. Organizers will generate 2 additional hidden prompts within your domain. All 4 are used for scoring.
+**Integrity:** SHA-256 `552de22f7ea6f161a458985900e2c961d7578baa1ea9c23018ae27151623ff26`
 
 ---
 
-## 🆘 Support
+## The model
 
-Open an issue in this repository or contact the ADTF team at challenge@africadeeptech.org.
+- **Base:** `Qwen/Qwen3.5-0.8B`, fine-tuned with BF16 LoRA (rank 16, 400 steps, lr 2e-5, seed 3407) on 15,355 multiple-choice maths/science questions drawn only from the *training* splits of ARC-Easy, ARC-Challenge, OpenBookQA and QASC, de-duplicated against 8,477 held-out questions. The adapter is merged and exported as Q4_0 GGUF.
+- **Why this model:** it was the winner of a 15-candidate sweep across Qwen3.5-0.8B and Qwen2.5-1.5B on the challenge's combined accuracy / throughput / memory objective under the *scalar* CPU kernels the official profiler is built with. Full rationale, alternatives rejected, and lessons learned are in [REPORT.md](REPORT.md).
+- **Provenance:** the Hugging Face repo ships the training manifest, dataset manifest (with source licences and revisions), artifact hashes, and the full fine-tuning summary alongside the weights.
 
-View the full eligibility rules at [adtc-2026.devpost.com/rules](https://adtc-2026.devpost.com/rules).
+### Test prompts (`metadata.json` → `test_prompts`)
+
+1. **tp_001** — *A market woman in Onitsha buys 50 tubers of yam at 300 naira each. On the way to the market, 5 tubers spoil and cannot be sold. What price must she sell each of the remaining tubers for, so that she still makes a 20% profit on everything she spent? Show your working and check your answer.*
+2. **tp_002** — *A student writes: "A heavier ball falls faster than a lighter one, because gravity pulls harder on it." Say exactly what is correct and what is mistaken in that reasoning, explain what actually determines how fast each ball speeds up, and describe one simple observation the student could make to test it.*
 
 ---
 
-## 📄 License
+## Self-reported benchmarks
 
-This template is licensed under the terms of the [GNU GPL v3 License](LICENSE).
+Measured with `adtc-profiler 0.1.0` in participant mode (llama-bench `-p 512 -n 128`, seed 42) on a cloud CPU proxy standing in for the target laptop:
 
+| Metric | Value |
+|---|---|
+| Machine | Intel Xeon @ 2.80 GHz (4 vCPU), 7.8 GB RAM, no GPU, Ubuntu 22.04.5 |
+| Generation speed | 12.98 tok/s |
+| Time to first token (512-token prompt) | ≈ 15.0 s (profiler approximation from prompt-processing rate) |
+| Peak RSS | 674 MB (steady state 629 MB) |
+| ARC-Easy `acc_norm` (profiler, n = 50) | 0.72 |
+| ARC-Easy `acc_norm` (development sweep, n = 500) | 70.2 % (base model control: 55.2 %) |
+| CPU utilisation p99 | 54.2 % |
+| Thermal throttling | Not flagged (core temperature not exposed on this host) |
+| GGUF header check | 772.8M params, arch `qwen35` — matches the declared 800M estimate |
+
+These are self-reported development benchmarks. Official scores are measured by the ADTC profiler on the standard evaluation machine.
+
+---
+
+## Open-source tools used
+
+[llama.cpp](https://github.com/ggerganov/llama.cpp) (GGUF conversion, Q4_0 quantization, `llama-bench`) · [adtc-profiler](https://github.com/Africa-Deep-Tech-Foundation/adtc-profiler) with [lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness) · [PyTorch](https://pytorch.org) 2.7 / CUDA 12.8 for LoRA fine-tuning · [Qwen3.5-0.8B](https://huggingface.co/Qwen/Qwen3.5-0.8B) base weights · training data from [AI2 ARC](https://huggingface.co/datasets/allenai/ai2_arc) (CC-BY-SA-4.0), [OpenBookQA](https://huggingface.co/datasets/allenai/openbookqa), and [QASC](https://huggingface.co/datasets/allenai/qasc) (CC-BY-4.0) · weights hosted on [Hugging Face](https://huggingface.co).
+
+---
+
+## ✅ Submission checklist
+
+- [x] Repository is **public** on GitHub
+- [x] `metadata.json` is fully filled in — no placeholder values remain
+- [x] `metadata.json` contains exactly **2 test prompts** for `math_scientific_reasoning`
+- [x] `download_model.sh` downloads the model to `model/` (verified from a clean directory: 513 MB, exit 0)
+- [x] The downloaded file is a valid **GGUF** (`GGUF` magic, SHA-256 matches the Hugging Face artifact)
+- [x] `model/*.gguf` is listed in `.gitignore` — no weight files are committed
+- [x] `REPORT.md` contains the technical writeup
+- [x] `bash download_model.sh` is idempotent — a second run skips the download and exits 0
+- [x] The model runs entirely **offline** through `llama.cpp` — zero network calls during inference
+
+## Rules compliance
+
+1. **Public repository** — yes, and it stays public through evaluation.
+2. **No model weights in git** — weights are fetched fresh by `download_model.sh`.
+3. **100 % offline during evaluation** — the only network access is the one-time download before profiling.
+4. **llama.cpp only** — GGUF Q4_0 weights; verified to load and generate on llama.cpp CPU builds.
+5. **8 GB RAM limit** — peak RSS ≈ 0.67 GB, well inside the 7 GB efficiency budget.
+6. **Two test prompts** — provided above.
+
+---
+
+## License
+
+Repository contents are licensed under the [GNU GPL v3](LICENSE) (inherited from the ADTC template). The model weights are released under Apache-2.0 on their Hugging Face model card.
