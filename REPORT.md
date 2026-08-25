@@ -1,9 +1,9 @@
 # Technical Report for Muta: Offline Adaptive STEM Tutor for African Students
 View our comprehensive report [here](https://muta-iq.vercel.app/).
 
-**Team ID:** [TEAM ID]
+**Team ID:** [Muta]
 **Domain:** `math_scientific_reasoning`
-**Model:** Fine-tuned Qwen2.5 1.5B Instruct — Q4_K_M
+**Model:** Fine-tuned Qwen3.5 0.8B Q4_0
 **Runtime:** llama.cpp / GGUF
 **Deployment target:** CPU-only consumer laptops
 
@@ -366,18 +366,3 @@ Fine-tuned **Qwen3.5 0.8B Q4_0**
 **AVX2 vector configuration:**
 Fine-tuned **Qwen2.5 1.5B Q4_K_M**
 
-Before packaging the final competition artifact, we are completing the remaining validation steps:
-
-1. Embed the final Muta tutoring policy into the tuned GGUF.
-2. Repeat the live tutoring-prompt acceptance battery.
-3. Verify model behaviour through the competition-compatible llama.cpp path.
-4. Run repeated measurements on the physical target machine.
-5. Measure whole-process-tree RSS.
-6. Record temperature and confirm whether thermal throttling occurs.
-7. Complete the remaining held-out validation for the Qwen2.5 candidate.
-
-The goal is not merely to submit the model with the highest isolated benchmark.
-
-The goal is to submit the model that best fulfills what Muta was built for:
-
-> **A capable, responsive educational AI tutor that can meet a student where they are—even when all they have is an ordinary laptop and no internet connection.**
