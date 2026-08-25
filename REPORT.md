@@ -1,7 +1,7 @@
 # Technical Report for Muta: Offline Adaptive STEM Tutor for African Students
 View our comprehensive report [here](https://muta-iq.vercel.app/).
 
-**Team ID:** [Muta]
+**Team ID:** muta
 
 **Domain:** `math_scientific_reasoning`
 
