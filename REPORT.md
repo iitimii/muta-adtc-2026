@@ -19,21 +19,13 @@ Across many African classrooms, the problem is not simply access to information.
 
 A student may have a textbook and still not have someone available to patiently explain the exact concept they do not understand. A teacher may be responsible for too many students to provide truly individual attention. Even where AI tools are available, they commonly depend on continuous internet access, cloud inference, and hardware or subscriptions that cannot be assumed for every learner.
 
-Muta addresses this problem by working toward a **truly personal educational AI tutor that can run locally on the laptop a student already has**.
+Muta addresses this problem by working toward a **truly personal educational AI tutor that can run locally on the laptop**.
 
 Our target user is primarily a secondary-school student learning Mathematics and Science who needs more than a system that returns an answer. Muta is intended to explain concepts, reason through problems, respond to follow-up questions, and adapt the educational interaction around the learner.
 
-Running locally is fundamental to this use case.
+Since Muta runs locally, it means that a student can continue learning when the internet is unavailable, unreliable, or expensive. It removes the requirement for a dedicated GPU or continuous cloud inference. It reduces the marginal cost of each additional question and provides a path to deploying AI tutoring in schools and homes where connectivity cannot be treated as always available infrastructure.
 
-It means that a student can continue learning when the internet is unavailable, unreliable, or expensive. It removes the requirement for a dedicated GPU or continuous cloud inference. It reduces the marginal cost of every additional question and gives us a path toward deploying AI tutoring in schools and homes where connectivity cannot be treated as infrastructure that is always available.
-
-This is particularly important to our broader vision for Muta. **Muta is not the underlying language model.** The model is a replaceable intelligence engine inside a larger educational system. Our long-term goal is for Muta to become the educational intelligence layer connecting the student, teacher, parent, institution, and curriculum while accumulating learning context over time.
-
-The immediate challenge for this competition was therefore very concrete:
-
-> **How much useful mathematical and scientific reasoning can we place on an ordinary CPU-only laptop while remaining fast enough to feel interactive and small enough to operate comfortably inside the competition's memory budget?**
-
-That question drove every model and systems decision we made.
+This is particularly important to our broader vision for Muta: **Muta is not the underlying language model.** The model is a replaceable intelligence engine inside a larger educational system. Our long-term goal is for Muta to become the educational intelligence layer that connects the student, teacher, parent, institution, and curriculum, while accumulating learning context over time.
 
 ---
 
@@ -45,7 +37,7 @@ Our current vector-configuration candidate is a **fine-tuned Qwen2.5 1.5B Instru
 
 We did not begin by assuming that this would be the final model.
 
-We first studied the relationship between model size, reasoning quality, memory consumption, and generation speed. Larger models predictably gave better reasoning performance, but their additional accuracy had to justify the corresponding increase in RAM and weight bandwidth on a low-resource CPU.
+We first [studied](https://muta-iq.vercel.app/) the relationship between model size, reasoning quality, memory consumption, and generation speed. Larger models predictably gave better reasoning performance, but their additional accuracy had to justify the corresponding increase in RAM and weight bandwidth on a low-resource CPU.
 
 We subsequently widened the search across several architectures and sizes, including:
 
@@ -58,11 +50,11 @@ We subsequently widened the search across several architectures and sizes, inclu
 * specialist mathematical fine-tunes
 * an 8B ternary BitCPM4 candidate
 
-The goal was not to select the model with the highest raw accuracy. We selected according to the competition's combined accuracy, performance, and memory objective.
+The goal was not to select the model with the highest raw accuracy. We selected based on the competition's combined accuracy, performance, and memory objectives.
 
-Our 8B BitCPM4 TQ2_0 experiment illustrates this clearly. It achieved the highest raw ARC-Easy result we measured during an earlier search, but its scalar decoding throughput was only approximately 0.81 tok/s. Even after vector acceleration raised it substantially, it still failed to beat the smaller dense Qwen candidates on the combined objective.
+Our 8B BitCPM4 TQ2_0 experiment illustrates this clearly. It achieved the highest raw ARC-Easy result we measured during an earlier search, but its scalar decoding throughput was only approximately 0.81 tok/s. Even after vector acceleration substantially raised it, it still failed to beat the smaller dense Qwen candidates on the combined objective.
 
-The most accurate model was therefore not necessarily the best deployable model.
+The most accurate model was therefore not necessarily the best model to deploy.
 
 ### Quantization
 
@@ -81,9 +73,9 @@ We therefore built a second, portable CPU configuration with:
 `NATIVE=OFF`
 `AVX-512=OFF`
 
-Once AVX2/FMA/F16C were available, the ranking changed. Q4_K_M could use an efficient vectorized path and became substantially more attractive.
+Once AVX2/FMA/F16C were available, the ranking changed. Q4_K_M could use an efficient vectorized path, making it substantially more attractive.
 
-For Qwen2.5 1.5B, the vectorized Q4_K_M model gave us the best measured balance between reasoning accuracy, throughput, and memory among the larger matched candidate set.
+For Qwen2.5 1.5B, the vectorized Q4_K_M model gave us the best measured balance among the larger matched candidate set between reasoning accuracy, throughput, and memory.
 
 This taught us an important lesson:
 
@@ -101,11 +93,7 @@ We trained **15 candidates** across Qwen3.5 0.8B and Qwen2.5 1.5B, varying:
 * learning rate
 * training duration
 
-The first eight runs failed to improve the metric that mattered.
-
-That failure became useful.
-
-We discovered that much of the original training mixture emphasized long worked solutions and tutoring dialogue, while the profiler's accuracy evaluation used short answer continuations. We also discovered a tokenization-level issue: the training data builder had omitted the leading space between `Answer:` and the expected continuation, changing the BPE token sequence used during training.
+We discovered that much of the original training mixture emphasized long-worked solutions and tutoring dialogue, while the profiler's accuracy evaluation used short-answer continuations. We also discovered a tokenization-level issue: the training data builder had omitted the leading space between `Answer:` and the expected continuation, changing the BPE token sequence used during training.
 
 We rebuilt the data pipeline, corrected the continuation format, used verified answers, checked for held-out contamination, and aligned the training objective much more closely with the evaluation task.
 
@@ -114,9 +102,9 @@ The resulting metric-aligned fine-tuning improved:
 * **Qwen3.5 0.8B:** 55.2% → **70.2%**
 * **Qwen2.5 1.5B:** 74.4% → **77.8%**
 
-on matched 500-item evaluations.
+on 500-item evaluations.
 
-Importantly, these accuracy gains did not materially increase model memory usage or reduce throughput.
+Importantly, these accuracy gains did not significantly increase model memory usage or reduce throughput.
 
 ### Behaviour embedded in the GGUF
 
@@ -134,9 +122,7 @@ Our packaged model policy includes:
 * controlled sampling defaults
 * suppression of unnecessary hidden reasoning when the calling runtime does not provide its own setting
 
-This became important during live tests. Unrestricted reasoning could consume the entire response budget internally before returning a useful answer to the learner. The model therefore needs to be optimized not only for benchmark accuracy, but for actual interactive tutoring behaviour.
-
-The final tuned candidate still requires this metadata pass and final live-prompt revalidation before submission.
+This became important during live tests. Unrestricted reasoning could consume the entire response budget internally before returning a useful answer to the learner. The model, therefore, needs to be optimized not only for benchmark accuracy, but for actual interactive tutoring behavior.
 
 ---
 
@@ -174,13 +160,13 @@ It sacrifices some memory efficiency relative to the 0.8B candidate but gains en
 
 A specialist Qwen3-based mathematical fine-tune initially produced an attractive small-sample result and very high throughput under the vector runtime.
 
-However, once the finalists were evaluated on a larger matched 500-item sample, its estimated accuracy dropped enough that it no longer led the combined objective.
+However, once the finalists were evaluated on a larger, matched 500-item sample, its estimated accuracy dropped sufficiently that it no longer led the combined objective.
 
 This was an important reminder not to optimize against a small benchmark sample.
 
 ### BitCPM4 8B TQ2_0
 
-We explored a very different strategy: use many more parameters but compress them aggressively using ternary weights.
+We explored a very different strategy: use many more parameters but aggressively compress them with ternary weights.
 
 The candidate achieved very strong reasoning accuracy, but its computational representation was poorly matched to the scalar CPU kernel. The resulting inference speed made it uncompetitive despite its accuracy.
 
@@ -222,7 +208,7 @@ On a historical 2.2 GB BitCPM test, fully streaming the model reduced peak RSS t
 
 However, this requires a modified runtime.
 
-The competition evaluates our GGUF using the organizer's llama.cpp runtime, so this optimization cannot travel inside the submitted model file.
+The competition evaluates our GGUF using the organizer's llama.cpp runtime, so this optimization cannot be applied within the submitted model file.
 
 It remains a **Muta product optimization**, not a competition-model optimization.
 
@@ -285,7 +271,7 @@ Connectivity is an enhancement to Muta, not a prerequisite for learning.
 
 A low-resource device is not only constrained by RAM.
 
-CPU inference also consumes battery power and produces heat. In the complete Muta application, this led us to implement power-aware behaviour such as **Eco Mode**, where automatic reasoning and response length can be bounded when the machine is running on battery.
+CPU inference also consumes battery power and produces heat. In the complete Muta application, this led us to implement power-aware behavior such as **Eco Mode**, where automatic reasoning and response length can be bounded when the machine is running on battery.
 
 Those product-level controls are separate from the submitted GGUF, but the same concern influenced our preference for smaller models that achieve strong reasoning performance without requiring several billion additional parameters.
 
@@ -314,7 +300,7 @@ Our current benchmark evidence is deliberately separated by CPU configuration be
 | Temperature              | Not exposed by current GCP benchmark host    |
 | Thermal throttling       | Physical-target validation pending           |
 
-These are **self-reported development measurements**, not official ADTC evaluation results. RSS is based on the measured benchmark child tree plus an estimated profiler-process allowance.
+These are **self-reported development measurements**, not official ADTC evaluation results.
 
 ### Scalar fallback candidate
 
@@ -329,17 +315,13 @@ Because the supplied participant profiler uses a different kernel configuration,
 | Estimated profiler RSS | **691 MiB**             |
 | Fixed-15 scalar total  | **80.3664**             |
 
-This split is not arbitrary.
-
 Q4_K_M performs strongly when the appropriate AVX2 vector kernels are available, while Q4_0 remains much more competitive under the supplied scalar profiler configuration.
-
-Therefore, our final submission decision depends on the exact CPU/kernel configuration used during the official audit.
 
 ---
 
 ## What the Optimization Process Taught Us
 
-The largest lesson from this project is that optimizing an offline language model is not the same thing as finding the smallest GGUF.
+The most important lesson from this project is that optimizing an offline language model is not the same as finding the smallest GGUF.
 
 The effective system is:
 
@@ -354,7 +336,7 @@ We observed models that were:
 * theoretically better quantized but slower because of kernel dispatch,
 * dramatically faster under AVX2 without any change to their weights,
 * improved in training loss without improving the actual target metric,
-* and excellent in the complete Muta runtime but impossible to benefit from in a GGUF-only submission.
+* and excellent in the complete Muta runtime, but impossible to benefit from in a GGUF-only submission.
 
 The current candidate is therefore the result of an empirical optimization campaign rather than a single model download and quantization pass.
 
@@ -370,3 +352,4 @@ Fine-tuned **Qwen3.5 0.8B Q4_0**
 **AVX2 vector configuration:**
 Fine-tuned **Qwen2.5 1.5B Q4_K_M**
 
+And if we're to pick, we'd pick **Qwen3.5 0.8B Q4_0**, to be safe!
