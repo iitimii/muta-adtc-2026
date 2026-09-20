@@ -10,10 +10,10 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MODEL_DIR="$HERE/model"
-MODEL_FILE="$MODEL_DIR/Muta-Tutor-Qwen3.5-0.8B-Q4_0.gguf"
+MODEL_FILE="$MODEL_DIR/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M.gguf"
 
 
-MODEL_URL="https://huggingface.co/timiiowolabi/Muta-Tutor-Qwen3.5-0.8B-ADTC-GGUF/resolve/main/Muta-Tutor-Qwen3.5-0.8B-Q4_0.gguf"
+MODEL_URL="https://huggingface.co/timiiowolabi/Muta-Tutor-Qwen2.5-1.5B-ADTC-GGUF"
 # ───────────────────────────────────────────────────────────────────────────────
 
 mkdir -p "$MODEL_DIR"
@@ -23,7 +23,7 @@ if [[ -f "$MODEL_FILE" ]]; then
   exit 0
 fi
 
-echo "downloading $MODEL_URL → $MODEL_FILE (~513 MB)…"
+echo "downloading $MODEL_URL → $MODEL_FILE (~986 MB)…"
 
 if command -v curl > /dev/null 2>&1; then
   curl -L --fail --progress-bar -o "$MODEL_FILE.partial" "$MODEL_URL"
