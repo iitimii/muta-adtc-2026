@@ -1835,5 +1835,95 @@ A more comprehensive Gate 2 record is in [03 · Improving Accuracy: Model fine-t
 
 <details>
 <summary><strong>Provenance</strong></summary>
+# Muta-Tutor: compressing a Qwen2.5-1.5B STEM tutor for a CPU-only audit — technical report
+
+*16–21 September 2026 · delivered model: `refine-qat100-Q4_0.gguf` (dense Qwen2, 26 layers, FFN 7168, 32k vocabulary, 1.05 B parameters, 593 MB) · Hugging Face `timiiowolabi/muta-compress-20260920`*
+
+## 1. Target and measurement
+
+`S_total = 0.5·S_acc + 0.3·min(tok/s ÷ 15, 1)·100 + 0.2·(7 − peak GB) ÷ 7·100`, so 1 tok/s is worth 2.0 points, 1 accuracy point 0.5, 100 MB 0.29. Every scored row is one run of the organisers' profiler image — llama.cpp b10175 built **scalar** (no AVX), 4 threads — on GCP `n2` proxy VMs: decode tok/s, peak RSS, ARC-Easy-50 (±7 points at n = 50). `S_acc = mean(ARC-Easy-50, Judges' acc)`. Judges' acc: greedy answers to 40 tutoring prompts (30 held-out *dev* prompts written for this work = score of record; the 10 official Round-1 prompts beside it), scored 0–10 by 8 blind LLM graders against a rubric with worked reference answers. One fixed answer set was regraded in four rounds: 28.0, 31.0, 32.0, 30.7 — a ≈4-point grader band (≈1 `S_total`). No test item or judge prompt was ever trained on.
+
+## 2. Exploration (16–19 Sep, CPU only)
+
+- **Baseline.** The published tutor (LoRA fine-tune, Q4_K_M) audits at 5.8 tok/s, 1100 MB, ARC 84: speed-bound (S_perf 38).
+- **Direction sweep, one audit per idea.** IQ2/IQ3/IQ4 imatrix quants decode at 1.9–2.9 tok/s in the scalar build (no SIMD dequant path): −24 S_perf for +6 S_eff. Imatrix on Q4_K_M: no gain. Training-free MoE (k-means experts, fitted router): ARC 54 at top-4, chance at top-2. Vocabulary 152k → 48k: +0.5. 21 layers, SFT-healed: +0.4 on ARC-50 but ARC-Easy-500 0.72 vs 0.78.
+| Direction sweep (accuracy = ARC-50 only, so not comparable with §5) | ARC-50 | tok/s | Peak MB | S_total |
+|---|---:|---:|---:|---:|
+| Published tutor, Q4_K_M | 84 | 5.77 | 1100 | 70.40 |
+| 21 layers, SFT-healed | 78 | 7.15 | 904 | 70.78 |
+| Vocabulary 48k, Q4_K_M | 82 | 6.29 | 948 | 70.93 |
+| Q4_K_M + imatrix | 82 | 5.53 | 1099 | 68.99 |
+| IQ3_M / IQ2_XXS + imatrix | 80 / 72 | 1.89 / 1.98 | 926 / 673 | 61.20 / 58.08 |
+| MoE 8×1120, untrained, top-4 / top-2 | 54 / 30 | 6.72 / 9.61 | 1288 / 1271 | 56.85 / 50.67 |
+
+- **Exhaustive depth grid.** 215 contiguous layer windows scored by perplexity, 77 by ARC, on 8 boxes: mid-stack windows (8–9, 14–15) are nearly free; the first and last layers are fatal; cutting the lowest Block-Influence layers instead of a contiguous window cost 16 ARC points.
+- **Kernel finding.** Pure **Q4_0 is the only format with a SIMD (SSSE3) kernel in the audit build**: 5.48 → 10.88 tok/s on the same weights, for −12 ARC and −21 judges' points. The rest of the work makes a Q4_0 model small, fast and accurate again.
+
+## 3. Five-step chain (19–20 Sep, rented A100-40GB)
+
+**Tooling.** 104,475-row teacher corpus (GSM8K, ARC, QASC, OpenR1 *train* questions × four tutoring frames, answered by Qwen2.5-7B-Instruct, near-duplicate guard against all held-out prompts); top-32 teacher log-prob cache with a residual bucket (59.4 M positions, 7.4 GB); KD trainer — KL on the top-32 support, fp32 masters under bf16 autocast, 8-bit AdamW, packed 16k-token micro-batches, 262k tokens/step; a 130-prompt termination gate with a text-loop detector; bit-exact Q4_0/Q8_0 fake-quant with straight-through gradients, verified against gguf-py and a C reference on 6.4 M elements including tie cases.
+
+1. **Vocabulary pruning** to 32,000 (bytes + specials + corpus-seen ids + merge-order fill; embedding 233 M → 49 M parameters; patched GGUF converter). No training. +0.99 tok/s, −108 MB, accuracy level.
+2. **Layer pruning + distillation.** Window-perplexity map → drop 14–15 (26 L) or 13–16 (24 L); heal with 81.7 M KD tokens. 26 L: val_kl 0.363 → 0.179, gate 0.854. 24 L was 1 tok/s faster but looped on 21/40 answers. An on-policy KD round made it worse (gate 0.80 → 0.68; hypothesis: the teacher scoring the student's own looping text endorses the loop).
+3. **MoE conversion + distillation — negative.** Shared expert + routed experts (top-2), 81.7 M KD tokens each. Variant b (75 % of the FFN active) is *slower* than its dense parent in the audit build (12.42 vs 13.15 tok/s — routed matmuls cost more than they save there); variant a reaches 20 tok/s but loops on 27/40 answers. Dropped. The step-4 recipe grid (imatrix; sensitivity-ranked Q8_0 promotions) and a 26-minute QAT on the MoE were built but never scored.
+
+## 4. Refinement (20–21 Sep, A100-40GB)
+
+**Width pruning instead of MoE.** FFN neurons ranked by `E[a²]·‖W_down[:, j]‖²` on 200k calibration tokens; three widths exported *unhealed* and timed on the audit build, since speed depends only on shapes: 7680 → 14.69 tok/s, **7168 → 15.45**, 6656 → 16.22. Chosen: the widest width above the 15 tok/s cap (unhealed val_kl 0.279 vs 0.179 unpruned).
+
+**Verified data (≈49 M tokens per pass).** Every teacher answer checked against the benchmark's gold answer; a hand-labelled sample exposed a parser bug that had marked 33.5 % of GSM8K answers wrong (6.8 % after the fix) → 54,896 rows kept, competition maths capped at 11 % of tokens. Added: 29,750 gold-checked orca-math/OpenBookQA rows (a second gold bug fixed: 4,377 → 18,118 usable questions), 1,508 regenerated GSM8K/ARC misses, 13,735 unrolled MathDial/ConvoLearn tutor turns, and a 15k-row style anchor scored by the original full-precision tutor.
+
+**Training.** KL + 0.3·cross-entropy, lr 1e-5 cosine, 324 M tokens in 6.1 h at 14.8k tok/s: val_kl 0.279 → 0.197; termination gate 0.900, the best of the chain. **QAT** under pure-Q4_0 noise (lr 5e-6): val_kl-under-noise 0.2466 → 0.2128 by step 100. The GPU host became unreachable near step 160 of 362; the step-100 checkpoint survived via hourly off-box backups and was exported on a GCP CPU box. Q4_0 perplexity penalty: 7.6 % without QAT, 1.6 % with.
+
+| Training progress | Tokens | val_kl start → end | Clean-ending gate (pass ≥ 0.835) |
+|---|---:|---:|---:|
+| Step 2 heal, 24 L / 26 L | 81.7 M each | 0.507 → 0.225 / 0.363 → 0.179 | 0.800 / 0.854 |
+| Step 3 MoE a / b | 81.7 M each | 0.779 → 0.328 / → 0.227 | 0.708 / 0.838 |
+| Refinement KD (FFN 7168) | 324 M | 0.279 → 0.197 | 0.900 |
+| QAT, measured under Q4_0 noise | 26 M (step 100) | 0.2466 → 0.2128 | not run (host lost) |
+
+## 5. Results (all Q4_0 unless named; audit build)
+
+**Judges' acc = 30 held-out dev prompts (score of record)**
+
+| Model | ARC-Easy acc | Judges' acc | S_acc | tok/s | S_perf | Peak RAM (MB) | S_eff | S_total |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Published tutor, 28 L, Q4_K_M | 82 | 60.0 | 71.00 | 5.48 | 36.5 | 1100 | 84.7 | 63.39 |
+| 0 · same weights, pure Q4_0 | 70 | 39.0 | 54.50 | 10.88 | 72.5 | 992 | 86.2 | 66.24 |
+| 1 · vocabulary → 32,000 | 70 | 39.7 | 54.83 | 11.87 | 79.1 | 884 | 87.7 | 68.69 |
+| 2 · 26 layers + KD heal | 70 | 28.0 | 49.00 | 13.15 | 87.7 | 810 | 88.7 | 68.54 |
+| 3 · MoE b + KD (rejected) | 68 | 20.7 | 44.33 | 12.42 | 82.8 | 816 | 88.6 | 64.73 |
+| 3 · MoE a + KD (rejected) | 60 | 2.3 | 31.17 | 20.04 | 100.0 | 798 | 88.9 | 63.36 |
+| R · FFN 7168 + verified KD | 70 | 24.0 | 47.00 | 15.42 | 100.0 | 683 | 90.5 | 71.59 |
+| **R · + QAT (delivered)** | 72 | 31.3 | 51.67 | 15.51 | 100.0 | 706 | 90.2 | **73.86** |
+
+**Judges' acc = 10 official prompts (n = 10, noisy)**
+
+| Model | ARC-Easy acc | Judges' acc | S_acc | tok/s | S_perf | Peak RAM (MB) | S_eff | S_total |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Published tutor, Q4_K_M | 82 | 45.0 | 63.50 | 5.48 | 36.5 | 1100 | 84.7 | 59.64 |
+| 0 · pure Q4_0 | 70 | 27.0 | 48.50 | 10.88 | 72.5 | 992 | 86.2 | 63.24 |
+| 1 · vocabulary | 70 | 26.0 | 48.00 | 11.87 | 79.1 | 884 | 87.7 | 65.27 |
+| 2 · 26 layers | 70 | 45.0 | 57.50 | 13.15 | 87.7 | 810 | 88.7 | 72.79 |
+| 3 · MoE b (rejected) | 68 | 34.0 | 51.00 | 12.42 | 82.8 | 816 | 88.6 | 68.06 |
+| 3 · MoE a (rejected) | 60 | 14.0 | 37.00 | 20.04 | 100.0 | 798 | 88.9 | 66.27 |
+| R · distilled | 70 | 30.0 | 50.00 | 15.42 | 100.0 | 683 | 90.5 | 73.09 |
+| **R · + QAT** | 72 | 35.0 | 53.50 | 15.51 | 100.0 | 706 | 90.2 | **74.78** |
+
+A second blind grading of the delivered model gave 33.7 dev / 32.0 official → 74.45 / 74.03; its same-batch 26-layer control scored 69.54 and 69.21.
+
+| Held-out capability | ARC-Easy-500 | GSM8K-100 | hit length cap | looping answers /40 | tutoring probe /10 |
+|---|---:|---:|---:|---:|---:|
+| 26-layer parent | 70.0 % | 49 % | 6 % | 8 | 3.24 |
+| **Delivered** | 73.4 % | 53 % | 3 % | 4 | 3.26 |
+
+**Reading.** Against the 26-layer model, `S_total` rises 4.3–5.2 points: **+3.70 is reaching the 15 tok/s cap**, +0.3 RAM, +0.3 to +1.3 accuracy — i.e. 17 % of the parameters were removed and quality was held, not raised. Judges' acc is level with the parent, inside grader noise (targets of 40–50 and ARC 75–80 were missed). ARC-Easy-500 (z ≈ 1.2) and GSM8K-100 point the right way but are not individually significant. Against the published tutor the chain gains +10.5 `S_total` by trading 29 judges' points and 10 ARC points for 2.8× the speed and −36 % RAM.
+
+## 6. Negative results and limits
+
+Scalar-build IQ quants; training-free and trained MoE; on-policy KD; the 24-layer cut; imatrix on the final model (inconclusive: −6 dev, +11 official). **Tutoring-dialogue mode does not work**: on 50 held-out MathDial dialogues the model lectures instead of guiding and 70 % of first turns contain a false statement (parent: 76 %; score 3.26 vs 3.24 of 10) (likely because dialogue rows were trained mostly toward the 7B teacher, not the human tutors' text). QAT ran 100 of 362 steps. Judges are LLM graders, a proxy for human judges. A post-delivery code review found false-accept paths in the answer verifier: re-running the corrected verifier bounds wrong answers in the main corpus at ≈0.03 % (a lower bound; ≤ ≈10 % on the orca rows, by hand-check only); 2/100 GSM8K and 1/500 ARC evaluation items have near-duplicates in the training pools, and excluding them leaves the gaps unchanged.
+
+**Next, with a GPU:** finish QAT from the published checkpoint; retrain dialogue rows on the human text only, at a larger share; regenerate the skipped QASC misses. Full record: `RESULTS.md`, `docs/compression-pipeline-results.md`, `bench/measurements/{compress-20260919,refine-20260920}/`.
+
 
 </details>
