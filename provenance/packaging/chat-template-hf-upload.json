@@ -1,0 +1,12 @@
+{
+  "repository": "timiiowolabi/Muta-Tutor-Qwen2.5-1.5B-ADTC-GGUF",
+  "repo_type": "model",
+  "path": "Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-qwen35-judge-hybrid.gguf",
+  "commit": "eea3ff3748c958e5d923e94745ad5767569d42e2",
+  "commit_url": "https://huggingface.co/timiiowolabi/Muta-Tutor-Qwen2.5-1.5B-ADTC-GGUF/commit/eea3ff3748c958e5d923e94745ad5767569d42e2",
+  "file_url": "https://huggingface.co/timiiowolabi/Muta-Tutor-Qwen2.5-1.5B-ADTC-GGUF/resolve/main/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-qwen35-judge-hybrid.gguf",
+  "bytes": 986058272,
+  "sha256": "ac512cc323a84546333baa256216fdf2035668f6ef092df1e2928bcc04339e3c",
+  "remote_content_length_verified": true,
+  "private_training_corpus_uploaded": false
+}

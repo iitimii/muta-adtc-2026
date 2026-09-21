@@ -1,0 +1,43 @@
+{
+  "operation": "embed_gguf_chat_template",
+  "completed_at": "2026-09-21",
+  "source_model": {
+    "path": "models/candidates/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M.gguf",
+    "bytes": 986048128,
+    "sha256": "a750d00d458c6ab38925364ea1413db00648449180941e47025736d09922e1eb",
+    "tensor_sha256": "453e2452a8f7671d4de31fb1730cc2a05bce13fb469f98a2c93bdb3d62e1a6fc"
+  },
+  "template": {
+    "path": "muta-iq/opt/templates/qwen35_judge_hybrid.jinja",
+    "bytes": 12660,
+    "sha256": "4844a94dedcc9853bd2d39a8f3f88f4c9c7066c9dce601b96f36050dea92c3f6",
+    "metadata_key": "tokenizer.chat_template"
+  },
+  "output_model": {
+    "path": "models/candidates/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-qwen35-judge-hybrid.gguf",
+    "bytes": 986058272,
+    "sha256": "ac512cc323a84546333baa256216fdf2035668f6ef092df1e2928bcc04339e3c",
+    "tensor_sha256": "453e2452a8f7671d4de31fb1730cc2a05bce13fb469f98a2c93bdb3d62e1a6fc",
+    "embedded_template_bytes": 12660,
+    "embedded_template_sha256": "4844a94dedcc9853bd2d39a8f3f88f4c9c7066c9dce601b96f36050dea92c3f6"
+  },
+  "verification": {
+    "tensor_count_source": 338,
+    "tensor_count_output": 338,
+    "non_template_metadata_changed": [],
+    "external_template_smoke": "passed",
+    "embedded_template_smoke": "passed",
+    "smokes": [
+      "single-turn arithmetic: 2 + 3 -> The answer is 5.",
+      "multi-turn tutoring: misconception correction -> normal stop"
+    ],
+    "llama_cpp": "b10035-602f828b4",
+    "embedded_props_template_sha256": "95d98025d87d325fac442c009e920504d7ea7e07e91265fcea9543b86c99783c",
+    "embedded_props_note": "llama-server exposes the template without its final newline; the GGUF metadata retains the exact 12660-byte source template"
+  },
+  "promotion": {
+    "original_incumbent_preserved": true,
+    "default_filename_replaced": false,
+    "quality_evaluation_required_before_promotion": true
+  }
+}

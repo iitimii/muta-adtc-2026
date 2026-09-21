@@ -1,0 +1,530 @@
+{
+  "adapter": {
+    "bytes": 85342905,
+    "file_count": 6,
+    "files": [
+      {
+        "bytes": 5344,
+        "path": "README.md",
+        "sha256": "1ec4730defe64ac8230113e13ee7669a214eb77d6e0e26cab5ba26cd17a40881"
+      },
+      {
+        "bytes": 1357,
+        "path": "adapter_config.json",
+        "sha256": "7930bb553745ba37d29a310cff32b3126401890646febb3ae3aed0297d216812"
+      },
+      {
+        "bytes": 73911112,
+        "path": "adapter_model.safetensors",
+        "sha256": "5dd66ca8c79455b8ef3deb0219f6e91397f412a05fc4f3846bd194e0fea2e5c6"
+      },
+      {
+        "bytes": 2507,
+        "path": "chat_template.jinja",
+        "sha256": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f"
+      },
+      {
+        "bytes": 11421892,
+        "path": "tokenizer.json",
+        "sha256": "3fd169731d2cbde95e10bf356d66d5997fd885dd8dbb6fb4684da3f23b2585d8"
+      },
+      {
+        "bytes": 693,
+        "path": "tokenizer_config.json",
+        "sha256": "42da4d0fc593229983d8879cd5b96eaa0f6f817ec5327373cfdb46e638c16a7e"
+      }
+    ],
+    "root": "/lambda/nfs/awf-tmp/muta/campaign-20260918/runs/full/full-best-warm-private-enriched/adapter",
+    "tree_sha256": "40afb30a1f0931ad7ee90b42fd711df3a64145c1a1829cbd8bbc8574c138b9a6"
+  },
+  "adapter_selection": {
+    "best_checkpoint_adapter_config_sha256": "7930bb553745ba37d29a310cff32b3126401890646febb3ae3aed0297d216812",
+    "best_checkpoint_adapter_model_sha256": "5dd66ca8c79455b8ef3deb0219f6e91397f412a05fc4f3846bd194e0fea2e5c6",
+    "best_checkpoint_relative_path": "checkpoints/checkpoint-4693",
+    "best_checkpoint_step": 4693,
+    "best_metric": 0.022473247721791267,
+    "best_metric_name": "eval_loss",
+    "final_adapter_config_sha256": "7930bb553745ba37d29a310cff32b3126401890646febb3ae3aed0297d216812",
+    "final_adapter_model_sha256": "5dd66ca8c79455b8ef3deb0219f6e91397f412a05fc4f3846bd194e0fea2e5c6",
+    "policy": "minimum_eval_loss"
+  },
+  "base_lineage": {
+    "observed": {
+      "bytes": 3098900988,
+      "file_count": 6,
+      "files": [
+        {
+          "bytes": 2507,
+          "path": "chat_template.jinja",
+          "sha256": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f"
+        },
+        {
+          "bytes": 1559,
+          "path": "config.json",
+          "sha256": "54cdb2c601e776c516944180e20afcbc1d4703e4aae1fb9992c4267e592cd943"
+        },
+        {
+          "bytes": 264,
+          "path": "generation_config.json",
+          "sha256": "07a1bb92be644dad5d1cf08629a670d9599006c05c0acada948185fec99d2679"
+        },
+        {
+          "bytes": 3087467144,
+          "path": "model.safetensors",
+          "sha256": "ecf2bfc3166a059935b902c44720298f8d4a5e2fda6bf57dacf928ca5747da88"
+        },
+        {
+          "bytes": 11422166,
+          "path": "tokenizer.json",
+          "sha256": "6b4360dd6a184650ffc48056c2569bc603f896c5adfe94b10f1c79f809638aa5"
+        },
+        {
+          "bytes": 7348,
+          "path": "tokenizer_config.json",
+          "sha256": "faf96c5a15aaaabbc243a2fd1300402a3a938ec26aee464862141b6570def7bd"
+        }
+      ],
+      "root": "/home/ubuntu/muta-finetune/runs-metric/qwen25-bf16-r16-licensed-mcq-lr2e5-500/merged_16bit",
+      "tree_sha256": "02add79d0a5d451c7b75a986a4d3154bf6a98e23f12d9f913f00036c1909fec8"
+    },
+    "receipt": {
+      "collector": {
+        "bytes": 3937,
+        "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/provenance/collect_lineage.py",
+        "sha256": "cb974a5a58e449553c204d16d7cd93f39372d5814e1f371f0e16a6433c39d652"
+      },
+      "created_unix": 1789697541.9194715,
+      "host": "129-213-31-157",
+      "lineage": "warm",
+      "prior_stage": {
+        "adapter": {
+          "bytes": 85346993,
+          "file_count": 6,
+          "files": [
+            {
+              "bytes": 5216,
+              "path": "README.md",
+              "sha256": "e6ecb62553d8964497f5367fc20a2d17c2cb5fa9bc79d4fc6547826e1717eb7e"
+            },
+            {
+              "bytes": 1293,
+              "path": "adapter_config.json",
+              "sha256": "782b6afad59a93f3432b4da5e8b9e536f728a0d832f34370ca582f87a2b4b387"
+            },
+            {
+              "bytes": 73911112,
+              "path": "adapter_model.safetensors",
+              "sha256": "aad98dc13535c2e5144f78850f297ba95621bd4ed51f79e4fcc634aae432c795"
+            },
+            {
+              "bytes": 2507,
+              "path": "chat_template.jinja",
+              "sha256": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f"
+            },
+            {
+              "bytes": 11422166,
+              "path": "tokenizer.json",
+              "sha256": "6b4360dd6a184650ffc48056c2569bc603f896c5adfe94b10f1c79f809638aa5"
+            },
+            {
+              "bytes": 4699,
+              "path": "tokenizer_config.json",
+              "sha256": "f0eb1e370f0fbd75380a8a7d41c1b871330cb427f06867a3d5bc9e50ca51dc53"
+            }
+          ],
+          "root": "/home/ubuntu/muta-finetune/runs-metric/qwen25-bf16-r16-licensed-mcq-lr2e5-500/adapter",
+          "tree_sha256": "6adc4394871fcc87d45aca7a2d6fe2a871122260500e71d236fe1b9d6c6d3f9e"
+        },
+        "already_merged_into_training_base": true,
+        "description": "BF16 LoRA r16, 500 steps, licence-clean ARC/QASC MCQ mixture",
+        "published_gguf": {
+          "bytes": 986048128,
+          "path": "/home/ubuntu/muta-finetune/runs-metric/qwen25-bf16-r16-licensed-mcq-lr2e5-500/gguf_gguf/Qwen2.5-1.5B-Instruct.Q4_K_M.gguf",
+          "sha256": "a750d00d458c6ab38925364ea1413db00648449180941e47025736d09922e1eb"
+        },
+        "published_huggingface_commit": "a27fa778dd40cf89fc9d66b18cd767e34892ec3a",
+        "training_manifest": {
+          "bytes": 1371,
+          "path": "/home/ubuntu/muta-finetune/runs-metric/qwen25-bf16-r16-licensed-mcq-lr2e5-500/training-manifest.json",
+          "sha256": "fe4cbb0e7211277f3ff0d028cabd75bcfb9f73f6a6e5cecd3fe77a57fc8a70df"
+        }
+      },
+      "schema_version": 1,
+      "training_base": {
+        "bytes": 3098900988,
+        "file_count": 6,
+        "files": [
+          {
+            "bytes": 2507,
+            "path": "chat_template.jinja",
+            "sha256": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f"
+          },
+          {
+            "bytes": 1559,
+            "path": "config.json",
+            "sha256": "54cdb2c601e776c516944180e20afcbc1d4703e4aae1fb9992c4267e592cd943"
+          },
+          {
+            "bytes": 264,
+            "path": "generation_config.json",
+            "sha256": "07a1bb92be644dad5d1cf08629a670d9599006c05c0acada948185fec99d2679"
+          },
+          {
+            "bytes": 3087467144,
+            "path": "model.safetensors",
+            "sha256": "ecf2bfc3166a059935b902c44720298f8d4a5e2fda6bf57dacf928ca5747da88"
+          },
+          {
+            "bytes": 11422166,
+            "path": "tokenizer.json",
+            "sha256": "6b4360dd6a184650ffc48056c2569bc603f896c5adfe94b10f1c79f809638aa5"
+          },
+          {
+            "bytes": 7348,
+            "path": "tokenizer_config.json",
+            "sha256": "faf96c5a15aaaabbc243a2fd1300402a3a938ec26aee464862141b6570def7bd"
+          }
+        ],
+        "root": "/home/ubuntu/muta-finetune/runs-metric/qwen25-bf16-r16-licensed-mcq-lr2e5-500/merged_16bit",
+        "tree_sha256": "02add79d0a5d451c7b75a986a4d3154bf6a98e23f12d9f913f00036c1909fec8"
+      },
+      "upstream": {
+        "license": "Apache-2.0",
+        "model": "Qwen/Qwen2.5-1.5B-Instruct",
+        "model_safetensors_sha256": "dd924a11b4c220f385b51ffa522daea7c9f3d850e31b162bb5661df483c6d3ee",
+        "revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306"
+      }
+    },
+    "receipt_sha256": "27c21acb1425511f0cb013283a522afe69409aa25c91412946b040b89fc43354"
+  },
+  "batch_size": 64,
+  "campaign_config": {
+    "bytes": 65259,
+    "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/code/fullstage-v3-20260918T2035/provenance/configs/full-runs-v3.json",
+    "sha256": "da828b9146415ca822fecf1961808b914e9666cf7452de34e7704b97f83675da"
+  },
+  "completion_only_loss": true,
+  "dataset": {
+    "dataset_fingerprint_sha256": "037edf28cccff62d90c23e2d6caf56b9998dea6928080f98af2a513f9f92910e",
+    "manifest_path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/data/muta-stem-v2-sft-300k-quality-first-20260917-v1/manifest.json",
+    "manifest_sha256": "93b7dbcbad72350e099d8951effcbc9a253693dc364b25ffc165102a6e844f4e",
+    "row_count": 300350,
+    "shards": [
+      {
+        "bytes": 67687739,
+        "path": "part-00000.jsonl",
+        "rows": 25000,
+        "sha256": "4640a201fb729650d73b371bb35de1dc898d2334f7f76af864a67ce9c6d6b2f1"
+      },
+      {
+        "bytes": 60424563,
+        "path": "part-00001.jsonl",
+        "rows": 25000,
+        "sha256": "ce778cc9a0f59cdabaf68dff228ad8ac80d3a740cdf9924d9307acff78569dda"
+      },
+      {
+        "bytes": 66360072,
+        "path": "part-00002.jsonl",
+        "rows": 25000,
+        "sha256": "94e7fa72cd4c715241fa9a4e119c2a7b5b076cacac492ba0333227e523353643"
+      },
+      {
+        "bytes": 62842881,
+        "path": "part-00003.jsonl",
+        "rows": 25000,
+        "sha256": "da294b457e6c06266fc608a82581b9ed11c007d51b66a2c1d07fd45055e382d6"
+      },
+      {
+        "bytes": 68257605,
+        "path": "part-00004.jsonl",
+        "rows": 25000,
+        "sha256": "3f2207562d5e435c46fdb5a961dc6c1c223056b528bec5be40f764ff3aab01ce"
+      },
+      {
+        "bytes": 64169191,
+        "path": "part-00005.jsonl",
+        "rows": 25000,
+        "sha256": "772a2e483849156836a44199ef1acdaddefd2ce944f906326c8a30274f135aa8"
+      },
+      {
+        "bytes": 63856555,
+        "path": "part-00006.jsonl",
+        "rows": 25000,
+        "sha256": "7f1755035c36723a04c2e808ca17d439dabd681fe42d89bcb6ef849eb62a45a2"
+      },
+      {
+        "bytes": 66590047,
+        "path": "part-00007.jsonl",
+        "rows": 25000,
+        "sha256": "aed590e62510afb960a34df9db965bad475781ef84014c87de1b709840c15184"
+      },
+      {
+        "bytes": 64782768,
+        "path": "part-00008.jsonl",
+        "rows": 25000,
+        "sha256": "1294ae40409d45657a42b0b4e2c03f1827cd0bb884dffb9e2037dfd9b2b5a59c"
+      },
+      {
+        "bytes": 69842629,
+        "path": "part-00009.jsonl",
+        "rows": 25000,
+        "sha256": "2586ec448656a1746170e376e4fb049917bf0b9eabe2a5cc304ac708cc51a9d9"
+      },
+      {
+        "bytes": 65315098,
+        "path": "part-00010.jsonl",
+        "rows": 25000,
+        "sha256": "9b13f65d1a60da270a38803384c80cd96b63550af97cb9953fe0725b001dc09f"
+      },
+      {
+        "bytes": 54307774,
+        "path": "part-00011.jsonl",
+        "rows": 25000,
+        "sha256": "60440aac97e55949ae85472a81c2b5b9161b8df3e43a93510721311e49507ea0"
+      },
+      {
+        "bytes": 296036,
+        "path": "part-00012-private-waec-e1720e95858d.jsonl",
+        "rows": 47,
+        "sha256": "c165a0e0f7ede07b9e2843aef5ac714c88b45dbdfd73f99d733d3b35b115bb4e"
+      },
+      {
+        "bytes": 1716873,
+        "path": "part-00013-private-waec-363447d90421.jsonl",
+        "rows": 303,
+        "sha256": "9514e87da6237cd0f2dd9b6f73d19d7ba447ea83ecfb333cf45e8778f22648c6"
+      }
+    ]
+  },
+  "elapsed_seconds": 5675.792,
+  "environment": {
+    "cuda": "12.8",
+    "cuda_visible_devices": "0",
+    "gpu": "NVIDIA A100-SXM4-40GB",
+    "hostname": "129-213-31-157",
+    "packages": {
+      "accelerate": "1.14.0",
+      "bitsandbytes": "0.50.1",
+      "datasets": "4.3.0",
+      "huggingface-hub": "1.28.0",
+      "matplotlib": "3.6.3",
+      "numpy": "1.26.4",
+      "peft": "0.20.0",
+      "safetensors": "0.8.0",
+      "torch": "2.7.0",
+      "transformers": "5.5.0",
+      "triton": "3.3.0",
+      "trl": "0.24.0",
+      "unsloth": "2026.8.19",
+      "xformers": "0.0.30"
+    },
+    "platform": "Linux-6.8.0-1046-nvidia-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "slurm_array_job_id": null,
+    "slurm_array_task_id": null,
+    "slurm_job_id": null,
+    "torch": "2.7.0",
+    "unsloth_compile_location": "/lambda/nfs/awf-tmp/muta/campaign-20260918/runs/full/.unsloth-compiled-cache-8e6b342f57634a88"
+  },
+  "epochs": 1.0,
+  "eval_batch_size": 64,
+  "eval_steps": 250,
+  "git": {
+    "available": false
+  },
+  "global_batch_per_gpu": 64,
+  "gpu_memory": {
+    "before_training": {
+      "current_allocated_bytes": 3199037952,
+      "current_reserved_bytes": 3223322624,
+      "device_index": 0,
+      "device_name": "NVIDIA A100-SXM4-40GB",
+      "device_total_bytes": 42405855232,
+      "peak_allocated_bytes": 3199275008,
+      "peak_reserved_bytes": 3223322624
+    },
+    "final_evaluation": {
+      "current_allocated_bytes": 3430046720,
+      "current_reserved_bytes": 21063794688,
+      "device_index": 0,
+      "device_name": "NVIDIA A100-SXM4-40GB",
+      "device_total_bytes": 42405855232,
+      "peak_allocated_bytes": 20700171776,
+      "peak_reserved_bytes": 21063794688
+    },
+    "training": {
+      "current_allocated_bytes": 3430046720,
+      "current_reserved_bytes": 21063794688,
+      "device_index": 0,
+      "device_name": "NVIDIA A100-SXM4-40GB",
+      "device_total_bytes": 42405855232,
+      "peak_allocated_bytes": 20700595712,
+      "peak_reserved_bytes": 21063794688
+    }
+  },
+  "gradient_accumulation": 1,
+  "initial_adapter_load": null,
+  "initial_adapter_receipt": null,
+  "learning_rate": 5e-06,
+  "lineage": "warm",
+  "logging_steps": 47,
+  "lora_alpha": 16,
+  "max_length": 512,
+  "max_steps": -1,
+  "metrics": {
+    "loss-curve.png": {
+      "bytes": 52034,
+      "sha256": "be326b25eaf1d4f14b8b6133cde8cb6af73843149741b5ed6cd7a9e48f5f0f2f"
+    },
+    "loss-curve.svg": {
+      "bytes": 31979,
+      "sha256": "c04d6989b76376e754bf9f8ab6f663593ae3b8dd46c2b6ab342abab0fac1c6b0"
+    },
+    "metrics.csv": {
+      "bytes": 10154,
+      "sha256": "bc905c7faf6ea84a719ded47bd674dc770650ce0cbd72ad5dbb2d41b74ce1cec"
+    },
+    "metrics.jsonl": {
+      "bytes": 15560,
+      "sha256": "9e0f85088e9cb0f8728a6e7d37befa0dfc45153a70557791f73694f1a2135bf2"
+    }
+  },
+  "pilot_rows": null,
+  "planned_steps": 4693,
+  "private_policy": "include",
+  "rank": 16,
+  "resume": {
+    "checkpoint_step": null,
+    "initial_resolved_config_sha256": "b445200236987ce6d6bc620ca5f0b851b046c2841b118bd0763fe3dacb7976f7",
+    "requested": false,
+    "retry_from_scratch": false,
+    "treatment_signature_sha256": "5a0eaa6a74dccd088b9b9ef6ad8366b7c59c2b8d5a5e1b77c54b78957489ab80"
+  },
+  "run_name": "full-best-warm-private-enriched",
+  "save_steps": 250,
+  "schedule": {
+    "kind": "milestones",
+    "observed_eval_steps": [
+      1174,
+      2347,
+      4693
+    ],
+    "requested_steps": [
+      1174,
+      2347,
+      4693
+    ],
+    "session_save_callback_steps": [
+      1174,
+      2347,
+      4693
+    ],
+    "surviving_checkpoint_steps": [
+      1174,
+      2347,
+      4693
+    ],
+    "trainer_interval": 4694
+  },
+  "schema_version": 2,
+  "scripts": {
+    "campaign_io.py": "ded88829f91109eb6664d3cf177cde7a8c9665cab731204213ab33047b8fe121",
+    "train_lora.py": "bfca938da9413ef61a12d4c46ee853d74ebf0c7af69749411e000f8c88e06637",
+    "train_lora_round2.py": "fd72eaa4e1c2ec86a2494473fe3b6f5be9a95b590f6a04a31f7e48375659ee13"
+  },
+  "seed": 3407,
+  "source_counts_after_policy": {
+    "cheetahwaec": 303,
+    "deepmind_mathematics": 20000,
+    "muta_verified_stem_v2": 280000,
+    "waec_elearning": 47
+  },
+  "source_counts_before_policy": {
+    "cheetahwaec": 303,
+    "deepmind_mathematics": 20000,
+    "muta_verified_stem_v2": 280000,
+    "waec_elearning": 47
+  },
+  "target_modules": [
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj",
+    "gate_proj",
+    "up_proj",
+    "down_proj"
+  ],
+  "tokenization": {
+    "train": {
+      "assistant_tokens": 25106185,
+      "max_sequence_tokens": 459,
+      "rows": 300350,
+      "sequence_tokens": 48837785
+    },
+    "validation": {
+      "assistant_tokens": 418227,
+      "max_sequence_tokens": 296,
+      "rows": 5000,
+      "sequence_tokens": 812568
+    }
+  },
+  "tokenizer": {
+    "files": {
+      "tokenizer.json": {
+        "bytes": 7031645,
+        "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/bases/upstream-qwen25/tokenizer.json",
+        "sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539"
+      },
+      "tokenizer_config.json": {
+        "bytes": 7305,
+        "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/bases/upstream-qwen25/tokenizer_config.json",
+        "sha256": "5b5d4f65d0acd3b2d56a35b56d374a36cbc1c8fa5cf3b3febbbfabf22f359583"
+      }
+    },
+    "lineage_receipt_sha256": "e92c17e795759007127c8a52783f29e7f2a8a0d438c3fc9fc1e5fa4af5dfe9e6"
+  },
+  "train_metrics": {
+    "epoch": 1.0,
+    "total_flos": 6.589075940850831e+17,
+    "train_loss": 0.13283895874694038,
+    "train_runtime": 5630.2828,
+    "train_samples_per_second": 53.345,
+    "train_steps_per_second": 0.834
+  },
+  "train_ordered_id_sha256": "2ea488a811507ff1c20c7925555d82504ba44da91bea43a91057365775b0a304",
+  "trainer_epoch": 1.0,
+  "trainer_global_step": 4693,
+  "training_method": "lora_bf16",
+  "training_source_counts": {
+    "cheetahwaec": 303,
+    "deepmind_mathematics": 20000,
+    "muta_verified_stem_v2": 280000,
+    "waec_elearning": 47
+  },
+  "validation": {
+    "dataset_fingerprint_sha256": "c056e1744fe148f847354527aa7c7caf6b1fc24fec509f9834d700345e68cc8b",
+    "manifest_path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/data/round2-dev-5000/manifest.json",
+    "manifest_sha256": "2bbde7545eef5ddd531705e6e71ebc09321e3c7bfbb371ec89ed471696dda301",
+    "row_count": 5000,
+    "shards": [
+      {
+        "bytes": 12901290,
+        "path": "dev.jsonl",
+        "rows": 5000,
+        "sha256": "ca7d182a4536c9fabee8eacd38b34ac1428370c4324cb846a58de6dd8b3e8237"
+      }
+    ]
+  },
+  "validation_metrics": {
+    "epoch": 1.0,
+    "eval_loss": 0.022473247721791267,
+    "eval_runtime": 31.1117,
+    "eval_samples_per_second": 160.711,
+    "eval_steps_per_second": 2.539
+  },
+  "validation_ordered_id_sha256": "5cf139cc334aa1ad2f2afea759960ec137fd66f425e5db25872318b9dfc32a98",
+  "validation_rows": null,
+  "warmup_ratio": 0.03,
+  "warmup_steps": 141,
+  "weight_decay": 0.0
+}

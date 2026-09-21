@@ -1,0 +1,517 @@
+{
+  "adapter": {
+    "bytes": 85342827,
+    "file_count": 6,
+    "files": [
+      {
+        "bytes": 5292,
+        "path": "README.md",
+        "sha256": "aa19b96bb2584355baf55aa0772101a3ce6b139ed83d10dfe5d9698850bd23bb"
+      },
+      {
+        "bytes": 1331,
+        "path": "adapter_config.json",
+        "sha256": "1d7b1263e67770b49112254919d2d5871b356a777c4377707e0f74145e28b2ea"
+      },
+      {
+        "bytes": 73911112,
+        "path": "adapter_model.safetensors",
+        "sha256": "312523b2c0c74f246cfee5ce37cdcb69c9a4541e73b1fc8c80654b1ad3e2e33d"
+      },
+      {
+        "bytes": 2507,
+        "path": "chat_template.jinja",
+        "sha256": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f"
+      },
+      {
+        "bytes": 11421892,
+        "path": "tokenizer.json",
+        "sha256": "3fd169731d2cbde95e10bf356d66d5997fd885dd8dbb6fb4684da3f23b2585d8"
+      },
+      {
+        "bytes": 693,
+        "path": "tokenizer_config.json",
+        "sha256": "42da4d0fc593229983d8879cd5b96eaa0f6f817ec5327373cfdb46e638c16a7e"
+      }
+    ],
+    "root": "/lambda/nfs/awf-tmp/muta/campaign-20260918/runs/full/full-best-clean-private-enriched/adapter",
+    "tree_sha256": "c60a47366f775ca985c7fa91aa3372a017accabf80d53dbeaea33445b8352339"
+  },
+  "adapter_selection": {
+    "best_checkpoint_adapter_config_sha256": "1d7b1263e67770b49112254919d2d5871b356a777c4377707e0f74145e28b2ea",
+    "best_checkpoint_adapter_model_sha256": "312523b2c0c74f246cfee5ce37cdcb69c9a4541e73b1fc8c80654b1ad3e2e33d",
+    "best_checkpoint_relative_path": "checkpoints/checkpoint-4693",
+    "best_checkpoint_step": 4693,
+    "best_metric": 0.018999429419636726,
+    "best_metric_name": "eval_loss",
+    "final_adapter_config_sha256": "1d7b1263e67770b49112254919d2d5871b356a777c4377707e0f74145e28b2ea",
+    "final_adapter_model_sha256": "312523b2c0c74f246cfee5ce37cdcb69c9a4541e73b1fc8c80654b1ad3e2e33d",
+    "policy": "minimum_eval_loss"
+  },
+  "base_lineage": {
+    "observed": {
+      "bytes": 3098973447,
+      "file_count": 10,
+      "files": [
+        {
+          "bytes": 1519,
+          "path": ".gitattributes",
+          "sha256": "11ad7efa24975ee4b0c3c3a38ed18737f0658a5f75a0a96787b576a78a023361"
+        },
+        {
+          "bytes": 11343,
+          "path": "LICENSE",
+          "sha256": "832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e"
+        },
+        {
+          "bytes": 4917,
+          "path": "README.md",
+          "sha256": "2e1bcd8bd964728a820be709fa0f7b9dd54817a94fd2254c535df70c5e67fada"
+        },
+        {
+          "bytes": 660,
+          "path": "config.json",
+          "sha256": "98d2ff8cc47488d08a2b0b3acf4eb99ef210779b42bd48605f6b8e36acdbf670"
+        },
+        {
+          "bytes": 242,
+          "path": "generation_config.json",
+          "sha256": "e558847a8b4402616f1273797b015104dc266fe4b520056fca88823ba8f8ebe6"
+        },
+        {
+          "bytes": 1671839,
+          "path": "merges.txt",
+          "sha256": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3"
+        },
+        {
+          "bytes": 3087467144,
+          "path": "model.safetensors",
+          "sha256": "dd924a11b4c220f385b51ffa522daea7c9f3d850e31b162bb5661df483c6d3ee"
+        },
+        {
+          "bytes": 7031645,
+          "path": "tokenizer.json",
+          "sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539"
+        },
+        {
+          "bytes": 7305,
+          "path": "tokenizer_config.json",
+          "sha256": "5b5d4f65d0acd3b2d56a35b56d374a36cbc1c8fa5cf3b3febbbfabf22f359583"
+        },
+        {
+          "bytes": 2776833,
+          "path": "vocab.json",
+          "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        }
+      ],
+      "root": "/lambda/nfs/awf-tmp/muta/campaign-20260918/bases/upstream-qwen25",
+      "tree_sha256": "ae1baefcdac4c037b545696abffc1bd07824c109572163664333b5a5c0dda892"
+    },
+    "receipt": {
+      "collector": {
+        "bytes": 3937,
+        "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/provenance/collect_lineage.py",
+        "sha256": "cb974a5a58e449553c204d16d7cd93f39372d5814e1f371f0e16a6433c39d652"
+      },
+      "created_unix": 1789697538.546577,
+      "host": "129-213-31-157",
+      "lineage": "clean",
+      "schema_version": 1,
+      "training_base": {
+        "bytes": 3098973447,
+        "file_count": 10,
+        "files": [
+          {
+            "bytes": 1519,
+            "path": ".gitattributes",
+            "sha256": "11ad7efa24975ee4b0c3c3a38ed18737f0658a5f75a0a96787b576a78a023361"
+          },
+          {
+            "bytes": 11343,
+            "path": "LICENSE",
+            "sha256": "832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e"
+          },
+          {
+            "bytes": 4917,
+            "path": "README.md",
+            "sha256": "2e1bcd8bd964728a820be709fa0f7b9dd54817a94fd2254c535df70c5e67fada"
+          },
+          {
+            "bytes": 660,
+            "path": "config.json",
+            "sha256": "98d2ff8cc47488d08a2b0b3acf4eb99ef210779b42bd48605f6b8e36acdbf670"
+          },
+          {
+            "bytes": 242,
+            "path": "generation_config.json",
+            "sha256": "e558847a8b4402616f1273797b015104dc266fe4b520056fca88823ba8f8ebe6"
+          },
+          {
+            "bytes": 1671839,
+            "path": "merges.txt",
+            "sha256": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3"
+          },
+          {
+            "bytes": 3087467144,
+            "path": "model.safetensors",
+            "sha256": "dd924a11b4c220f385b51ffa522daea7c9f3d850e31b162bb5661df483c6d3ee"
+          },
+          {
+            "bytes": 7031645,
+            "path": "tokenizer.json",
+            "sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539"
+          },
+          {
+            "bytes": 7305,
+            "path": "tokenizer_config.json",
+            "sha256": "5b5d4f65d0acd3b2d56a35b56d374a36cbc1c8fa5cf3b3febbbfabf22f359583"
+          },
+          {
+            "bytes": 2776833,
+            "path": "vocab.json",
+            "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+          }
+        ],
+        "root": "/lambda/nfs/awf-tmp/muta/campaign-20260918/bases/upstream-qwen25",
+        "tree_sha256": "ae1baefcdac4c037b545696abffc1bd07824c109572163664333b5a5c0dda892"
+      },
+      "upstream": {
+        "license": "Apache-2.0",
+        "model": "Qwen/Qwen2.5-1.5B-Instruct",
+        "model_safetensors_sha256": "dd924a11b4c220f385b51ffa522daea7c9f3d850e31b162bb5661df483c6d3ee",
+        "revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306"
+      }
+    },
+    "receipt_sha256": "e92c17e795759007127c8a52783f29e7f2a8a0d438c3fc9fc1e5fa4af5dfe9e6"
+  },
+  "batch_size": 64,
+  "campaign_config": {
+    "bytes": 65259,
+    "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/code/fullstage-v3-20260918T2035/provenance/configs/full-runs-v3.json",
+    "sha256": "da828b9146415ca822fecf1961808b914e9666cf7452de34e7704b97f83675da"
+  },
+  "completion_only_loss": true,
+  "dataset": {
+    "dataset_fingerprint_sha256": "037edf28cccff62d90c23e2d6caf56b9998dea6928080f98af2a513f9f92910e",
+    "manifest_path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/data/muta-stem-v2-sft-300k-quality-first-20260917-v1/manifest.json",
+    "manifest_sha256": "93b7dbcbad72350e099d8951effcbc9a253693dc364b25ffc165102a6e844f4e",
+    "row_count": 300350,
+    "shards": [
+      {
+        "bytes": 67687739,
+        "path": "part-00000.jsonl",
+        "rows": 25000,
+        "sha256": "4640a201fb729650d73b371bb35de1dc898d2334f7f76af864a67ce9c6d6b2f1"
+      },
+      {
+        "bytes": 60424563,
+        "path": "part-00001.jsonl",
+        "rows": 25000,
+        "sha256": "ce778cc9a0f59cdabaf68dff228ad8ac80d3a740cdf9924d9307acff78569dda"
+      },
+      {
+        "bytes": 66360072,
+        "path": "part-00002.jsonl",
+        "rows": 25000,
+        "sha256": "94e7fa72cd4c715241fa9a4e119c2a7b5b076cacac492ba0333227e523353643"
+      },
+      {
+        "bytes": 62842881,
+        "path": "part-00003.jsonl",
+        "rows": 25000,
+        "sha256": "da294b457e6c06266fc608a82581b9ed11c007d51b66a2c1d07fd45055e382d6"
+      },
+      {
+        "bytes": 68257605,
+        "path": "part-00004.jsonl",
+        "rows": 25000,
+        "sha256": "3f2207562d5e435c46fdb5a961dc6c1c223056b528bec5be40f764ff3aab01ce"
+      },
+      {
+        "bytes": 64169191,
+        "path": "part-00005.jsonl",
+        "rows": 25000,
+        "sha256": "772a2e483849156836a44199ef1acdaddefd2ce944f906326c8a30274f135aa8"
+      },
+      {
+        "bytes": 63856555,
+        "path": "part-00006.jsonl",
+        "rows": 25000,
+        "sha256": "7f1755035c36723a04c2e808ca17d439dabd681fe42d89bcb6ef849eb62a45a2"
+      },
+      {
+        "bytes": 66590047,
+        "path": "part-00007.jsonl",
+        "rows": 25000,
+        "sha256": "aed590e62510afb960a34df9db965bad475781ef84014c87de1b709840c15184"
+      },
+      {
+        "bytes": 64782768,
+        "path": "part-00008.jsonl",
+        "rows": 25000,
+        "sha256": "1294ae40409d45657a42b0b4e2c03f1827cd0bb884dffb9e2037dfd9b2b5a59c"
+      },
+      {
+        "bytes": 69842629,
+        "path": "part-00009.jsonl",
+        "rows": 25000,
+        "sha256": "2586ec448656a1746170e376e4fb049917bf0b9eabe2a5cc304ac708cc51a9d9"
+      },
+      {
+        "bytes": 65315098,
+        "path": "part-00010.jsonl",
+        "rows": 25000,
+        "sha256": "9b13f65d1a60da270a38803384c80cd96b63550af97cb9953fe0725b001dc09f"
+      },
+      {
+        "bytes": 54307774,
+        "path": "part-00011.jsonl",
+        "rows": 25000,
+        "sha256": "60440aac97e55949ae85472a81c2b5b9161b8df3e43a93510721311e49507ea0"
+      },
+      {
+        "bytes": 296036,
+        "path": "part-00012-private-waec-e1720e95858d.jsonl",
+        "rows": 47,
+        "sha256": "c165a0e0f7ede07b9e2843aef5ac714c88b45dbdfd73f99d733d3b35b115bb4e"
+      },
+      {
+        "bytes": 1716873,
+        "path": "part-00013-private-waec-363447d90421.jsonl",
+        "rows": 303,
+        "sha256": "9514e87da6237cd0f2dd9b6f73d19d7ba447ea83ecfb333cf45e8778f22648c6"
+      }
+    ]
+  },
+  "elapsed_seconds": 5677.992,
+  "environment": {
+    "cuda": "12.8",
+    "cuda_visible_devices": "0",
+    "gpu": "NVIDIA A100-SXM4-40GB",
+    "hostname": "129-213-31-157",
+    "packages": {
+      "accelerate": "1.14.0",
+      "bitsandbytes": "0.50.1",
+      "datasets": "4.3.0",
+      "huggingface-hub": "1.28.0",
+      "matplotlib": "3.6.3",
+      "numpy": "1.26.4",
+      "peft": "0.20.0",
+      "safetensors": "0.8.0",
+      "torch": "2.7.0",
+      "transformers": "5.5.0",
+      "triton": "3.3.0",
+      "trl": "0.24.0",
+      "unsloth": "2026.8.19",
+      "xformers": "0.0.30"
+    },
+    "platform": "Linux-6.8.0-1046-nvidia-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "slurm_array_job_id": null,
+    "slurm_array_task_id": null,
+    "slurm_job_id": null,
+    "torch": "2.7.0",
+    "unsloth_compile_location": "/lambda/nfs/awf-tmp/muta/campaign-20260918/runs/full/.unsloth-compiled-cache-3eb7a6bf799cbf7d"
+  },
+  "epochs": 1.0,
+  "eval_batch_size": 64,
+  "eval_steps": 250,
+  "git": {
+    "available": false
+  },
+  "global_batch_per_gpu": 64,
+  "gpu_memory": {
+    "before_training": {
+      "current_allocated_bytes": 3199037952,
+      "current_reserved_bytes": 3223322624,
+      "device_index": 0,
+      "device_name": "NVIDIA A100-SXM4-40GB",
+      "device_total_bytes": 42405855232,
+      "peak_allocated_bytes": 3199275008,
+      "peak_reserved_bytes": 3223322624
+    },
+    "final_evaluation": {
+      "current_allocated_bytes": 3430046720,
+      "current_reserved_bytes": 21063794688,
+      "device_index": 0,
+      "device_name": "NVIDIA A100-SXM4-40GB",
+      "device_total_bytes": 42405855232,
+      "peak_allocated_bytes": 20700171776,
+      "peak_reserved_bytes": 21063794688
+    },
+    "training": {
+      "current_allocated_bytes": 3430046720,
+      "current_reserved_bytes": 21063794688,
+      "device_index": 0,
+      "device_name": "NVIDIA A100-SXM4-40GB",
+      "device_total_bytes": 42405855232,
+      "peak_allocated_bytes": 20700595712,
+      "peak_reserved_bytes": 21063794688
+    }
+  },
+  "gradient_accumulation": 1,
+  "initial_adapter_load": null,
+  "initial_adapter_receipt": null,
+  "learning_rate": 1e-05,
+  "lineage": "clean",
+  "logging_steps": 47,
+  "lora_alpha": 16,
+  "max_length": 512,
+  "max_steps": -1,
+  "metrics": {
+    "loss-curve.png": {
+      "bytes": 50647,
+      "sha256": "29247fd0cc62c02f038d09241668ad848d84761666d4326dffc59e4b8850aa6d"
+    },
+    "loss-curve.svg": {
+      "bytes": 31983,
+      "sha256": "591e96866b76861d586fedf8ce0c2dcf48f379237f6c493c71fcb43b5c546a3f"
+    },
+    "metrics.csv": {
+      "bytes": 10159,
+      "sha256": "349d9bb6e72d88fdaa7d7cb02b312ef798d810842e28c30a977cf6d6973295ea"
+    },
+    "metrics.jsonl": {
+      "bytes": 15565,
+      "sha256": "583a329354b065d3858e86b3a7b5266fe87e7ef6ffce681bcc4d28b9f1cdd8e9"
+    }
+  },
+  "pilot_rows": null,
+  "planned_steps": 4693,
+  "private_policy": "include",
+  "rank": 16,
+  "resume": {
+    "checkpoint_step": null,
+    "initial_resolved_config_sha256": "92b4450583a7d43d38a7b60f08145bc7464f4e4c3abf7615a9eb091fd1e2bfb8",
+    "requested": false,
+    "retry_from_scratch": false,
+    "treatment_signature_sha256": "c3132ff3b360d2be437bcb9b8e0b7d9143045f1f8168d79977c9d05b16462cfb"
+  },
+  "run_name": "full-best-clean-private-enriched",
+  "save_steps": 250,
+  "schedule": {
+    "kind": "milestones",
+    "observed_eval_steps": [
+      1174,
+      2347,
+      4693
+    ],
+    "requested_steps": [
+      1174,
+      2347,
+      4693
+    ],
+    "session_save_callback_steps": [
+      1174,
+      2347,
+      4693
+    ],
+    "surviving_checkpoint_steps": [
+      1174,
+      2347,
+      4693
+    ],
+    "trainer_interval": 4694
+  },
+  "schema_version": 2,
+  "scripts": {
+    "campaign_io.py": "ded88829f91109eb6664d3cf177cde7a8c9665cab731204213ab33047b8fe121",
+    "train_lora.py": "bfca938da9413ef61a12d4c46ee853d74ebf0c7af69749411e000f8c88e06637",
+    "train_lora_round2.py": "fd72eaa4e1c2ec86a2494473fe3b6f5be9a95b590f6a04a31f7e48375659ee13"
+  },
+  "seed": 3407,
+  "source_counts_after_policy": {
+    "cheetahwaec": 303,
+    "deepmind_mathematics": 20000,
+    "muta_verified_stem_v2": 280000,
+    "waec_elearning": 47
+  },
+  "source_counts_before_policy": {
+    "cheetahwaec": 303,
+    "deepmind_mathematics": 20000,
+    "muta_verified_stem_v2": 280000,
+    "waec_elearning": 47
+  },
+  "target_modules": [
+    "q_proj",
+    "k_proj",
+    "v_proj",
+    "o_proj",
+    "gate_proj",
+    "up_proj",
+    "down_proj"
+  ],
+  "tokenization": {
+    "train": {
+      "assistant_tokens": 25106185,
+      "max_sequence_tokens": 459,
+      "rows": 300350,
+      "sequence_tokens": 48837785
+    },
+    "validation": {
+      "assistant_tokens": 418227,
+      "max_sequence_tokens": 296,
+      "rows": 5000,
+      "sequence_tokens": 812568
+    }
+  },
+  "tokenizer": {
+    "files": {
+      "tokenizer.json": {
+        "bytes": 7031645,
+        "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/bases/upstream-qwen25/tokenizer.json",
+        "sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539"
+      },
+      "tokenizer_config.json": {
+        "bytes": 7305,
+        "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/bases/upstream-qwen25/tokenizer_config.json",
+        "sha256": "5b5d4f65d0acd3b2d56a35b56d374a36cbc1c8fa5cf3b3febbbfabf22f359583"
+      }
+    },
+    "lineage_receipt_sha256": "e92c17e795759007127c8a52783f29e7f2a8a0d438c3fc9fc1e5fa4af5dfe9e6"
+  },
+  "train_metrics": {
+    "epoch": 1.0,
+    "total_flos": 6.589075940850831e+17,
+    "train_loss": 0.09293656475681653,
+    "train_runtime": 5632.4475,
+    "train_samples_per_second": 53.325,
+    "train_steps_per_second": 0.833
+  },
+  "train_ordered_id_sha256": "2ea488a811507ff1c20c7925555d82504ba44da91bea43a91057365775b0a304",
+  "trainer_epoch": 1.0,
+  "trainer_global_step": 4693,
+  "training_method": "lora_bf16",
+  "training_source_counts": {
+    "cheetahwaec": 303,
+    "deepmind_mathematics": 20000,
+    "muta_verified_stem_v2": 280000,
+    "waec_elearning": 47
+  },
+  "validation": {
+    "dataset_fingerprint_sha256": "c056e1744fe148f847354527aa7c7caf6b1fc24fec509f9834d700345e68cc8b",
+    "manifest_path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/data/round2-dev-5000/manifest.json",
+    "manifest_sha256": "2bbde7545eef5ddd531705e6e71ebc09321e3c7bfbb371ec89ed471696dda301",
+    "row_count": 5000,
+    "shards": [
+      {
+        "bytes": 12901290,
+        "path": "dev.jsonl",
+        "rows": 5000,
+        "sha256": "ca7d182a4536c9fabee8eacd38b34ac1428370c4324cb846a58de6dd8b3e8237"
+      }
+    ]
+  },
+  "validation_metrics": {
+    "epoch": 1.0,
+    "eval_loss": 0.018999429419636726,
+    "eval_runtime": 31.1251,
+    "eval_samples_per_second": 160.642,
+    "eval_steps_per_second": 2.538
+  },
+  "validation_ordered_id_sha256": "5cf139cc334aa1ad2f2afea759960ec137fd66f425e5db25872318b9dfc32a98",
+  "validation_rows": null,
+  "warmup_ratio": 0.03,
+  "warmup_steps": 141,
+  "weight_decay": 0.0
+}

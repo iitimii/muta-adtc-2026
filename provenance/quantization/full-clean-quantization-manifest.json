@@ -1,0 +1,205 @@
+{
+  "commands": [
+    [
+      "/home/ubuntu/muta-finetune/.venv/bin/python",
+      "/home/ubuntu/llama.cpp-b10175/convert_hf_to_gguf.py",
+      "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/clean-bestdev-v1/merged-bf16",
+      "--outfile",
+      "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/clean-bestdev-v1/Muta-Round2-Full-clean-r16-lr1e5-300350-bestdev-F16.gguf",
+      "--outtype",
+      "f16"
+    ],
+    [
+      "/home/ubuntu/llama.cpp-b10175/build/bin/llama-quantize",
+      "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/clean-bestdev-v1/Muta-Round2-Full-clean-r16-lr1e5-300350-bestdev-F16.gguf",
+      "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/clean-bestdev-v1/Muta-Round2-Full-clean-r16-lr1e5-300350-bestdev-Q4_K_M.gguf",
+      "Q4_K_M"
+    ]
+  ],
+  "elapsed_seconds": 130.524,
+  "f16_gguf": {
+    "bytes": 3093668832,
+    "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/clean-bestdev-v1/Muta-Round2-Full-clean-r16-lr1e5-300350-bestdev-F16.gguf",
+    "retained": false,
+    "sha256": "02c2e3dbd793b9e3aa7615da4a64cd175bec6bc3548fe9e635cbf02b02e584de"
+  },
+  "final_gguf": {
+    "bytes": 986047968,
+    "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/clean-bestdev-v1/Muta-Round2-Full-clean-r16-lr1e5-300350-bestdev-Q4_K_M.gguf",
+    "sha256": "720fcc69f1ec1b83d601d7406756e44b0ae96b96ba626b97d5fb5ac874108530"
+  },
+  "host": "129-213-31-157",
+  "inputs": {
+    "adapter": {
+      "bytes": 85342827,
+      "file_count": 6,
+      "files": [
+        {
+          "bytes": 5292,
+          "path": "README.md",
+          "sha256": "aa19b96bb2584355baf55aa0772101a3ce6b139ed83d10dfe5d9698850bd23bb"
+        },
+        {
+          "bytes": 1331,
+          "path": "adapter_config.json",
+          "sha256": "1d7b1263e67770b49112254919d2d5871b356a777c4377707e0f74145e28b2ea"
+        },
+        {
+          "bytes": 73911112,
+          "path": "adapter_model.safetensors",
+          "sha256": "312523b2c0c74f246cfee5ce37cdcb69c9a4541e73b1fc8c80654b1ad3e2e33d"
+        },
+        {
+          "bytes": 2507,
+          "path": "chat_template.jinja",
+          "sha256": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f"
+        },
+        {
+          "bytes": 11421892,
+          "path": "tokenizer.json",
+          "sha256": "3fd169731d2cbde95e10bf356d66d5997fd885dd8dbb6fb4684da3f23b2585d8"
+        },
+        {
+          "bytes": 693,
+          "path": "tokenizer_config.json",
+          "sha256": "42da4d0fc593229983d8879cd5b96eaa0f6f817ec5327373cfdb46e638c16a7e"
+        }
+      ],
+      "root": "/lambda/nfs/awf-tmp/muta/campaign-20260918/runs/full/full-best-clean-private-enriched/adapter",
+      "tree_sha256": "c60a47366f775ca985c7fa91aa3372a017accabf80d53dbeaea33445b8352339"
+    },
+    "base": {
+      "bytes": 3098973447,
+      "file_count": 10,
+      "files": [
+        {
+          "bytes": 1519,
+          "path": ".gitattributes",
+          "sha256": "11ad7efa24975ee4b0c3c3a38ed18737f0658a5f75a0a96787b576a78a023361"
+        },
+        {
+          "bytes": 11343,
+          "path": "LICENSE",
+          "sha256": "832dd9e00a68dd83b3c3fb9f5588dad7dcf337a0db50f7d9483f310cd292e92e"
+        },
+        {
+          "bytes": 4917,
+          "path": "README.md",
+          "sha256": "2e1bcd8bd964728a820be709fa0f7b9dd54817a94fd2254c535df70c5e67fada"
+        },
+        {
+          "bytes": 660,
+          "path": "config.json",
+          "sha256": "98d2ff8cc47488d08a2b0b3acf4eb99ef210779b42bd48605f6b8e36acdbf670"
+        },
+        {
+          "bytes": 242,
+          "path": "generation_config.json",
+          "sha256": "e558847a8b4402616f1273797b015104dc266fe4b520056fca88823ba8f8ebe6"
+        },
+        {
+          "bytes": 1671839,
+          "path": "merges.txt",
+          "sha256": "599bab54075088774b1733fde865d5bd747cbcc7a547c5bc12610e874e26f5e3"
+        },
+        {
+          "bytes": 3087467144,
+          "path": "model.safetensors",
+          "sha256": "dd924a11b4c220f385b51ffa522daea7c9f3d850e31b162bb5661df483c6d3ee"
+        },
+        {
+          "bytes": 7031645,
+          "path": "tokenizer.json",
+          "sha256": "c0382117ea329cdf097041132f6d735924b697924d6f6fc3945713e96ce87539"
+        },
+        {
+          "bytes": 7305,
+          "path": "tokenizer_config.json",
+          "sha256": "5b5d4f65d0acd3b2d56a35b56d374a36cbc1c8fa5cf3b3febbbfabf22f359583"
+        },
+        {
+          "bytes": 2776833,
+          "path": "vocab.json",
+          "sha256": "ca10d7e9fb3ed18575dd1e277a2579c16d108e32f27439684afa0e10b1440910"
+        }
+      ],
+      "root": "/lambda/nfs/awf-tmp/muta/campaign-20260918/bases/upstream-qwen25",
+      "tree_sha256": "ae1baefcdac4c037b545696abffc1bd07824c109572163664333b5a5c0dda892"
+    },
+    "base_lineage": {
+      "bytes": 2434,
+      "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/provenance/clean-lineage.json",
+      "sha256": "e92c17e795759007127c8a52783f29e7f2a8a0d438c3fc9fc1e5fa4af5dfe9e6"
+    },
+    "training_manifest": {
+      "bytes": 17057,
+      "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/runs/full/full-best-clean-private-enriched/training-manifest.json",
+      "sha256": "1f0a9bdd1186087eff7d09ee75d4e2b983ff3912d0d9b833cb0f163a04f7d26d"
+    }
+  },
+  "llama_cpp": {
+    "converter": {
+      "bytes": 12410,
+      "path": "/home/ubuntu/llama.cpp-b10175/convert_hf_to_gguf.py",
+      "sha256": "8f1bed9466221e57e434caa7ee720abe1569deb6bc2fe5a65da950ea66c8e737"
+    },
+    "git_commit": "60bccc3763395e01b039aa1ddeacc8cc0ea69f70",
+    "quantizer": {
+      "bytes": 5960136,
+      "path": "/home/ubuntu/llama.cpp-b10175/build/bin/llama-quantize",
+      "sha256": "fd6dcbb13f2c69c29b7038436fa514721cacedec6839748f776cb3fde12beca1"
+    },
+    "root": "/home/ubuntu/llama.cpp-b10175"
+  },
+  "log": {
+    "bytes": 91960,
+    "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/clean-bestdev-v1/merge-and-quantize.log",
+    "sha256": "9d25e485b65706f2d788e434bc6a5c1b9b74006245cb4984df57333a63c8e9be"
+  },
+  "merged": {
+    "bytes": 3098893849,
+    "file_count": 6,
+    "files": [
+      {
+        "bytes": 2507,
+        "path": "chat_template.jinja",
+        "sha256": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f"
+      },
+      {
+        "bytes": 1372,
+        "path": "config.json",
+        "sha256": "85684b3c9c765061d15828f7d61338bd2614f3cb6e54d2d68f2e1f70fcc288e4"
+      },
+      {
+        "bytes": 241,
+        "path": "generation_config.json",
+        "sha256": "c714a78ae29022c52dd9f4564465b1c96c1dc3117bbca309049d3748f370bd72"
+      },
+      {
+        "bytes": 3087467144,
+        "path": "model.safetensors",
+        "sha256": "9edbf9efbf48f732c6283f8c4b6e8833ba8c41a7547a2e4f4ec6a1d7ff425b4d"
+      },
+      {
+        "bytes": 11421892,
+        "path": "tokenizer.json",
+        "sha256": "3fd169731d2cbde95e10bf356d66d5997fd885dd8dbb6fb4684da3f23b2585d8"
+      },
+      {
+        "bytes": 693,
+        "path": "tokenizer_config.json",
+        "sha256": "42da4d0fc593229983d8879cd5b96eaa0f6f817ec5327373cfdb46e638c16a7e"
+      }
+    ],
+    "root": "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/clean-bestdev-v1/merged-bf16",
+    "tree_sha256": "c003925c1218df1166bad1023861ef5850133e12904bf8716c96c31933cb6338"
+  },
+  "model_name": "Muta-Round2-Full-clean-r16-lr1e5-300350-bestdev",
+  "quantization": "Q4_K_M",
+  "schema_version": 1,
+  "script": {
+    "bytes": 6506,
+    "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/code/full-export-v1-20260918T2203/merge_and_quantize.py",
+    "sha256": "ed215c907a1013b85c1b619f83dc3a3a3f75b193136bff21709e1c80c883e1be"
+  }
+}

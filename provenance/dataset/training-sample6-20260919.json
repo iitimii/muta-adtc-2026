@@ -1,0 +1,299 @@
+{
+  "schema_version": 1,
+  "purpose": "Illustrative schema/style sample, not a statistically representative sample or an all-rows correctness audit.",
+  "prepared_date_utc": "2026-09-19",
+  "handling": "Public-safe six-row projection for Gate 2 review; excludes all 350 restricted WAEC/Cheetah rows and the private full corpus.",
+  "training_artifact": "data/muta-stem-v2-sft-300k-quality-first-20260917-v1",
+  "manifest_sha256": "93b7dbcbad72350e099d8951effcbc9a253693dc364b25ffc165102a6e844f4e",
+  "dataset_fingerprint_sha256": "037edf28cccff62d90c23e2d6caf56b9998dea6928080f98af2a513f9f92910e",
+  "sampling_receipt": {
+    "selection": "For each listed (provenance.source_id, subject, pedagogy) cell, choose its first row when traversing manifest.shards in listed order and each shard from physical line 1. Output follows the six listed cells, not encounter order. No answer-based filtering or replacement.",
+    "allowed_source_ids": [
+      "muta_verified_stem_v2",
+      "deepmind_mathematics"
+    ],
+    "preserved_record_fields": [
+      "id",
+      "prompt",
+      "completion",
+      "messages",
+      "answer",
+      "subject",
+      "topic",
+      "pedagogy",
+      "provenance"
+    ],
+    "text_preservation": "Original JSON string/object values are unchanged; JSON whitespace/escaping is reserialized. This is a field projection, not a complete original row.",
+    "raw_line_hash_definition": "SHA256 of the entire original JSONL line bytes, including its trailing LF; includes original fields omitted from this projection.",
+    "manifest_verification": {
+      "method": "campaign_io.verify_dataset_manifest; every shard byte size, SHA256 and nonblank-row count, plus aggregate fingerprint",
+      "verified_shards": 14,
+      "verified_rows": 300350,
+      "verified_bytes": 776449831,
+      "status": "PASS",
+      "selected_shard_receipts": [
+        {
+          "path": "part-00000.jsonl",
+          "rows": 25000,
+          "bytes": 67687739,
+          "sha256": "4640a201fb729650d73b371bb35de1dc898d2334f7f76af864a67ce9c6d6b2f1"
+        },
+        {
+          "path": "part-00002.jsonl",
+          "rows": 25000,
+          "bytes": 66360072,
+          "sha256": "94e7fa72cd4c715241fa9a4e119c2a7b5b076cacac492ba0333227e523353643"
+        },
+        {
+          "path": "part-00003.jsonl",
+          "rows": 25000,
+          "bytes": 62842881,
+          "sha256": "da294b457e6c06266fc608a82581b9ed11c007d51b66a2c1d07fd45055e382d6"
+        },
+        {
+          "path": "part-00011.jsonl",
+          "rows": 25000,
+          "bytes": 54307774,
+          "sha256": "60440aac97e55949ae85472a81c2b5b9161b8df3e43a93510721311e49507ea0"
+        }
+      ]
+    },
+    "correctness_scope": "Original source/verification assertions are not a new independent correctness approval. These six cases are submitted for separate reviewer inspection; no claim about all 300350 rows."
+  },
+  "samples": [
+    {
+      "selection_cell": [
+        "muta_verified_stem_v2",
+        "mathematics",
+        "worked_solution"
+      ],
+      "shard": "part-00000.jsonl",
+      "line_1based": 22837,
+      "raw_line_sha256": "1c8fcd3e56eab7a9f8df16ffb66be0ce2b6f95f06691084e495675fee184697e",
+      "record": {
+        "id": "muta2_05cec6211700f019a04d7c7a",
+        "prompt": "A triangular fabric pennant in Monrovia has base 105 cm and perpendicular height 15 cm. Find its area. Show clear working and finish with a self-check.",
+        "completion": "1. Area of a triangle = 1/2 × base × perpendicular height.\n2. Area = 1/2 × 105 × 15 = 787.5 cm².\nFinal answer: 787.5 cm².\nSelf-check: Two copies form a 105 cm by 15 cm parallelogram of area 1575 cm².",
+        "messages": [
+          {
+            "role": "user",
+            "content": "A triangular fabric pennant in Monrovia has base 105 cm and perpendicular height 15 cm. Find its area. Show clear working and finish with a self-check."
+          },
+          {
+            "role": "assistant",
+            "content": "1. Area of a triangle = 1/2 × base × perpendicular height.\n2. Area = 1/2 × 105 × 15 = 787.5 cm².\nFinal answer: 787.5 cm².\nSelf-check: Two copies form a 105 cm by 15 cm parallelogram of area 1575 cm²."
+          }
+        ],
+        "answer": "787.5 cm²",
+        "subject": "mathematics",
+        "topic": "area_of_triangle",
+        "pedagogy": "worked_solution",
+        "provenance": {
+          "source_id": "muta_verified_stem_v2",
+          "source_revision": "sha256:97c99eb0d900f8a41bce63cd2352f2d4e24c04def9eb0c12ed54c00eea0a1f51",
+          "source_split": "generated",
+          "source_row_id": "generated:44",
+          "semantic_cluster_id": "formula:triangle_area",
+          "license": "MIT",
+          "synthetic": true,
+          "transform": "generator:triangle_area"
+        }
+      }
+    },
+    {
+      "selection_cell": [
+        "muta_verified_stem_v2",
+        "physics",
+        "exam_marking_scheme"
+      ],
+      "shard": "part-00002.jsonl",
+      "line_1based": 819,
+      "raw_line_sha256": "54b12ef9ca59fd11529d593bc18056b94aa5c3e60500aeb2473c8394c3b4ad31",
+      "record": {
+        "id": "muta2_13079a068d941e12136f9364",
+        "prompt": "A laboratory in Lagos measures a solid with mass 144 g and volume 8 cm³. Calculate its density. Write a compact examination solution using a Muta practice marking guide (not an official examiner marking scheme), and show where method and answer marks are earned.",
+        "completion": "M1 (method): Density = mass ÷ volume.\nA1 (accuracy working): Density = 144 ÷ 8 = 18 g/cm³.\nA2 (reported answer): 18 g/cm³.\nCheck: 18 g/cm³ × 8 cm³ = 144 g.",
+        "messages": [
+          {
+            "role": "user",
+            "content": "A laboratory in Lagos measures a solid with mass 144 g and volume 8 cm³. Calculate its density. Write a compact examination solution using a Muta practice marking guide (not an official examiner marking scheme), and show where method and answer marks are earned."
+          },
+          {
+            "role": "assistant",
+            "content": "M1 (method): Density = mass ÷ volume.\nA1 (accuracy working): Density = 144 ÷ 8 = 18 g/cm³.\nA2 (reported answer): 18 g/cm³.\nCheck: 18 g/cm³ × 8 cm³ = 144 g."
+          }
+        ],
+        "answer": "18 g/cm³",
+        "subject": "physics",
+        "topic": "density",
+        "pedagogy": "exam_marking_scheme",
+        "provenance": {
+          "source_id": "muta_verified_stem_v2",
+          "source_revision": "sha256:97c99eb0d900f8a41bce63cd2352f2d4e24c04def9eb0c12ed54c00eea0a1f51",
+          "source_split": "generated",
+          "source_row_id": "generated:124",
+          "semantic_cluster_id": "formula:density",
+          "license": "MIT",
+          "synthetic": true,
+          "transform": "generator:density"
+        }
+      }
+    },
+    {
+      "selection_cell": [
+        "muta_verified_stem_v2",
+        "chemistry",
+        "misconception_correction"
+      ],
+      "shard": "part-00000.jsonl",
+      "line_1based": 1682,
+      "raw_line_sha256": "fd4557c702c5322cd081d51a3d154142c30126617ef14b7dc68da47eb0cde5cb",
+      "record": {
+        "id": "muta2_dad8e7081845375ff04184f1",
+        "prompt": "In a titration in Ibadan, HCl reacts with NaOH in a 1:1 mole ratio. What volume of 1.9 mol/dm³ NaOH neutralizes 285 cm³ of 1.6 mol/dm³ HCl?\nA learner wrote: '285 cm³'. Identify the first mistake, correct it step by step, and explain how to avoid it.",
+        "completion": "First mistake: Equal reacting mole amounts do not imply equal volumes when the concentrations differ.\n1. For this 1:1 reaction, C₁V₁ = C₂V₂ when both volumes use the same unit.\n2. NaOH volume = 1.6 × 285 ÷ 1.9 = 240 cm³.\nFinal answer: 240 cm³.\nFuture check: 1.6 × 285 = 1.9 × 240.",
+        "messages": [
+          {
+            "role": "user",
+            "content": "In a titration in Ibadan, HCl reacts with NaOH in a 1:1 mole ratio. What volume of 1.9 mol/dm³ NaOH neutralizes 285 cm³ of 1.6 mol/dm³ HCl?\nA learner wrote: '285 cm³'. Identify the first mistake, correct it step by step, and explain how to avoid it."
+          },
+          {
+            "role": "assistant",
+            "content": "First mistake: Equal reacting mole amounts do not imply equal volumes when the concentrations differ.\n1. For this 1:1 reaction, C₁V₁ = C₂V₂ when both volumes use the same unit.\n2. NaOH volume = 1.6 × 285 ÷ 1.9 = 240 cm³.\nFinal answer: 240 cm³.\nFuture check: 1.6 × 285 = 1.9 × 240."
+          }
+        ],
+        "answer": "240 cm³",
+        "subject": "chemistry",
+        "topic": "acid_base_neutralization",
+        "pedagogy": "misconception_correction",
+        "provenance": {
+          "source_id": "muta_verified_stem_v2",
+          "source_revision": "sha256:97c99eb0d900f8a41bce63cd2352f2d4e24c04def9eb0c12ed54c00eea0a1f51",
+          "source_split": "generated",
+          "source_row_id": "generated:504",
+          "semantic_cluster_id": "formula:neutralization_volume",
+          "license": "MIT",
+          "synthetic": true,
+          "transform": "generator:neutralization"
+        }
+      }
+    },
+    {
+      "selection_cell": [
+        "muta_verified_stem_v2",
+        "biology",
+        "socratic_hint"
+      ],
+      "shard": "part-00002.jsonl",
+      "line_1based": 16990,
+      "raw_line_sha256": "3fef8a639e7b4a7f771d5e57bbaa08b88ecbf8b6ef2e179414e66af50ffcda1c",
+      "record": {
+        "id": "muta2_a9f915632bd5ba693238cea9",
+        "prompt": "Ecologists near Abeokuta count 1936 seedlings in a sampled area of 44 m². Estimate the seedling population density. Tutor me without giving the final answer. Ask one guiding question, give one next-step hint, and then stop so I can respond.",
+        "completion": "Guiding question: Before doing arithmetic, what does 'per square metre' tell you to do with the sampled area?\nHint: Keep the final arithmetic for later: Set up population density as number counted divided by sampled area, and keep the quotient unevaluated.\nYour turn: Show me the unevaluated expression you would use, then pause.",
+        "messages": [
+          {
+            "role": "user",
+            "content": "Ecologists near Abeokuta count 1936 seedlings in a sampled area of 44 m². Estimate the seedling population density. Tutor me without giving the final answer. Ask one guiding question, give one next-step hint, and then stop so I can respond."
+          },
+          {
+            "role": "assistant",
+            "content": "Guiding question: Before doing arithmetic, what does 'per square metre' tell you to do with the sampled area?\nHint: Keep the final arithmetic for later: Set up population density as number counted divided by sampled area, and keep the quotient unevaluated.\nYour turn: Show me the unevaluated expression you would use, then pause."
+          }
+        ],
+        "answer": "44 organisms/m²",
+        "subject": "biology",
+        "topic": "ecological_sampling",
+        "pedagogy": "socratic_hint",
+        "provenance": {
+          "source_id": "muta_verified_stem_v2",
+          "source_revision": "sha256:97c99eb0d900f8a41bce63cd2352f2d4e24c04def9eb0c12ed54c00eea0a1f51",
+          "source_split": "generated",
+          "source_row_id": "generated:1451",
+          "semantic_cluster_id": "formula:population_density",
+          "license": "MIT",
+          "synthetic": true,
+          "transform": "generator:population_density"
+        }
+      }
+    },
+    {
+      "selection_cell": [
+        "muta_verified_stem_v2",
+        "integrated_science",
+        "concise_answer"
+      ],
+      "shard": "part-00003.jsonl",
+      "line_1based": 3129,
+      "raw_line_sha256": "e7e0ecd50694e0b3e0bec9ed3ae48f6daaaa368a9c88979df90ab513fedcb18d",
+      "record": {
+        "id": "muta2_7e3415c792d9ee6065ba4b61",
+        "prompt": "A machine receives 45200 J and transfers 23052 J usefully. Calculate its efficiency to one decimal place. Give the result with one essential calculation.",
+        "completion": "Efficiency = 23052/45200 × 100 = 51.0%. Final answer: 51.0%.",
+        "messages": [
+          {
+            "role": "user",
+            "content": "A machine receives 45200 J and transfers 23052 J usefully. Calculate its efficiency to one decimal place. Give the result with one essential calculation."
+          },
+          {
+            "role": "assistant",
+            "content": "Efficiency = 23052/45200 × 100 = 51.0%. Final answer: 51.0%."
+          }
+        ],
+        "answer": "51.0%",
+        "subject": "integrated_science",
+        "topic": "energy_efficiency",
+        "pedagogy": "concise_answer",
+        "provenance": {
+          "source_id": "muta_verified_stem_v2",
+          "source_revision": "sha256:97c99eb0d900f8a41bce63cd2352f2d4e24c04def9eb0c12ed54c00eea0a1f51",
+          "source_split": "generated",
+          "source_row_id": "generated:597",
+          "semantic_cluster_id": "formula:energy_efficiency",
+          "license": "MIT",
+          "synthetic": true,
+          "transform": "generator:energy_efficiency"
+        }
+      }
+    },
+    {
+      "selection_cell": [
+        "deepmind_mathematics",
+        "mathematics",
+        "concise_answer"
+      ],
+      "shard": "part-00011.jsonl",
+      "line_1based": 5001,
+      "raw_line_sha256": "a19fbbc5d5bb59c4132683e971a317ddbef262ab9ea342dbbf19fd238fed13da",
+      "record": {
+        "id": "muta2_19d31968941297c2d3971014",
+        "prompt": "What is r in -r**2/6 + 629*r/6 - 314/3 = 0?",
+        "completion": "Use exact arithmetic and preserve the requested form. Final answer: 1, 628.",
+        "messages": [
+          {
+            "role": "user",
+            "content": "What is r in -r**2/6 + 629*r/6 - 314/3 = 0?"
+          },
+          {
+            "role": "assistant",
+            "content": "Use exact arithmetic and preserve the requested form. Final answer: 1, 628."
+          }
+        ],
+        "answer": "1, 628",
+        "subject": "mathematics",
+        "topic": "algebra_polynomial_roots",
+        "pedagogy": "concise_answer",
+        "provenance": {
+          "source_id": "deepmind_mathematics",
+          "source_revision": "427f45075f84b8b9774950196ad63867ca20ffb3",
+          "source_split": "train-easy",
+          "source_row_id": "train-easy:seed:3407010233:module:algebra__polynomial_roots",
+          "semantic_cluster_id": "module:algebra__polynomial_roots",
+          "license": "Apache-2.0",
+          "synthetic": true,
+          "transform": "fresh train-regime generation; answer emitted by pinned symbolic generator; determinism overlay muta-deepmind-determinism-v1"
+        }
+      }
+    }
+  ]
+}

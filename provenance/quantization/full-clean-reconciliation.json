@@ -1,0 +1,259 @@
+{
+  "attempt_authority_sha256": "cff0df3b72b066b6c00d11423cce8b69eb49b9593e18c706d7d1a3d14548e21c",
+  "candidate_id": "full-best-clean-private-enriched",
+  "gpu_idle_now": {
+    "checked_unix": 1789778062.8575428,
+    "compute_processes": [],
+    "gpu": 0
+  },
+  "historical_limitations": [
+    "Auxiliary file hashes measured after export do not authenticate their historical bytes.",
+    "Runtime coverage is enumerated and non-hermetic; transitive child execution/history is not proven.",
+    "Original FAILED.json remains authoritative for the v1 controller outcome; no retroactive COMPLETED.json."
+  ],
+  "inference_tested": false,
+  "launcher": {
+    "bytes": 35619,
+    "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/code/full-export-v2-20260919T0034/launch_full_stage_export.py",
+    "sha256": "44be7b159af96d12c99005cc0fe3ab829556070b8352369c83b77c780ef108cd"
+  },
+  "original_attempt_modified": false,
+  "original_failure": {
+    "bytes": 368,
+    "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/clean-bestdev-v1/FAILED.json",
+    "sha256": "b60b9b0fa1fde94ba62450b8f787e884eadbbebe18c5c26c482e6b3ab223ef51"
+  },
+  "original_runtime_admission": {
+    "bytes": 35081,
+    "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/provenance/full-export-v1/clean-runtime-admission-v1.json",
+    "sha256": "5aa20506dd817f45461ef6f6b03325e58d339d3447e6cbc2f8c185e7ae7a6874"
+  },
+  "recorded_processes_now": {
+    "checked_unix": 1789778062.6479504,
+    "recorded_pids_absent": [
+      141288,
+      141353,
+      141376,
+      141419,
+      141441,
+      141662,
+      141724
+    ],
+    "transitive_process_history": "not_assessed"
+  },
+  "reexported": false,
+  "result": {
+    "auxiliary_profile": {
+      "bytes": 1411,
+      "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/provenance/full-export-v1/auxiliary-profile-v1.json",
+      "sha256": "c068eb257c66adb87ae72757fcae3a5cff945c484dbde23ca2357b02677cc221"
+    },
+    "child_invocations": [
+      {
+        "argv": [
+          "git",
+          "-C",
+          "/home/ubuntu/llama.cpp-b10175",
+          "rev-parse",
+          "HEAD"
+        ],
+        "child_pid": 141376,
+        "lock_fd": 3,
+        "parent_pid": 141353
+      },
+      {
+        "argv": "lscpu",
+        "child_pid": 141419,
+        "lock_fd": 3,
+        "parent_pid": 141353
+      },
+      {
+        "argv": [
+          "/home/ubuntu/muta-finetune/.venv/bin/python",
+          "/usr/lib/python3/dist-packages/torch/_inductor/compile_worker/__main__.py",
+          "--pickler=torch._inductor.compile_worker.subproc_pool.SubprocPickler",
+          "--kind=fork",
+          "--workers=30",
+          "--parent=141353",
+          "--read-fd=25",
+          "--write-fd=28"
+        ],
+        "child_pid": 141441,
+        "lock_fd": 3,
+        "parent_pid": 141353
+      },
+      {
+        "argv": [
+          "/home/ubuntu/muta-finetune/.venv/bin/python",
+          "/home/ubuntu/llama.cpp-b10175/convert_hf_to_gguf.py",
+          "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/clean-bestdev-v1/merged-bf16",
+          "--outfile",
+          "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/clean-bestdev-v1/Muta-Round2-Full-clean-r16-lr1e5-300350-bestdev-F16.gguf",
+          "--outtype",
+          "f16"
+        ],
+        "child_pid": 141662,
+        "lock_fd": 3,
+        "parent_pid": 141353
+      },
+      {
+        "argv": [
+          "/home/ubuntu/llama.cpp-b10175/build/bin/llama-quantize",
+          "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/clean-bestdev-v1/Muta-Round2-Full-clean-r16-lr1e5-300350-bestdev-F16.gguf",
+          "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/clean-bestdev-v1/Muta-Round2-Full-clean-r16-lr1e5-300350-bestdev-Q4_K_M.gguf",
+          "Q4_K_M"
+        ],
+        "child_pid": 141724,
+        "lock_fd": 3,
+        "parent_pid": 141353
+      }
+    ],
+    "final_gguf": {
+      "bytes": 986047968,
+      "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/clean-bestdev-v1/Muta-Round2-Full-clean-r16-lr1e5-300350-bestdev-Q4_K_M.gguf",
+      "sha256": "720fcc69f1ec1b83d601d7406756e44b0ae96b96ba626b97d5fb5ac874108530"
+    },
+    "merged": {
+      "bytes": 3098893849,
+      "file_count": 6,
+      "files": [
+        {
+          "bytes": 2507,
+          "path": "chat_template.jinja",
+          "sha256": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f"
+        },
+        {
+          "bytes": 1372,
+          "path": "config.json",
+          "sha256": "85684b3c9c765061d15828f7d61338bd2614f3cb6e54d2d68f2e1f70fcc288e4"
+        },
+        {
+          "bytes": 241,
+          "path": "generation_config.json",
+          "sha256": "c714a78ae29022c52dd9f4564465b1c96c1dc3117bbca309049d3748f370bd72"
+        },
+        {
+          "bytes": 3087467144,
+          "path": "model.safetensors",
+          "sha256": "9edbf9efbf48f732c6283f8c4b6e8833ba8c41a7547a2e4f4ec6a1d7ff425b4d"
+        },
+        {
+          "bytes": 11421892,
+          "path": "tokenizer.json",
+          "sha256": "3fd169731d2cbde95e10bf356d66d5997fd885dd8dbb6fb4684da3f23b2585d8"
+        },
+        {
+          "bytes": 693,
+          "path": "tokenizer_config.json",
+          "sha256": "42da4d0fc593229983d8879cd5b96eaa0f6f817ec5327373cfdb46e638c16a7e"
+        }
+      ],
+      "tree_sha256": "c003925c1218df1166bad1023861ef5850133e12904bf8716c96c31933cb6338"
+    },
+    "quantization_manifest": {
+      "bytes": 7637,
+      "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/clean-bestdev-v1/quantization-manifest.json",
+      "sha256": "931403dc2d8dcd9781f7e6af3324c8504e9ac3e5eaa56f1970329b7c913a120c"
+    },
+    "verification": "hashes_and_basic_GGUF_header_not_loaded_or_semantically_validated"
+  },
+  "runtime_now": {
+    "admission_sha256": "5aa20506dd817f45461ef6f6b03325e58d339d3447e6cbc2f8c185e7ae7a6874",
+    "coverage": {
+      "all_transitive_dependencies_hashed": false,
+      "empty_python_sources": [],
+      "kind": "enumerated_files_and_live_import_probe_not_hermetic",
+      "limitations": [
+        "Not all installed Python/stdlib/CUDA bytes are hashed.",
+        "ldd does not enumerate every runtime dlopen dependency.",
+        "No GPU idle/resource admission, export or inference was performed.",
+        "Frozen launcher cannot hash zero-byte dependencies; empty source evidence requires explicit review and is not rehashed by its dependency loop."
+      ],
+      "python_source_counts": {
+        "/home/ubuntu/llama.cpp-b10175/conversion": 83,
+        "/home/ubuntu/llama.cpp-b10175/gguf-py": 22
+      }
+    },
+    "dependency_count": 126,
+    "python_probe": {
+      "converter_paths": [
+        "/home/ubuntu/llama.cpp-b10175",
+        "/home/ubuntu/llama.cpp-b10175/gguf-py",
+        "/usr/lib/python312.zip",
+        "/usr/lib/python3.12",
+        "/usr/lib/python3.12/lib-dynload",
+        "/home/ubuntu/muta-finetune/.venv/lib/python3.12/site-packages",
+        "/usr/local/lib/python3.12/dist-packages",
+        "/usr/lib/python3/dist-packages"
+      ],
+      "executable": "/home/ubuntu/muta-finetune/.venv/bin/python",
+      "origins": {
+        "accelerate": "/home/ubuntu/muta-finetune/.venv/lib/python3.12/site-packages/accelerate/__init__.py",
+        "gguf": "/home/ubuntu/llama.cpp-b10175/gguf-py/gguf/__init__.py",
+        "huggingface_hub": "/home/ubuntu/muta-finetune/.venv/lib/python3.12/site-packages/huggingface_hub/__init__.py",
+        "numpy": "/usr/lib/python3/dist-packages/numpy/__init__.py",
+        "peft": "/home/ubuntu/muta-finetune/.venv/lib/python3.12/site-packages/peft/__init__.py",
+        "safetensors": "/home/ubuntu/muta-finetune/.venv/lib/python3.12/site-packages/safetensors/__init__.py",
+        "sentencepiece": "/home/ubuntu/muta-finetune/.venv/lib/python3.12/site-packages/sentencepiece/__init__.py",
+        "tokenizers": "/home/ubuntu/muta-finetune/.venv/lib/python3.12/site-packages/tokenizers/__init__.py",
+        "torch": "/usr/lib/python3/dist-packages/torch/__init__.py",
+        "transformers": "/home/ubuntu/muta-finetune/.venv/lib/python3.12/site-packages/transformers/__init__.py"
+      },
+      "packages": {
+        "accelerate": {
+          "root": "/home/ubuntu/muta-finetune/.venv/lib/python3.12/site-packages",
+          "version": "1.14.0"
+        },
+        "huggingface-hub": {
+          "root": "/home/ubuntu/muta-finetune/.venv/lib/python3.12/site-packages",
+          "version": "1.28.0"
+        },
+        "numpy": {
+          "root": "/usr/lib/python3/dist-packages",
+          "version": "1.26.4"
+        },
+        "peft": {
+          "root": "/home/ubuntu/muta-finetune/.venv/lib/python3.12/site-packages",
+          "version": "0.20.0"
+        },
+        "safetensors": {
+          "root": "/home/ubuntu/muta-finetune/.venv/lib/python3.12/site-packages",
+          "version": "0.8.0"
+        },
+        "sentencepiece": {
+          "root": "/home/ubuntu/muta-finetune/.venv/lib/python3.12/site-packages",
+          "version": "0.2.2"
+        },
+        "tokenizers": {
+          "root": "/home/ubuntu/muta-finetune/.venv/lib/python3.12/site-packages",
+          "version": "0.22.2"
+        },
+        "torch": {
+          "root": "/usr/lib/python3/dist-packages",
+          "version": "2.7.0"
+        },
+        "transformers": {
+          "root": "/home/ubuntu/muta-finetune/.venv/lib/python3.12/site-packages",
+          "version": "5.5.0"
+        }
+      },
+      "paths": [
+        "/lambda/nfs/awf-tmp/muta/campaign-20260918/code/full-export-v1-20260918T2203",
+        "/usr/lib/python312.zip",
+        "/usr/lib/python3.12",
+        "/usr/lib/python3.12/lib-dynload",
+        "/home/ubuntu/muta-finetune/.venv/lib/python3.12/site-packages",
+        "/usr/local/lib/python3.12/dist-packages",
+        "/usr/lib/python3/dist-packages"
+      ],
+      "version": "3.12.3 (main, Jan 22 2026, 20:57:42) [GCC 13.3.0]"
+    }
+  },
+  "schema_version": 1,
+  "status": "export_artifacts_verified_after_controller_verifier_defect",
+  "verifier": {
+    "bytes": 11920,
+    "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/code/full-export-v2-20260919T0034/reconcile_full_stage_export.py",
+    "sha256": "72bcab5162d5316579e615ea1e39dd3876ff06cfcac55e9344b1b908aeb9ac87"
+  }
+}

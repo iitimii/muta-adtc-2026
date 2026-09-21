@@ -1,0 +1,185 @@
+{
+  "commands": [
+    [
+      "/home/ubuntu/muta-finetune/.venv/bin/python",
+      "/home/ubuntu/llama.cpp-b10175/convert_hf_to_gguf.py",
+      "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/continuation-bestdev-v1/merged-bf16",
+      "--outfile",
+      "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/continuation-bestdev-v1/Muta-Round2-Full-warm-pilot-cont-r16-lr5e6-300350-bestdev-F16.gguf",
+      "--outtype",
+      "f16"
+    ],
+    [
+      "/home/ubuntu/llama.cpp-b10175/build/bin/llama-quantize",
+      "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/continuation-bestdev-v1/Muta-Round2-Full-warm-pilot-cont-r16-lr5e6-300350-bestdev-F16.gguf",
+      "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/continuation-bestdev-v1/Muta-Round2-Full-warm-pilot-cont-r16-lr5e6-300350-bestdev-Q4_K_M.gguf",
+      "Q4_K_M"
+    ]
+  ],
+  "elapsed_seconds": 129.783,
+  "f16_gguf": {
+    "bytes": 3093668832,
+    "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/continuation-bestdev-v1/Muta-Round2-Full-warm-pilot-cont-r16-lr5e6-300350-bestdev-F16.gguf",
+    "retained": false,
+    "sha256": "01e6c16c125dd19f0ac46395ae09b3fdbc251fa7841e930106dc53a35ae77b1a"
+  },
+  "final_gguf": {
+    "bytes": 986047968,
+    "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/continuation-bestdev-v1/Muta-Round2-Full-warm-pilot-cont-r16-lr5e6-300350-bestdev-Q4_K_M.gguf",
+    "sha256": "426640b0f4089d63ba8328c6d7fd2b201aeb7e92dd552492f1be594d9f385352"
+  },
+  "host": "129-213-31-157",
+  "inputs": {
+    "adapter": {
+      "bytes": 85342905,
+      "file_count": 6,
+      "files": [
+        {
+          "bytes": 5344,
+          "path": "README.md",
+          "sha256": "1ec4730defe64ac8230113e13ee7669a214eb77d6e0e26cab5ba26cd17a40881"
+        },
+        {
+          "bytes": 1357,
+          "path": "adapter_config.json",
+          "sha256": "157439e0a57a59e20ae14fbb5d021065ca64671eb3a50b0482d782cdc0d08904"
+        },
+        {
+          "bytes": 73911112,
+          "path": "adapter_model.safetensors",
+          "sha256": "51ead3a0792dec2c022d824ac5f738d3ebfb1c099d2d43a20869c12ed0c50b46"
+        },
+        {
+          "bytes": 2507,
+          "path": "chat_template.jinja",
+          "sha256": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f"
+        },
+        {
+          "bytes": 11421892,
+          "path": "tokenizer.json",
+          "sha256": "3fd169731d2cbde95e10bf356d66d5997fd885dd8dbb6fb4684da3f23b2585d8"
+        },
+        {
+          "bytes": 693,
+          "path": "tokenizer_config.json",
+          "sha256": "42da4d0fc593229983d8879cd5b96eaa0f6f817ec5327373cfdb46e638c16a7e"
+        }
+      ],
+      "root": "/lambda/nfs/awf-tmp/muta/campaign-20260918/runs/full/full-best-warm-pilot-continuation/adapter",
+      "tree_sha256": "a3fe059e55a7852f1c4c837acd88a5090390bf164441e321274c1bdea253a9be"
+    },
+    "base": {
+      "bytes": 3098900988,
+      "file_count": 6,
+      "files": [
+        {
+          "bytes": 2507,
+          "path": "chat_template.jinja",
+          "sha256": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f"
+        },
+        {
+          "bytes": 1559,
+          "path": "config.json",
+          "sha256": "54cdb2c601e776c516944180e20afcbc1d4703e4aae1fb9992c4267e592cd943"
+        },
+        {
+          "bytes": 264,
+          "path": "generation_config.json",
+          "sha256": "07a1bb92be644dad5d1cf08629a670d9599006c05c0acada948185fec99d2679"
+        },
+        {
+          "bytes": 3087467144,
+          "path": "model.safetensors",
+          "sha256": "ecf2bfc3166a059935b902c44720298f8d4a5e2fda6bf57dacf928ca5747da88"
+        },
+        {
+          "bytes": 11422166,
+          "path": "tokenizer.json",
+          "sha256": "6b4360dd6a184650ffc48056c2569bc603f896c5adfe94b10f1c79f809638aa5"
+        },
+        {
+          "bytes": 7348,
+          "path": "tokenizer_config.json",
+          "sha256": "faf96c5a15aaaabbc243a2fd1300402a3a938ec26aee464862141b6570def7bd"
+        }
+      ],
+      "root": "/home/ubuntu/muta-finetune/runs-metric/qwen25-bf16-r16-licensed-mcq-lr2e5-500/merged_16bit",
+      "tree_sha256": "02add79d0a5d451c7b75a986a4d3154bf6a98e23f12d9f913f00036c1909fec8"
+    },
+    "base_lineage": {
+      "bytes": 3944,
+      "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/provenance/warm-lineage.json",
+      "sha256": "27c21acb1425511f0cb013283a522afe69409aa25c91412946b040b89fc43354"
+    },
+    "training_manifest": {
+      "bytes": 50040,
+      "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/runs/full/full-best-warm-pilot-continuation/training-manifest.json",
+      "sha256": "962a4a486dc203597631e3183d428fb03e7b280567f10c6d9ad2e7c990928779"
+    }
+  },
+  "llama_cpp": {
+    "converter": {
+      "bytes": 12410,
+      "path": "/home/ubuntu/llama.cpp-b10175/convert_hf_to_gguf.py",
+      "sha256": "8f1bed9466221e57e434caa7ee720abe1569deb6bc2fe5a65da950ea66c8e737"
+    },
+    "git_commit": "60bccc3763395e01b039aa1ddeacc8cc0ea69f70",
+    "quantizer": {
+      "bytes": 5960136,
+      "path": "/home/ubuntu/llama.cpp-b10175/build/bin/llama-quantize",
+      "sha256": "fd6dcbb13f2c69c29b7038436fa514721cacedec6839748f776cb3fde12beca1"
+    },
+    "root": "/home/ubuntu/llama.cpp-b10175"
+  },
+  "log": {
+    "bytes": 92103,
+    "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/continuation-bestdev-v1/merge-and-quantize.log",
+    "sha256": "0a5ce59313e3e8630f901c995a784f4b11ccda4b5b857dbba5c75a1a466c1508"
+  },
+  "merged": {
+    "bytes": 3098893909,
+    "file_count": 6,
+    "files": [
+      {
+        "bytes": 2507,
+        "path": "chat_template.jinja",
+        "sha256": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f"
+      },
+      {
+        "bytes": 1409,
+        "path": "config.json",
+        "sha256": "82693a0b16a5087a9b9f592ae1aef827b0d4c446c96e788e1b87a36295ece497"
+      },
+      {
+        "bytes": 264,
+        "path": "generation_config.json",
+        "sha256": "07a1bb92be644dad5d1cf08629a670d9599006c05c0acada948185fec99d2679"
+      },
+      {
+        "bytes": 3087467144,
+        "path": "model.safetensors",
+        "sha256": "f2dc502ed8c7767419af19b48ffa0b1fb2ec8d02ad24d69345f76f12950e78bf"
+      },
+      {
+        "bytes": 11421892,
+        "path": "tokenizer.json",
+        "sha256": "3fd169731d2cbde95e10bf356d66d5997fd885dd8dbb6fb4684da3f23b2585d8"
+      },
+      {
+        "bytes": 693,
+        "path": "tokenizer_config.json",
+        "sha256": "42da4d0fc593229983d8879cd5b96eaa0f6f817ec5327373cfdb46e638c16a7e"
+      }
+    ],
+    "root": "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/continuation-bestdev-v1/merged-bf16",
+    "tree_sha256": "6b18f407b0fa38038fad424f1566be07fa10f6c2f467218b689c4dc2a10f54f0"
+  },
+  "model_name": "Muta-Round2-Full-warm-pilot-cont-r16-lr5e6-300350-bestdev",
+  "quantization": "Q4_K_M",
+  "schema_version": 1,
+  "script": {
+    "bytes": 6506,
+    "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/code/full-export-v1-20260918T2203/merge_and_quantize.py",
+    "sha256": "ed215c907a1013b85c1b619f83dc3a3a3f75b193136bff21709e1c80c883e1be"
+  }
+}

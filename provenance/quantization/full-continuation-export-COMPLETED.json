@@ -1,0 +1,359 @@
+{
+  "automatic_retry": false,
+  "auxiliary_profile": {
+    "bytes": 1411,
+    "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/provenance/full-export-v1/auxiliary-profile-v1.json",
+    "sha256": "c068eb257c66adb87ae72757fcae3a5cff945c484dbde23ca2357b02677cc221"
+  },
+  "candidate_id": "full-best-warm-pilot-continuation",
+  "child_invocations": [
+    {
+      "argv": [
+        "git",
+        "-C",
+        "/home/ubuntu/llama.cpp-b10175",
+        "rev-parse",
+        "HEAD"
+      ],
+      "child_pid": 154389,
+      "lock_fd": 3,
+      "parent_pid": 154388
+    },
+    {
+      "argv": "lscpu",
+      "child_pid": 154390,
+      "lock_fd": 3,
+      "parent_pid": 154388
+    },
+    {
+      "argv": [
+        "/home/ubuntu/muta-finetune/.venv/bin/python",
+        "/usr/lib/python3/dist-packages/torch/_inductor/compile_worker/__main__.py",
+        "--pickler=torch._inductor.compile_worker.subproc_pool.SubprocPickler",
+        "--kind=fork",
+        "--workers=30",
+        "--parent=154388",
+        "--read-fd=25",
+        "--write-fd=28"
+      ],
+      "child_pid": 154395,
+      "lock_fd": 3,
+      "parent_pid": 154388
+    },
+    {
+      "argv": [
+        "/home/ubuntu/muta-finetune/.venv/bin/python",
+        "/home/ubuntu/llama.cpp-b10175/convert_hf_to_gguf.py",
+        "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/continuation-bestdev-v1/merged-bf16",
+        "--outfile",
+        "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/continuation-bestdev-v1/Muta-Round2-Full-warm-pilot-cont-r16-lr5e6-300350-bestdev-F16.gguf",
+        "--outtype",
+        "f16"
+      ],
+      "child_pid": 154500,
+      "lock_fd": 3,
+      "parent_pid": 154388
+    },
+    {
+      "argv": [
+        "/home/ubuntu/llama.cpp-b10175/build/bin/llama-quantize",
+        "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/continuation-bestdev-v1/Muta-Round2-Full-warm-pilot-cont-r16-lr5e6-300350-bestdev-F16.gguf",
+        "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/continuation-bestdev-v1/Muta-Round2-Full-warm-pilot-cont-r16-lr5e6-300350-bestdev-Q4_K_M.gguf",
+        "Q4_K_M"
+      ],
+      "child_pid": 154586,
+      "lock_fd": 3,
+      "parent_pid": 154388
+    }
+  ],
+  "child_pid": 154388,
+  "expected_preflight_sha256": "c1ec168303e631fbf3131f749dcddb888bcc025c6a229c3ddcbef15409b54c05",
+  "final_gguf": {
+    "bytes": 986047968,
+    "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/continuation-bestdev-v1/Muta-Round2-Full-warm-pilot-cont-r16-lr5e6-300350-bestdev-Q4_K_M.gguf",
+    "sha256": "426640b0f4089d63ba8328c6d7fd2b201aeb7e92dd552492f1be594d9f385352"
+  },
+  "inference_tested": false,
+  "launch_evidence": {
+    "artifact-preflight.json": {
+      "bytes": 30062,
+      "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/continuation-bestdev-v1/artifact-preflight.json",
+      "sha256": "c1ec168303e631fbf3131f749dcddb888bcc025c6a229c3ddcbef15409b54c05"
+    },
+    "exit.json": {
+      "bytes": 82,
+      "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/continuation-bestdev-v1/exit.json",
+      "sha256": "5ae06182f42a04f23a9e7f49e2187e0e5b587fe97bbd915cd10e4ed313acef2b"
+    },
+    "launch.json": {
+      "bytes": 16109,
+      "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/continuation-bestdev-v1/launch.json",
+      "sha256": "d64f4e7ef483e14bc27b697f050c25522efdabecc3c9fd628ede935b30e5505f"
+    },
+    "started.json": {
+      "bytes": 64,
+      "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/continuation-bestdev-v1/started.json",
+      "sha256": "64b764892ee140754abe1c852d619cfaa9373c3c17ef266b5fa944485fd3a723"
+    }
+  },
+  "logs": {
+    "child-invocations.jsonl": {
+      "bytes": 1456,
+      "sha256": "f153e8a678fcae8d8e3c4b3d0968177a6ecdae6c14fa7b2f20e194d46d685ff5"
+    },
+    "stderr.log": {
+      "bytes": 754,
+      "sha256": "a6dd00a782926145ccc0e70e18f989ef64fd5f970931beb26aaff1209d90cb4c"
+    },
+    "stdout.log": {
+      "bytes": 98445,
+      "sha256": "7f07d5baa569942f0310a66856e397c0dc4aaf77e3fdacdba096705c739cb8cd"
+    }
+  },
+  "merged": {
+    "bytes": 3098893909,
+    "file_count": 6,
+    "files": [
+      {
+        "bytes": 2507,
+        "path": "chat_template.jinja",
+        "sha256": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f"
+      },
+      {
+        "bytes": 1409,
+        "path": "config.json",
+        "sha256": "82693a0b16a5087a9b9f592ae1aef827b0d4c446c96e788e1b87a36295ece497"
+      },
+      {
+        "bytes": 264,
+        "path": "generation_config.json",
+        "sha256": "07a1bb92be644dad5d1cf08629a670d9599006c05c0acada948185fec99d2679"
+      },
+      {
+        "bytes": 3087467144,
+        "path": "model.safetensors",
+        "sha256": "f2dc502ed8c7767419af19b48ffa0b1fb2ec8d02ad24d69345f76f12950e78bf"
+      },
+      {
+        "bytes": 11421892,
+        "path": "tokenizer.json",
+        "sha256": "3fd169731d2cbde95e10bf356d66d5997fd885dd8dbb6fb4684da3f23b2585d8"
+      },
+      {
+        "bytes": 693,
+        "path": "tokenizer_config.json",
+        "sha256": "42da4d0fc593229983d8879cd5b96eaa0f6f817ec5327373cfdb46e638c16a7e"
+      }
+    ],
+    "tree_sha256": "6b18f407b0fa38038fad424f1566be07fa10f6c2f467218b689c4dc2a10f54f0"
+  },
+  "quantization_manifest": {
+    "bytes": 7123,
+    "path": "/lambda/nfs/awf-tmp/muta/campaign-20260918/exports/full-v3/continuation-bestdev-v1/quantization-manifest.json",
+    "sha256": "4595bee3e21415602a686226644f9477a2ef35437e8d9b6fbf8caac972f2f830"
+  },
+  "runtime_admission_sha256": "c7cbb8e3632ee4f4bfb27ed7e127cbe69839f89a040eee0a8f41118e2e298198",
+  "selection": {
+    "best_dev_loss": 0.022921312600374222,
+    "checkpoint_inventories": {
+      "1174": {
+        "bytes": 123340136,
+        "file_count": 11,
+        "files": [
+          {
+            "bytes": 5344,
+            "path": "README.md",
+            "sha256": "1ec4730defe64ac8230113e13ee7669a214eb77d6e0e26cab5ba26cd17a40881"
+          },
+          {
+            "bytes": 1357,
+            "path": "adapter_config.json",
+            "sha256": "157439e0a57a59e20ae14fbb5d021065ca64671eb3a50b0482d782cdc0d08904"
+          },
+          {
+            "bytes": 73911112,
+            "path": "adapter_model.safetensors",
+            "sha256": "ef35247228bf8fa0517bc643ca5b4ecfbbb27d0b8610ef5a01f0850effa5a44f"
+          },
+          {
+            "bytes": 2507,
+            "path": "chat_template.jinja",
+            "sha256": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f"
+          },
+          {
+            "bytes": 37970053,
+            "path": "optimizer.pt",
+            "sha256": "8cb873bd3a5f01ad1649428d0c8561baae73b179030148bc19dd13cf224d1fd4"
+          },
+          {
+            "bytes": 14645,
+            "path": "rng_state.pth",
+            "sha256": "9ccb8eeb935749fc43744e0a5eeacdf6f0f10253be15266a497cbca0ffaa2573"
+          },
+          {
+            "bytes": 1465,
+            "path": "scheduler.pt",
+            "sha256": "a47248dfa7404725fa5b2deed728f4f9643848c62f8eb35a48e89c09f12ece71"
+          },
+          {
+            "bytes": 11421892,
+            "path": "tokenizer.json",
+            "sha256": "3fd169731d2cbde95e10bf356d66d5997fd885dd8dbb6fb4684da3f23b2585d8"
+          },
+          {
+            "bytes": 693,
+            "path": "tokenizer_config.json",
+            "sha256": "42da4d0fc593229983d8879cd5b96eaa0f6f817ec5327373cfdb46e638c16a7e"
+          },
+          {
+            "bytes": 5803,
+            "path": "trainer_state.json",
+            "sha256": "1eba52adf940d3ac9ae6a9dc38abaa56fc77b4a650c620f419d69e3adb5eff83"
+          },
+          {
+            "bytes": 5265,
+            "path": "training_args.bin",
+            "sha256": "d052b5ac01303296317319d7a900a358494c4f4f307cf32e8f3935200552212d"
+          }
+        ],
+        "tree_sha256": "6dfcdc52a852667288f90fa435718657cb3d1eaa0b7466f241b6138c6d0cb099"
+      },
+      "2347": {
+        "bytes": 123345075,
+        "file_count": 11,
+        "files": [
+          {
+            "bytes": 5344,
+            "path": "README.md",
+            "sha256": "1ec4730defe64ac8230113e13ee7669a214eb77d6e0e26cab5ba26cd17a40881"
+          },
+          {
+            "bytes": 1357,
+            "path": "adapter_config.json",
+            "sha256": "157439e0a57a59e20ae14fbb5d021065ca64671eb3a50b0482d782cdc0d08904"
+          },
+          {
+            "bytes": 73911112,
+            "path": "adapter_model.safetensors",
+            "sha256": "ed80c8b764f6baf658f9d0575271b96e5311b000bca33b4e9399cce0902be8ec"
+          },
+          {
+            "bytes": 2507,
+            "path": "chat_template.jinja",
+            "sha256": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f"
+          },
+          {
+            "bytes": 37970053,
+            "path": "optimizer.pt",
+            "sha256": "f9d7867026f43518803ab3b32d97710f48a7229451336dfd433d32530ced6fb8"
+          },
+          {
+            "bytes": 14645,
+            "path": "rng_state.pth",
+            "sha256": "ec2cf52e4c3f15759e904ba93b5a10165bb850df54a226c7977bcfa5b79f76fb"
+          },
+          {
+            "bytes": 1465,
+            "path": "scheduler.pt",
+            "sha256": "cf963dc11c1bf16cdbde3303660b289b3beb6fbdcc51f8544ad897e376b11942"
+          },
+          {
+            "bytes": 11421892,
+            "path": "tokenizer.json",
+            "sha256": "3fd169731d2cbde95e10bf356d66d5997fd885dd8dbb6fb4684da3f23b2585d8"
+          },
+          {
+            "bytes": 693,
+            "path": "tokenizer_config.json",
+            "sha256": "42da4d0fc593229983d8879cd5b96eaa0f6f817ec5327373cfdb46e638c16a7e"
+          },
+          {
+            "bytes": 10742,
+            "path": "trainer_state.json",
+            "sha256": "e501260a437e17caea642a775e3edae0a34ddf590d94153a92f747d200501508"
+          },
+          {
+            "bytes": 5265,
+            "path": "training_args.bin",
+            "sha256": "d052b5ac01303296317319d7a900a358494c4f4f307cf32e8f3935200552212d"
+          }
+        ],
+        "tree_sha256": "d61bd789d788900415a54784823c96037e76d50e8b32f44ef620a9f9eddfd7d4"
+      },
+      "4693": {
+        "bytes": 123354693,
+        "file_count": 11,
+        "files": [
+          {
+            "bytes": 5344,
+            "path": "README.md",
+            "sha256": "1ec4730defe64ac8230113e13ee7669a214eb77d6e0e26cab5ba26cd17a40881"
+          },
+          {
+            "bytes": 1357,
+            "path": "adapter_config.json",
+            "sha256": "157439e0a57a59e20ae14fbb5d021065ca64671eb3a50b0482d782cdc0d08904"
+          },
+          {
+            "bytes": 73911112,
+            "path": "adapter_model.safetensors",
+            "sha256": "51ead3a0792dec2c022d824ac5f738d3ebfb1c099d2d43a20869c12ed0c50b46"
+          },
+          {
+            "bytes": 2507,
+            "path": "chat_template.jinja",
+            "sha256": "cd8e9439f0570856fd70470bf8889ebd8b5d1107207f67a5efb46e342330527f"
+          },
+          {
+            "bytes": 37970053,
+            "path": "optimizer.pt",
+            "sha256": "54d32b9bf8f124c91f18a5a79f9fb2c8def6bb0eb8cf876e0d0a41e4b48e40aa"
+          },
+          {
+            "bytes": 14645,
+            "path": "rng_state.pth",
+            "sha256": "d569a9c96ff4e89d32dfe8ca0b97952cc2edcd76f89c14caa7e57238c4b46c8a"
+          },
+          {
+            "bytes": 1465,
+            "path": "scheduler.pt",
+            "sha256": "270f9c6949f0c647e7abb9902f62276777371b94de0216496e56f9354643c4ab"
+          },
+          {
+            "bytes": 11421892,
+            "path": "tokenizer.json",
+            "sha256": "3fd169731d2cbde95e10bf356d66d5997fd885dd8dbb6fb4684da3f23b2585d8"
+          },
+          {
+            "bytes": 693,
+            "path": "tokenizer_config.json",
+            "sha256": "42da4d0fc593229983d8879cd5b96eaa0f6f817ec5327373cfdb46e638c16a7e"
+          },
+          {
+            "bytes": 20360,
+            "path": "trainer_state.json",
+            "sha256": "b01c5d84d1d770d8f2ed2f17f7d18fce05419fbb6df9d3d546717e93b713565f"
+          },
+          {
+            "bytes": 5265,
+            "path": "training_args.bin",
+            "sha256": "d052b5ac01303296317319d7a900a358494c4f4f307cf32e8f3935200552212d"
+          }
+        ],
+        "tree_sha256": "8920de28f2a835897691b8bf63c6a0acd2c9696db9b9229ce9c930ceb33a5aee"
+      }
+    },
+    "exposure_basis": "fixed_batch64_accumulation1_world1_single_epoch_not_unique_rows",
+    "plot_check": "manifest_hashes_and_basic_structure_only_not_numeric_curve_revalidation",
+    "scheduled_dev_losses": {
+      "1174": 0.03776948153972626,
+      "2347": 0.024636460468173027,
+      "4693": 0.022921312600374222
+    },
+    "selected_epoch": 1.0,
+    "selected_example_exposures_in_this_stage": 300350,
+    "selected_step": 4693
+  },
+  "state": "complete",
+  "verification": "hashes_and_basic_GGUF_header_not_loaded_or_semantically_validated"
+}
