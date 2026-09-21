@@ -333,77 +333,155 @@ Our benchmark evidence is deliberately separated by CPU configuration because we
 
 Development sweep (scalar build, matched 500-item evaluation):
 
-| Metric                 | Value                   |
+<div align="center">
 
-| ---------------------- | ----------------------- |
+<table border="1" cellspacing="0" cellpadding="8" style="border-collapse: collapse; width: 100%; text-align: left;">
+  <tr>
+    <th style="border: 1px solid #888; padding: 8px 12px;">Metric</th>
+    <th style="border: 1px solid #888; padding: 8px 12px;">Value</th>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>Model</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">Fine-tuned Qwen3.5 0.8B</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>Quantization</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">Q4_0</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>ARC-Easy accuracy</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>70.2%</strong>, n=500</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>Generation speed</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>13.60 tok/s</strong></td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>Estimated profiler RSS</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>691 MiB</strong></td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>Fixed-15 scalar total</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>80.3664</strong></td>
+  </tr>
+</table>
 
-| Model                  | Fine-tuned Qwen3.5 0.8B |
-
-| Quantization           | Q4_0                    |
-
-| ARC-Easy accuracy      | **70.2%**, n=500        |
-
-| Generation speed       | **13.60 tok/s**         |
-
-| Estimated profiler RSS | **691 MiB**             |
-
-| Fixed-15 scalar total  | **80.3664**             |
+</div>
 
 Official-profiler run on the submitted GGUF (`adtc-profiler 0.1.0`, participant mode, llama-bench 512 prompt / 128 generated tokens):
 
-| Metric                                 | Value                                                                 |
+<div align="center">
 
-| -------------------------------------- | --------------------------------------------------------------------- |
+<table border="1" cellspacing="0" cellpadding="8" style="border-collapse: collapse; width: 100%; text-align: left;">
+  <tr>
+    <th style="border: 1px solid #888; padding: 8px 12px;">Metric</th>
+    <th style="border: 1px solid #888; padding: 8px 12px;">Value</th>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>Machine</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">Intel Xeon @ 2.80 GHz (4 vCPU), 7.8 GB RAM, no GPU, Ubuntu 22.04.5</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>Generation speed</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>12.98 tok/s</strong></td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>Time to first token</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">≈ 15.0 s (512-token prompt; profiler approximation from prompt-processing rate)</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>Peak RSS</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>674 MB</strong> (steady state 629 MB)</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>ARC-Easy acc_norm</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>0.72</strong> (n=50)</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>CPU utilisation p99</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">54.2%</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>Temperature</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">Not exposed by the benchmark host</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>Thermal throttling</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">Not flagged</td>
+  </tr>
+</table>
 
-| Machine                                | Intel Xeon @ 2.80 GHz (4 vCPU), 7.8 GB RAM, no GPU, Ubuntu 22.04.5    |
+</div>
 
-| Generation speed                       | **12.98 tok/s**                                                       |
-
-| Time to first token (512-token prompt) | ≈ 15.0 s (profiler approximation from prompt-processing rate)         |
-
-| Peak RSS                               | **674 MB** (steady state 629 MB)                                      |
-
-| ARC-Easy acc_norm (n=50)               | **0.72**                                                              |
-
-| CPU utilisation p99                    | 54.2 %                                                                |
-
-| Temperature                            | Not exposed by the benchmark host                                     |
-
-| Thermal throttling                     | Not flagged                                                           |
 
 ### Alternative (vector build, not submitted) — Qwen2.5 1.5B Q4_K_M
 
-| Metric                   | Value                                        |
+<div align="center">
 
-| ------------------------ | -------------------------------------------- |
+<table border="1" cellspacing="0" cellpadding="8" style="border-collapse: collapse; width: 100%; text-align: left;">
+  <tr>
+    <th style="border: 1px solid #888; padding: 8px 12px;">Metric</th>
+    <th style="border: 1px solid #888; padding: 8px 12px;">Value</th>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>Model</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">Fine-tuned Qwen2.5 1.5B</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>Quantization</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">Q4_K_M</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>Runtime</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">llama.cpp</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>Benchmark configuration</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">Portable vector CPU build</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>CPU features</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">AVX2, FMA, F16C enabled; AVX-512 disabled</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>Workload</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">512 prompt tokens / 128 generated tokens</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>Evaluation threads</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">2 physical-core threads</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>ARC-Easy accuracy</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>77.8%</strong>, n=500</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>Generation speed</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>17.44 tok/s</strong></td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>Estimated profiler RSS</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>1,706 MiB</strong></td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>Fixed-15 estimated total</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>84.1387</strong></td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>Time to first token</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">Final tuned candidate re-measurement pending</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>Temperature</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">Not exposed by current GCP benchmark host</td>
+  </tr>
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>Thermal throttling</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">Physical-target validation pending</td>
+  </tr>
+</table>
 
-| Model                    | Fine-tuned Qwen2.5 1.5B                      |
-
-| Quantization             | Q4_K_M                                       |
-
-| Runtime                  | llama.cpp                                    |
-
-| Benchmark configuration  | Portable vector CPU build                    |
-
-| CPU features             | AVX2, FMA, F16C enabled; AVX-512 disabled    |
-
-| Workload                 | 512 prompt tokens / 128 generated tokens     |
-
-| Evaluation threads       | 2 physical-core threads                      |
-
-| ARC-Easy accuracy        | **77.8%**, n=500                             |
-
-| Generation speed         | **17.44 tok/s**                              |
-
-| Estimated profiler RSS   | **1,706 MiB**                                |
-
-| Fixed-15 estimated total | **84.1387**                                  |
-
-| Time to first token      | Final tuned candidate re-measurement pending |
-
-| Temperature              | Not exposed by current GCP benchmark host    |
-
-| Thermal throttling       | Physical-target validation pending           |
+</div>
 
 These are **self-reported development measurements**, not official ADTC evaluation results.
 
