@@ -25,13 +25,13 @@
     }
   ],
   "model": {
-    "name": "Muta-Tutor-Qwen2.5-1.5B-Q4_K_M.gguf",
+    "name": "refine-qat100-Q4_0.gguf",
     "runtime": "llama.cpp",
     "quantization": "GGUF Q4_K_M",
-    "parameters_estimate": "1.5B",
+    "parameters_estimate": "1B",
     "packaging": "binary_bundle"
   },
   "_runtime": {
-    "model_path": "model/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M.gguf"
+    "model_path": "model/refine-qat100-Q4_0.gguf"
   }
 }
