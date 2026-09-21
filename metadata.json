@@ -28,7 +28,7 @@
     "name": "refine-qat100-Q4_0.gguf",
     "runtime": "llama.cpp",
     "quantization": "GGUF Q4_K_M",
-    "parameters_estimate": "1B",
+    "parameters_estimate": "1.05B",
     "packaging": "binary_bundle"
   },
   "_runtime": {
