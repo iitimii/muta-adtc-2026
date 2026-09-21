@@ -1834,7 +1834,7 @@ A more comprehensive Gate 2 record is in [03 · Improving Accuracy: Model fine-t
 </details>
 
 <details>
-<summary><strong>Provenance</strong></summary>
+<summary><strong>Optimization</strong></summary>
 # Muta-Tutor: compressing a Qwen2.5-1.5B STEM tutor for a CPU-only audit — technical report
 
 *16–21 September 2026 · delivered model: `refine-qat100-Q4_0.gguf` (dense Qwen2, 26 layers, FFN 7168, 32k vocabulary, 1.05 B parameters, 593 MB) · Hugging Face `timiiowolabi/muta-compress-20260920`*
@@ -1925,5 +1925,10 @@ Scalar-build IQ quants; training-free and trained MoE; on-policy KD; the 24-laye
 
 **Next, with a GPU:** finish QAT from the published checkpoint; retrain dialogue rows on the human text only, at a larger share; regenerate the skipped QASC misses. Full record: `RESULTS.md`, `docs/compression-pipeline-results.md`, `bench/measurements/{compress-20260919,refine-20260920}/`.
 
+
+</details>
+
+<details>
+<summary><strong>Model Provenance</strong></summary>
 
 </details>
