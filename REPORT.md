@@ -1602,13 +1602,9 @@ and
 </tr>
 </table>
 
-### Decision
-
 The full-data runs achieved very low validation losses, but this **did not translate into better downstream generalization**. All three full-data models performed substantially worse than the Previous Muta on the fresh test, despite some matching or exceeding it on the already-known judges' prompts.
 
 The **20K warm pilot** remained the strongest new variant on written and judges' performance, but its fresh-test score also dropped sharply.
-
-<span style="color: orange"><strong>Therefore, we retain the Previous Muta Tutor Qwen2.5-1.5B. None of the full-data runs earned promotion.</strong></span>
 
 #### 4. Science and tutoring fine-tune
 
@@ -1727,7 +1723,7 @@ Although accuracy had improved, training solely on question–answer pairs is no
 
 #### 5. Final matched comparison
 
-We then compared **P2-half** against the incumbent Muta, untouched Qwen, the historical warm pilot, and a DeepSeek-distilled Qwen2.5 1.5b using held-out science, a [2,000-question practical dataset](https://huggingface.co/datasets/timiiowolabi/Muta-Practical-2000), tutoring quality, judges' prompts, and STEM MC.
+We then compared **P2-half** against our Muta Tutor, Base Qwen, the historical warm pilot, and a DeepSeek-distilled Qwen2.5 1.5b using held-out science, a [2,000-question practical dataset](https://huggingface.co/datasets/timiiowolabi/Muta-Practical-2000), tutoring quality, judges' prompts, and STEM MC.
 
 <table width="100%" style="border-collapse:collapse;">
 <tr>
@@ -1818,113 +1814,587 @@ We then compared **P2-half** against the incumbent Muta, untouched Qwen, the his
 </tr>
 </table>
 
-The additional fine-tuning did not produce a reliable overall improvement. Instead, the results suggest **diminishing returns and increasing regression risk** as we continued adapting the model. Our original Muta Tutor therefore remained the strongest deployment choice.
+From the result, we see that additional fine-tuning did not produce a reliable overall improvement. Instead, the results suggest **diminishing returns and increasing regression risk** as we continued adapting the model.
 
-Full comparison: <a href="https://muta-iq.vercel.app/#g2-exp-evaluation">final matched decision</a> · Loss histories: <a href="https://muta-iq.vercel.app/#g2-exp-loss">loss gallery</a>.
 
-#### 7. Post-selection packaging
+<span style="color: orange"><strong>Therefore, we retain the Previous Muta Tutor Qwen2.5-1.5B as our strongest choice for deployment. None of the full-data runs earned promotion.</strong></span>
 
-After model selection, the requested Qwen3.5-style judge template was embedded
-as metadata in a separate, tensor-identical GGUF. It is a packaging variant,
-not a new fine-tune or a new winner. The original incumbent remains unchanged.
-See the [Gate 2 packaging record](https://muta-iq.vercel.app/#g2-exp-packaging).
 
-A more comprehensive Gate 2 record is in [03 · Improving Accuracy: Model fine-tuning](https://muta-iq.vercel.app/#gate-2-experiments), with dedicated anchors for the [data](https://muta-iq.vercel.app/#g2-exp-data), [pilots](https://muta-iq.vercel.app/#g2-exp-pilots), [full runs](https://muta-iq.vercel.app/#g2-exp-full), [science-tutor selection](https://muta-iq.vercel.app/#g2-exp-science), [matched decision](https://muta-iq.vercel.app/#g2-exp-evaluation), [loss record](https://muta-iq.vercel.app/#g2-exp-loss), and [packaging](https://muta-iq.vercel.app/#g2-exp-packaging).
-
+A more comprehensive Gate 2 record can be found in [03 · Improving Accuracy: Model fine-tuning](https://muta-iq.vercel.app/#gate-2-experiments), with dedicated sections for the [data](https://muta-iq.vercel.app/#g2-exp-data), [pilots](https://muta-iq.vercel.app/#g2-exp-pilots), [full runs](https://muta-iq.vercel.app/#g2-exp-full), [science-tutor selection](https://muta-iq.vercel.app/#g2-exp-science), [matched decision](https://muta-iq.vercel.app/#g2-exp-evaluation), [loss record](https://muta-iq.vercel.app/#g2-exp-loss), and [packaging](https://muta-iq.vercel.app/#g2-exp-packaging). A full experiment comparison can be found [here](https://muta-iq.vercel.app/#g2-exp-evaluation) and the loss histories can be found [here](https://muta-iq.vercel.app/#g2-exp-loss).
 </details>
 
+
 <details>
+
 <summary><strong>Optimization</strong></summary>
-# Muta-Tutor: compressing a Qwen2.5-1.5B STEM tutor for a CPU-only audit — technical report
 
-*16–21 September 2026 · delivered model: `refine-qat100-Q4_0.gguf` (dense Qwen2, 26 layers, FFN 7168, 32k vocabulary, 1.05 B parameters, 593 MB) · Hugging Face `timiiowolabi/muta-compress-20260920`*
+## Optimizing the Selected Muta Tutor for CPU Deployment
 
-## 1. Target and measurement
+After the Gate 2 experiments, we retained **Muta Tutor Qwen2.5-1.5B** as our strongest model for deployment. Our next question was therefore **how much we could compress and accelerate this already-selected model without destroying its accuracy that made us choose it?**
 
-`S_total = 0.5·S_acc + 0.3·min(tok/s ÷ 15, 1)·100 + 0.2·(7 − peak GB) ÷ 7·100`, so 1 tok/s is worth 2.0 points, 1 accuracy point 0.5, 100 MB 0.29. Every scored row is one run of the organisers' profiler image — llama.cpp b10175 built **scalar** (no AVX), 4 threads — on GCP `n2` proxy VMs: decode tok/s, peak RSS, ARC-Easy-50 (±7 points at n = 50). `S_acc = mean(ARC-Easy-50, Judges' acc)`. Judges' acc: greedy answers to 40 tutoring prompts (30 held-out *dev* prompts written for this work = score of record; the 10 official Round-1 prompts beside it), scored 0–10 by 8 blind LLM graders against a rubric with worked reference answers. One fixed answer set was regraded in four rounds: 28.0, 31.0, 32.0, 30.7 — a ≈4-point grader band (≈1 `S_total`). No test item or judge prompt was ever trained on.
+We explored pruning, quantization, distillation, vocabulary reduction, MoE conversion, width reduction, and quantization-aware training—all methods for optimizing models.
 
-## 2. Exploration (16–19 Sep, CPU only)
+Thus, our resulting deployment is:
 
-- **Baseline.** The published tutor (LoRA fine-tune, Q4_K_M) audits at 5.8 tok/s, 1100 MB, ARC 84: speed-bound (S_perf 38).
-- **Direction sweep, one audit per idea.** IQ2/IQ3/IQ4 imatrix quants decode at 1.9–2.9 tok/s in the scalar build (no SIMD dequant path): −24 S_perf for +6 S_eff. Imatrix on Q4_K_M: no gain. Training-free MoE (k-means experts, fitted router): ARC 54 at top-4, chance at top-2. Vocabulary 152k → 48k: +0.5. 21 layers, SFT-healed: +0.4 on ARC-50 but ARC-Easy-500 0.72 vs 0.78.
-| Direction sweep (accuracy = ARC-50 only, so not comparable with §5) | ARC-50 | tok/s | Peak MB | S_total |
-|---|---:|---:|---:|---:|
-| Published tutor, Q4_K_M | 84 | 5.77 | 1100 | 70.40 |
-| 21 layers, SFT-healed | 78 | 7.15 | 904 | 70.78 |
-| Vocabulary 48k, Q4_K_M | 82 | 6.29 | 948 | 70.93 |
-| Q4_K_M + imatrix | 82 | 5.53 | 1099 | 68.99 |
-| IQ3_M / IQ2_XXS + imatrix | 80 / 72 | 1.89 / 1.98 | 926 / 673 | 61.20 / 58.08 |
-| MoE 8×1120, untrained, top-4 / top-2 | 54 / 30 | 6.72 / 9.61 | 1288 / 1271 | 56.85 / 50.67 |
+> **[refine-qat100-Q4_0.gguf](https://huggingface.co/timiiowolabi/muta-compress-20260920/blob/main/refine-final/gguf/refine-qat100-Q4_0.gguf)** — a dense Qwen2 architecture, 26 layers, FFN width 7168, 32K vocabulary, **1.05B parameters**, approximately **593 MB**.
 
-- **Exhaustive depth grid.** 215 contiguous layer windows scored by perplexity, 77 by ARC, on 8 boxes: mid-stack windows (8–9, 14–15) are nearly free; the first and last layers are fatal; cutting the lowest Block-Influence layers instead of a contiguous window cost 16 ARC points.
-- **Kernel finding.** Pure **Q4_0 is the only format with a SIMD (SSSE3) kernel in the audit build**: 5.48 → 10.88 tok/s on the same weights, for −12 ARC and −21 judges' points. The rest of the work makes a Q4_0 model small, fast and accurate again.
+---
 
-## 3. Five-step chain (19–20 Sep, rented A100-40GB)
+### 1. Optimization target and measurement
 
-**Tooling.** 104,475-row teacher corpus (GSM8K, ARC, QASC, OpenR1 *train* questions × four tutoring frames, answered by Qwen2.5-7B-Instruct, near-duplicate guard against all held-out prompts); top-32 teacher log-prob cache with a residual bucket (59.4 M positions, 7.4 GB); KD trainer — KL on the top-32 support, fp32 masters under bf16 autocast, 8-bit AdamW, packed 16k-token micro-batches, 262k tokens/step; a 130-prompt termination gate with a text-loop detector; bit-exact Q4_0/Q8_0 fake-quant with straight-through gradients, verified against gguf-py and a C reference on 6.4 M elements including tie cases.
+We optimized against the competition-style combined score and all scored measurements used the ADTC' **scalar llama.cpp b10175 build**, with no AVX acceleration, on GCP `n2` proxy machines.
 
-1. **Vocabulary pruning** to 32,000 (bytes + specials + corpus-seen ids + merge-order fill; embedding 233 M → 49 M parameters; patched GGUF converter). No training. +0.99 tok/s, −108 MB, accuracy level.
-2. **Layer pruning + distillation.** Window-perplexity map → drop 14–15 (26 L) or 13–16 (24 L); heal with 81.7 M KD tokens. 26 L: val_kl 0.363 → 0.179, gate 0.854. 24 L was 1 tok/s faster but looped on 21/40 answers. An on-policy KD round made it worse (gate 0.80 → 0.68; hypothesis: the teacher scoring the student's own looping text endorses the loop).
-3. **MoE conversion + distillation — negative.** Shared expert + routed experts (top-2), 81.7 M KD tokens each. Variant b (75 % of the FFN active) is *slower* than its dense parent in the audit build (12.42 vs 13.15 tok/s — routed matmuls cost more than they save there); variant a reaches 20 tok/s but loops on 27/40 answers. Dropped. The step-4 recipe grid (imatrix; sensitivity-ranked Q8_0 promotions) and a 26-minute QAT on the MoE were built but never scored.
+`S_acc` was computed from ARC-Easy-50 and judges' accuracy on tutoring prompts. Our score of record used **30 held-out development prompts**, while the 10 official Gate 1 prompts were also evaluated separately.
 
-## 4. Refinement (20–21 Sep, A100-40GB)
+Eight blind LLM graders scored responses from 0–10 using worked reference answers. Regrading the same answer set across four rounds produced **28.0, 31.0, 32.0, and 30.7**, giving an observed grader variation of roughly four points.
 
-**Width pruning instead of MoE.** FFN neurons ranked by `E[a²]·‖W_down[:, j]‖²` on 200k calibration tokens; three widths exported *unhealed* and timed on the audit build, since speed depends only on shapes: 7680 → 14.69 tok/s, **7168 → 15.45**, 6656 → 16.22. Chosen: the widest width above the 15 tok/s cap (unhealed val_kl 0.279 vs 0.179 unpruned).
+No evaluation or judge prompt was used for training.
 
-**Verified data (≈49 M tokens per pass).** Every teacher answer checked against the benchmark's gold answer; a hand-labelled sample exposed a parser bug that had marked 33.5 % of GSM8K answers wrong (6.8 % after the fix) → 54,896 rows kept, competition maths capped at 11 % of tokens. Added: 29,750 gold-checked orca-math/OpenBookQA rows (a second gold bug fixed: 4,377 → 18,118 usable questions), 1,508 regenerated GSM8K/ARC misses, 13,735 unrolled MathDial/ConvoLearn tutor turns, and a 15k-row style anchor scored by the original full-precision tutor.
+---
 
-**Training.** KL + 0.3·cross-entropy, lr 1e-5 cosine, 324 M tokens in 6.1 h at 14.8k tok/s: val_kl 0.279 → 0.197; termination gate 0.900, the best of the chain. **QAT** under pure-Q4_0 noise (lr 5e-6): val_kl-under-noise 0.2466 → 0.2128 by step 100. The GPU host became unreachable near step 160 of 362; the step-100 checkpoint survived via hourly off-box backups and was exported on a GCP CPU box. Q4_0 perplexity penalty: 7.6 % without QAT, 1.6 % with.
+### 2. CPU-only exploration
 
-| Training progress | Tokens | val_kl start → end | Clean-ending gate (pass ≥ 0.835) |
-|---|---:|---:|---:|
-| Step 2 heal, 24 L / 26 L | 81.7 M each | 0.507 → 0.225 / 0.363 → 0.179 | 0.800 / 0.854 |
-| Step 3 MoE a / b | 81.7 M each | 0.779 → 0.328 / → 0.227 | 0.708 / 0.838 |
-| Refinement KD (FFN 7168) | 324 M | 0.279 → 0.197 | 0.900 |
-| QAT, measured under Q4_0 noise | 26 M (step 100) | 0.2466 → 0.2128 | not run (host lost) |
+We first tested which compression directions were worth carrying into GPU training.
 
-## 5. Results (all Q4_0 unless named; audit build)
+<div align="center">
 
-**Judges' acc = 30 held-out dev prompts (score of record)**
+<table border="1" cellspacing="0" cellpadding="8" style="border-collapse: collapse; width: 100%; text-align: center;">
+  <tr>
+    <th style="border: 1px solid #888; padding: 8px 12px; text-align: left;">Direction</th>
+    <th style="border: 1px solid #888; padding: 8px 12px;">ARC-50</th>
+    <th style="border: 1px solid #888; padding: 8px 12px;">tok/s</th>
+    <th style="border: 1px solid #888; padding: 8px 12px;">Peak MB</th>
+    <th style="border: 1px solid #888; padding: 8px 12px;">S_total</th>
+  </tr>
 
-| Model | ARC-Easy acc | Judges' acc | S_acc | tok/s | S_perf | Peak RAM (MB) | S_eff | S_total |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Published tutor, 28 L, Q4_K_M | 82 | 60.0 | 71.00 | 5.48 | 36.5 | 1100 | 84.7 | 63.39 |
-| 0 · same weights, pure Q4_0 | 70 | 39.0 | 54.50 | 10.88 | 72.5 | 992 | 86.2 | 66.24 |
-| 1 · vocabulary → 32,000 | 70 | 39.7 | 54.83 | 11.87 | 79.1 | 884 | 87.7 | 68.69 |
-| 2 · 26 layers + KD heal | 70 | 28.0 | 49.00 | 13.15 | 87.7 | 810 | 88.7 | 68.54 |
-| 3 · MoE b + KD (rejected) | 68 | 20.7 | 44.33 | 12.42 | 82.8 | 816 | 88.6 | 64.73 |
-| 3 · MoE a + KD (rejected) | 60 | 2.3 | 31.17 | 20.04 | 100.0 | 798 | 88.9 | 63.36 |
-| R · FFN 7168 + verified KD | 70 | 24.0 | 47.00 | 15.42 | 100.0 | 683 | 90.5 | 71.59 |
-| **R · + QAT (delivered)** | 72 | 31.3 | 51.67 | 15.51 | 100.0 | 706 | 90.2 | **73.86** |
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px; text-align: left;">Published Muta Tutor, Q4_K_M</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">84</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">5.77</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">1100</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">70.40</td>
+  </tr>
 
-**Judges' acc = 10 official prompts (n = 10, noisy)**
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px; text-align: left;">21 layers, SFT-healed</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">78</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">7.15</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">904</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">70.78</td>
+  </tr>
 
-| Model | ARC-Easy acc | Judges' acc | S_acc | tok/s | S_perf | Peak RAM (MB) | S_eff | S_total |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Published tutor, Q4_K_M | 82 | 45.0 | 63.50 | 5.48 | 36.5 | 1100 | 84.7 | 59.64 |
-| 0 · pure Q4_0 | 70 | 27.0 | 48.50 | 10.88 | 72.5 | 992 | 86.2 | 63.24 |
-| 1 · vocabulary | 70 | 26.0 | 48.00 | 11.87 | 79.1 | 884 | 87.7 | 65.27 |
-| 2 · 26 layers | 70 | 45.0 | 57.50 | 13.15 | 87.7 | 810 | 88.7 | 72.79 |
-| 3 · MoE b (rejected) | 68 | 34.0 | 51.00 | 12.42 | 82.8 | 816 | 88.6 | 68.06 |
-| 3 · MoE a (rejected) | 60 | 14.0 | 37.00 | 20.04 | 100.0 | 798 | 88.9 | 66.27 |
-| R · distilled | 70 | 30.0 | 50.00 | 15.42 | 100.0 | 683 | 90.5 | 73.09 |
-| **R · + QAT** | 72 | 35.0 | 53.50 | 15.51 | 100.0 | 706 | 90.2 | **74.78** |
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px; text-align: left;">Vocabulary 48K, Q4_K_M</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">82</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">6.29</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">948</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">70.93</td>
+  </tr>
 
-A second blind grading of the delivered model gave 33.7 dev / 32.0 official → 74.45 / 74.03; its same-batch 26-layer control scored 69.54 and 69.21.
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px; text-align: left;">Q4_K_M + imatrix</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">82</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">5.53</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">1099</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">68.99</td>
+  </tr>
 
-| Held-out capability | ARC-Easy-500 | GSM8K-100 | hit length cap | looping answers /40 | tutoring probe /10 |
-|---|---:|---:|---:|---:|---:|
-| 26-layer parent | 70.0 % | 49 % | 6 % | 8 | 3.24 |
-| **Delivered** | 73.4 % | 53 % | 3 % | 4 | 3.26 |
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px; text-align: left;">IQ3_M / IQ2_XXS + imatrix</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">80 / 72</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">1.89 / 1.98</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">926 / 673</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">61.20 / 58.08</td>
+  </tr>
 
-**Reading.** Against the 26-layer model, `S_total` rises 4.3–5.2 points: **+3.70 is reaching the 15 tok/s cap**, +0.3 RAM, +0.3 to +1.3 accuracy — i.e. 17 % of the parameters were removed and quality was held, not raised. Judges' acc is level with the parent, inside grader noise (targets of 40–50 and ARC 75–80 were missed). ARC-Easy-500 (z ≈ 1.2) and GSM8K-100 point the right way but are not individually significant. Against the published tutor the chain gains +10.5 `S_total` by trading 29 judges' points and 10 ARC points for 2.8× the speed and −36 % RAM.
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px; text-align: left;">MoE 8×1120, top-4 / top-2</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">54 / 30</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">6.72 / 9.61</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">1288 / 1271</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">56.85 / 50.67</td>
+  </tr>
+</table>
 
-## 6. Negative results and limits
+</div>
 
-Scalar-build IQ quants; training-free and trained MoE; on-policy KD; the 24-layer cut; imatrix on the final model (inconclusive: −6 dev, +11 official). **Tutoring-dialogue mode does not work**: on 50 held-out MathDial dialogues the model lectures instead of guiding and 70 % of first turns contain a false statement (parent: 76 %; score 3.26 vs 3.24 of 10) (likely because dialogue rows were trained mostly toward the 7B teacher, not the human tutors' text). QAT ran 100 of 362 steps. Judges are LLM graders, a proxy for human judges. A post-delivery code review found false-accept paths in the answer verifier: re-running the corrected verifier bounds wrong answers in the main corpus at ≈0.03 % (a lower bound; ≤ ≈10 % on the orca rows, by hand-check only); 2/100 GSM8K and 1/500 ARC evaluation items have near-duplicates in the training pools, and excluding them leaves the gaps unchanged.
+These were our main findings:
 
-**Next, with a GPU:** finish QAT from the published checkpoint; retrain dialogue rows on the human text only, at a larger share; regenerate the skipped QASC misses. Full record: `RESULTS.md`, `docs/compression-pipeline-results.md`, `bench/measurements/{compress-20260919,refine-20260920}/`.
+1. **Depth matters unevenly.** We evaluated 215 contiguous layer-removal windows by perplexity and 77 by ARC. Middle blocks—particularly around layers 8–9 and 14–15—were relatively cheap to remove, while early and final layers were highly sensitive.
+2. **Sparse/MoE conversion was not automatically faster.** Router overhead and multiple smaller matrix multiplications reduced the expected benefit in the scalar runtime.
+3. **Q4_0 was uniquely attractive in the audit build.** It was the only tested format with an effective SSSE3-accelerated kernel. On identical weights, Q4_0 increased decode speed from roughly **5.48 → 10.88 tok/s**, although direct conversion also reduced accuracy.
 
+This gave us the central optimization problem:
+
+> **Make Q4_0 small and fast, then recover as much of the lost model quality as possible.**
+
+---
+
+### 3. Compression chain
+
+#### Training infrastructure
+
+We built a **104,475-row teacher corpus** from GSM8K, ARC, QASC, and OpenR1 training questions across four tutoring frames, answered by **Qwen2.5-7B-Instruct**.
+
+We also built:
+
+- a near-duplicate guard against all held-out prompts,
+- a top-32 teacher log-probability cache,
+- KL-based knowledge distillation,
+- a 130-prompt termination gate with loop detection,
+- bit-exact Q4_0/Q8_0 fake quantization with straight-through gradients.
+
+#### Step 1 — Vocabulary pruning
+
+Vocabulary was reduced from approximately **152K → 32K**, retaining byte tokens, special tokens, corpus-observed tokens, and merge-order coverage.
+
+Embedding parameters fell from approximately **233M → 49M**.
+
+Result:
+
+- **+0.99 tok/s**
+- **−108 MB RAM**
+  
+#### Step 2 — Layer pruning + distillation
+
+The depth analysis identified two promising cuts:
+
+- **26 layers:** remove 14–15
+- **24 layers:** remove 13–16
+
+Both were improved using **81.7M distillation tokens**.
+
+The 26-layer model improved from: `val_kl 0.363 → 0.179`
+
+The 24-layer model was around 1 tok/s faster but produced loops in **21/40 answers**, so it was rejected.
+
+#### Step 3 — MoE conversion
+
+We tested shared-expert + routed-expert variants with top-2 routing.
+
+One MoE variant retained approximately **75% of the FFN active**, yet became **slower than its dense parent**:
+
+`12.42 tok/s vs. 13.15 tok/s`
+
+The smaller variant reached approximately **20 tok/s**, but looped in **27/40 answers**.
+
+Both were rejected.
+
+---
+
+### 4. Width pruning, verified distillation, and QAT
+
+Instead of MoE, we returned to a dense architecture and reduced the FFN width.
+
+<div align="center">
+
+<table border="1" cellspacing="0" cellpadding="8" style="border-collapse: collapse; text-align: center;">
+  <tr>
+    <th style="border: 1px solid #888; padding: 8px 16px;">FFN Width</th>
+    <th style="border: 1px solid #888; padding: 8px 16px;">Decode Speed</th>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 16px;">7680</td>
+    <td style="border: 1px solid #888; padding: 8px 16px;">14.69 tok/s</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 16px;"><strong>7168</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 16px;"><strong>15.45 tok/s</strong></td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 16px;">6656</td>
+    <td style="border: 1px solid #888; padding: 8px 16px;">16.22 tok/s</td>
+  </tr>
+</table>
+
+</div>
+
+We selected **7168** because it was the widest model that crossed the competition's **15 tok/s performance cap**.
+
+#### Verified training data
+
+Before the final distillation run, we re-audited the teacher corpus.
+
+A hand-labelled sample exposed a parser bug that had incorrectly marked **33.5% of GSM8K answers as wrong**. After fixing the verifier, that fell to **6.8%**.
+
+The final verified training mixture included:
+
+- **54,896** retained teacher rows,
+- **29,750** gold-checked Orca-Math/OpenBookQA rows,
+- **1,508** regenerated GSM8K/ARC misses,
+- **13,735** unrolled MathDial/ConvoLearn tutoring turns,
+- a **15K-row style anchor** scored by the original full-precision Muta Tutor.
+
+Competition mathematics was capped at **11% of tokens**.
+
+#### Final distillation
+
+Training used:
+
+- KL + `0.3 × cross-entropy`
+- learning rate `1 × 10⁻⁵`
+- cosine schedule
+- **324M training tokens**
+- approximately **6.1 hours**
+- approximately **14.8K training tok/s**
+
+Result: Validation loss improved from `val_kl 0.279 → 0.197`
+
+#### Quantization-aware training
+
+We then trained under simulated pure-Q4_0 noise using:
+
+`LR = 5 × 10⁻⁶`
+
+By step 100:
+
+`val_kl under Q4_0 noise: 0.2466 → 0.2128`
+
+The GPU host became unreachable near step 160 of the planned 362 steps, but our hourly off-box backup preserved the **step-100 checkpoint**, which became the exported model.
+
+Q4_0 perplexity degradation fell from:
+
+- **7.6% without QAT**
+- to **1.6% with QAT**
+
+<div align="center">
+
+<table border="1" cellspacing="0" cellpadding="8" style="border-collapse: collapse; width: 100%; text-align: center;">
+  <tr>
+    <th style="border: 1px solid #888; padding: 8px 12px;">Training Stage</th>
+    <th style="border: 1px solid #888; padding: 8px 12px;">Tokens</th>
+    <th style="border: 1px solid #888; padding: 8px 12px;">val_kl Start → End</th>
+    <th style="border: 1px solid #888; padding: 8px 12px;">Clean-ending Gate</th>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;">24L / 26L depth heal</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">81.7M each</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">0.507 → 0.225 / 0.363 → 0.179</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">0.800 / 0.854</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;">MoE a / b</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">81.7M each</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">0.779 → 0.328 / → 0.227</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">0.708 / 0.838</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;">FFN-7168 verified KD</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">324M</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">0.279 → 0.197</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>0.900</strong></td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px;">QAT, Q4_0 noise</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">26M</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">0.2466 → 0.2128</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">Not run</td>
+  </tr>
+</table>
+
+</div>
+
+---
+
+### 5. Final audit results
+
+#### 30 held-out development prompts
+
+<div align="center">
+
+<table border="1" cellspacing="0" cellpadding="8" style="border-collapse: collapse; width: 100%; text-align: center;">
+  <tr>
+    <th style="border: 1px solid #888; padding: 8px 10px;">Model</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">ARC-Easy</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">Judges</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">S_acc</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">tok/s</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">S_perf</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">Peak RAM</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">S_eff</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">S_total</th>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">Published Muta Tutor, Q4_K_M</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">82</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">60.0</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">71.00</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">5.48</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">36.5</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">1100 MB</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">84.7</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">63.39</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">Pure Q4_0</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">70</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">39.0</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">54.50</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">10.88</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">72.5</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">992 MB</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">86.2</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">66.24</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">+ Vocabulary 32K</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">70</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">39.7</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">54.83</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">11.87</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">79.1</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">884 MB</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">87.7</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">68.69</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">+ 26 layers + KD</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">70</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">28.0</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">49.00</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">13.15</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">87.7</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">810 MB</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">88.7</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">68.54</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">MoE b — rejected</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">68</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">20.7</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">44.33</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">12.42</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">82.8</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">816 MB</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">88.6</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">64.73</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">MoE a — rejected</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">60</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">2.3</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">31.17</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">20.04</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">100.0</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">798 MB</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">88.9</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">63.36</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">FFN-7168 + verified KD</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">70</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">24.0</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">47.00</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">15.42</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">100.0</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">683 MB</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">90.5</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">71.59</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;"><strong>FFN-7168 + QAT — delivered</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>72</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>31.3</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>51.67</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>15.51</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>100.0</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>706 MB</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>90.2</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>73.86</strong></td>
+  </tr>
+</table>
+
+</div>
+
+#### 10 official Gate 1 prompts
+
+<div align="center">
+
+<table border="1" cellspacing="0" cellpadding="8" style="border-collapse: collapse; width: 100%; text-align: center;">
+  <tr>
+    <th style="border: 1px solid #888; padding: 8px 10px;">Model</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">ARC-Easy</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">Judges</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">S_acc</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">tok/s</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">S_perf</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">Peak RAM</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">S_eff</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">S_total</th>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">Published Muta Tutor</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">82</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">45.0</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">63.50</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">5.48</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">36.5</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">1100 MB</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">84.7</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">59.64</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">Pure Q4_0</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">70</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">27.0</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">48.50</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">10.88</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">72.5</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">992 MB</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">86.2</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">63.24</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">+ Vocabulary</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">70</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">26.0</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">48.00</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">11.87</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">79.1</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">884 MB</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">87.7</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">65.27</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">+ 26 layers</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">70</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">45.0</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">57.50</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">13.15</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">87.7</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">810 MB</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">88.7</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">72.79</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">MoE b — rejected</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">68</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">34.0</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">51.00</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">12.42</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">82.8</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">816 MB</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">88.6</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">68.06</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">MoE a — rejected</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">60</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">14.0</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">37.00</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">20.04</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">100.0</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">798 MB</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">88.9</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">66.27</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">FFN-7168 distilled</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">70</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">30.0</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">50.00</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">15.42</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">100.0</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">683 MB</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">90.5</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">73.09</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;"><strong>FFN-7168 + QAT</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>72</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>35.0</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>53.50</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>15.51</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>100.0</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>706 MB</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>90.2</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>74.78</strong></td>
+  </tr>
+</table>
+
+</div>
+
+A second blind grading of the delivered model produced:
+
+- **33.7** on the held-out development prompts,
+- **32.0** on the official prompts,
+- corresponding `S_total` values of **74.45** and **74.03**.
+
+Its same-batch 26-layer control scored **69.54** and **69.21**.
+
+#### Held-out capability checks
+
+<div align="center">
+
+<table border="1" cellspacing="0" cellpadding="8" style="border-collapse: collapse; width: 100%; text-align: center;">
+  <tr>
+    <th style="border: 1px solid #888; padding: 8px 12px;">Model</th>
+    <th style="border: 1px solid #888; padding: 8px 12px;">ARC-Easy-500</th>
+    <th style="border: 1px solid #888; padding: 8px 12px;">GSM8K-100</th>
+    <th style="border: 1px solid #888; padding: 8px 12px;">Hit Length Cap</th>
+    <th style="border: 1px solid #888; padding: 8px 12px;">Loops /40</th>
+    <th style="border: 1px solid #888; padding: 8px 12px;">Tutoring Probe /10</th>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px; text-align: left;">26-layer parent</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">70.0%</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">49%</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">6%</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">8</td>
+    <td style="border: 1px solid #888; padding: 8px 12px;">3.24</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 12px; text-align: left;"><strong>Delivered refinement</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>73.4%</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>53%</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>3%</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>4</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>3.26</strong></td>
+  </tr>
+</table>
+
+</div>
+
+### What improved
+
+Compared with the published Muta Tutor, the refinement:
+
+- increased scalar decode speed from roughly **5.5 → 15.5 tok/s**,
+- reduced peak RAM from roughly **1.1 GB → 0.7 GB**,
+- reduced the model to approximately **593 MB**,
+- but sacrificed some judge and ARC accuracy.
+
+So this is best understood as our **high-efficiency deployment variant of Muta Tutor**.
+---
+
+<span style="color: orange"><strong>Our conclusion remains Muta Tutor Qwen2.5-1.5B is our quality-first model. But to also maximize some parts of efficiency and performance (alongside good accuracy), we'll submitting the <a href="https://huggingface.co/timiiowolabi/muta-compress-20260920/blob/main/refine-final/gguf/refine-qat100-Q4_0.gguf">refine-qat100-Q4_0.gguf</a>.</strong></span>
+
+A more comprehensive report on our several optimizations can be found here.
 
 </details>
 
