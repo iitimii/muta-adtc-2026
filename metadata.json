@@ -25,13 +25,13 @@
     }
   ],
   "model": {
-    "name": "Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-qwen35-judge-hybrid.gguf",
+    "name": "Muta-Tutor-Qwen2.5-1.5B-Q4_K_M.gguf",
     "runtime": "llama.cpp",
     "quantization": "GGUF Q4_K_M",
     "parameters_estimate": "1.5B",
     "packaging": "binary_bundle"
   },
   "_runtime": {
-    "model_path": "model/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-qwen35-judge-hybrid.gguf"
+    "model_path": "model/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M.gguf"
   }
 }
