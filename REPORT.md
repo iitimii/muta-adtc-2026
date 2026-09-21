@@ -2392,7 +2392,7 @@ Compared with the published Muta Tutor, the refinement:
 So this is best understood as our **high-efficiency deployment variant of Muta Tutor**.
 ---
 
-<span style="color: orange"><strong>Our conclusion remains Muta Tutor Qwen2.5-1.5B is our quality-first model. But to also maximize some parts of efficiency and performance (alongside good accuracy), we'll be submitting the <a href="https://huggingface.co/timiiowolabi/muta-compress-20260920/blob/main/refine-final/gguf/refine-qat100-Q4_0.gguf">refine-qat100-Q4_0.gguf</a>.</strong></span>
+<span style="color: orange"><strong>Our conclusion remains unchanged: Muta Tutor Qwen2.5-1.5B is our quality-first model. This compression work produced a substantially faster and smaller deployment variant, but it does not preserve the tutoring and reasoning quality, which made the original model our winner.</strong></span>
 
 A more comprehensive report on our several optimizations can be found [here](https://muta-iq.vercel.app/#gate-2-finetuning).
 
