@@ -19,8 +19,7 @@ This repository is Muta's entry for the **Africa Deep Tech Challenge 2026** Lapt
 | Domain | `math_scientific_reasoning` |
 | Submitter | Nelson Elijah · [@nelsonifechukwu](https://github.com/nelsonifechukwu) |
 | Cross-disciplinary pairing | Education (load-bearing) |
-| Model | `Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf` — fine-tuned [Qwen
-/Qwen2.5-1.5B](https://huggingface.co/Qwen/Qwen2.5-1.5B) |
+| Model | `Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf` — fine-tuned [Qwen/Qwen2.5-1.5B](https://huggingface.co/Qwen/Qwen2.5-1.5B) |
 | Runtime | `llama.cpp` |
 | Quantization | GGUF Q4_0 |
 | Parameters | ~1.5B |
