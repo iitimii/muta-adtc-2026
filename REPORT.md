@@ -846,7 +846,7 @@ To reproduce the above evidenced comparison, we decided to share our configurati
 </details>
 
 <details>
-<summary><strong>Gate 2 — Exploration, Improving Accuracy & Final Selection</strong></summary>
+<summary><strong>Gate 2 — Exploration and Improving Accuracy</strong></summary>
 
 ## Gate 2: Exploration
 
@@ -1091,8 +1091,6 @@ Building on the shortlist above, we evaluated the qualifying models using a test
 * **Scalar Score Proxy:** Estimated competition score using scalar CPU throughput, RSS, and ARC-Easy accuracy.
 * **AVX2 Score Proxy:** Equivalent estimate using AVX2-enabled measurements. Both proxies exclude target-laptop temperature and are therefore not official profiler scores.
 * **Selection Outcome:** Final model-selection decision based on the combined evaluation.
-
-### Final decision
 
 Our Muta Tutor Qwen2.5-1.5B delivered the strongest overall balance: the highest ARC-Easy accuracy, highest Gate 1 score, complete answer delivery, and highest AVX2 score proxy. <span style="color: orange">Therefore, our fine-tuned Muta Tutor Qwen2.5-1.5B is the model selected for further development.</span>
 
@@ -1904,7 +1902,7 @@ A more comprehensive Gate 2 record can be found in [03 · Improving Accuracy: Mo
 
 <details>
 
-<summary><strong>Optimization</strong></summary>
+<summary><strong>Optimization and Final Decision</strong></summary>
 
 ## Optimizing the Selected Muta Tutor for CPU Deployment
 
@@ -2407,25 +2405,69 @@ By step 100:
 </table>
 
 </div>
-
 ### What improved
 
-Compared with the published Muta Tutor, the refinement:
+Compared with the published Muta Tutor, the full compression chain:
 
 - increased scalar decode speed from roughly **5.5 → 15.5 tok/s**,
 - reduced peak RAM from roughly **1.1 GB → 0.7 GB**,
 - reduced the model to approximately **593 MB**,
 - but sacrificed some judge and ARC accuracy.
 
-So this is best understood as our high-efficiency deployment variant of Muta Tutor.
+This makes the fully compressed model a strong **efficiency-first variant**, but not a suitable replacement for our quality-first Muta Tutor.
 
 ---
 
+### Final Decision
+
 <span style="color: orange"><strong>
-Since accuracy is our highest priority for an educational model, we will only adopt the <a href="#vocab-pruning">vocabulary-pruning optimization</a>, as it reduced model size and improved deployment efficiency without any measured loss in accuracy. The resulting model, <code>Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf</code>, provides a smaller and faster deployment variant while preserving the capability of our selected Muta Tutor. It can be found <a href="https://huggingface.co/timiiowolabi/Muta-Tutor-Qwen2.5-1.5B-ADTC-GGUF/blob/main/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf">here</a>.
+Since accuracy remains our highest priority for an educational model, we will not adopt the full compression chain. Instead, we will carry forward only the <a href="#vocab-pruning">vocabulary-pruning optimization</a>, which reduced model size and improved deployment efficiency without showing an accuracy regression in our evaluation. Our updated deployment model is therefore <code>Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf</code>, which preserves the capability of our selected Muta Tutor while being smaller and faster. It can be found <a href="https://huggingface.co/timiiowolabi/Muta-Tutor-Qwen2.5-1.5B-ADTC-GGUF/blob/main/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf">here</a>.
 </strong></span>
 
-A more comprehensive report on our several optimizations can be found [here](https://muta-iq.vercel.app/#gate-2-finetuning).
+To validate this decision, we directly compared the vocabulary-pruned model against the incumbent Muta Tutor under the same audit setup:
+
+<div align="center">
+
+<table border="1" cellspacing="0" cellpadding="8" style="border-collapse: collapse; width: 100%; text-align: center;">
+  <tr>
+    <th style="border: 1px solid #888; padding: 8px 10px;">Model</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">Synthetic Accuracy*</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">Decode tok/s<br>(capture)</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;"><code>llama-bench</code><br>tok/s</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">Peak RSS</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">S_perf</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">S_eff</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">ADTC Proxy Total†</th>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>Muta-vocab32k.gguf</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>6/10 (60%)</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>5.277</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>6.370</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>896.4 MiB</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>42.47</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>87.49</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>60.24</strong></td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px;">Muta-incumbent.gguf</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">4/10 (40%)</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">4.705</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">5.367</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">1,073.0 MiB</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">35.78</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">85.03</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">47.74</td>
+  </tr>
+</table>
+
+</div>
+
+The vocabulary-pruned model was **faster, used less memory, and showed no accuracy regression in this small synthetic comparison**, resulting in a substantially higher ADTC proxy score (**60.24 vs. 47.74**). Because the accuracy sample contains only 10 questions, we treat it as supporting evidence rather than a definitive accuracy benchmark.
+
+A more comprehensive report on the optimization experiments can be found [here](https://muta-iq.vercel.app/#gate-2-finetuning).
 
 </details>
 
