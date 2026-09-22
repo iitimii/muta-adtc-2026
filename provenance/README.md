@@ -104,22 +104,10 @@ quantizer hashes, llama.cpp commit `60bccc3763395e01b039aa1ddeacc8cc0ea69f70`,
 inputs, outputs, and logs. The local copy of the project merge script is
 `scripts/merge_and_quantize.py`.
 
-## Post-export chat-template packaging
-
-The current release candidate embeds `qwen35_judge_hybrid.jinja` under the
-GGUF key `tokenizer.chat_template`. The template source, Hugging Face upload
-receipt, and tensor-identity check are under [`packaging/`](packaging/README.md).
-The operation changed metadata only: tensor count stayed 338 and the
-tensor-only SHA stayed
-`453e2452a8f7671d4de31fb1730cc2a05bce13fb469f98a2c93bdb3d62e1a6fc6`.
-The embedded-template smoke passed, but the template is Qwen3.5-oriented while
-the weights/tokenizer are Qwen2.5; it remains a packaging candidate until the
-same matched quality suite is rerun.
-
 ## Hosted notebook and reproducibility note
 
-No hosted notebook was used. Training and export ran through authenticated
-SSH/Slurm/Oracle infrastructure; the hosted-notebook-link requirement is
+No hosted notebook was used. Training and export ran through an authenticated
+SSH/GPU infrastructure; the hosted-notebook-link requirement is
 therefore not applicable. Exact local scripts, manifests, logs, curves, and
 hashes are included here. The private corpus and remote checkpoint tree are
 not reproduced in this public submission repository.
