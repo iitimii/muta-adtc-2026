@@ -2482,12 +2482,9 @@ A more comprehensive report on the optimization experiments can be found [here](
 
 - Training datasets used: 10,756 training examples from [AI2 ARC](https://huggingface.co/datasets/allenai/ai2_arc/tree/210d026faf9955653af8916fad021475a3f00453) (3,166 ARC-Easy/ARC-Challenge rows; CC-BY-SA-4.0) and [QASC](https://huggingface.co/datasets/allenai/qasc/tree/a34ba204eb9a33b919c10cc08f4f1c8dae5ec070) (7,590 rows; CC-BY-4.0).
 
-Yes — we’ll drop the arithmetic example completely. The **chemical-equilibrium tutoring test becomes Prompt 1**, and we can add a different capability test as Prompt 2 afterward.
-
-
 - Before/After Comparison
 
-To verify that vocabulary pruning preserved the behaviour learned during fine-tuning, we compared the vocabulary-pruned Muta directly against the untouched **Qwen2.5-1.5B-Instruct** base model under the same CPU setup.
+  - To verify that vocabulary pruning preserved the behaviour learned during fine-tuning, we compared the vocabulary-pruned Muta directly against the untouched **Qwen2.5-1.5B-Instruct** base model under the same CPU setup.
 
 ---
 
@@ -2571,11 +2568,11 @@ We evaluated both responses against the scientific and tutoring requirements:
 
 </div>
 
-The main difference was **scientific consistency**. The base model initially explained equilibrium correctly but later reintroduced the student's original misconception by stating that **“the reaction has stopped.”**
+The main difference was **scientific consistency**. The base model initially explained equilibrium correctly, but later reintroduced the student's original misconception by stating that **“the reaction has stopped.”**
 
-The vocabulary-pruned Muta preserved the crucial concept that equilibrium is **dynamic**: the forward and reverse reactions continue at equal rates while the macroscopic concentrations remain constant and are not necessarily equal.
+The vocabulary-pruned Muta preserved the crucial concept that equilibrium is **dynamic**: the forward and reverse reactions continue at equal rates, while the macroscopic concentrations remain constant and need not be equal.
 
-This first comparison therefore shows that the vocabulary-pruned fine-tuned model preserved the reasoning and tutoring behaviour learned during fine-tuning, while outperforming the untouched base model on this misconception-correction task.
+This first comparison, therefore, shows that the vocabulary-pruned fine-tuned model preserved the reasoning and tutoring behavior learned during fine-tuning and outperformed the untouched base model on this misconception-correction task.
 
 ---
 
