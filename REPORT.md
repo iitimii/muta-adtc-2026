@@ -2482,9 +2482,11 @@ A more comprehensive report on the optimization experiments can be found [here](
 
 - Training datasets used: 10,756 training examples from [AI2 ARC](https://huggingface.co/datasets/allenai/ai2_arc/tree/210d026faf9955653af8916fad021475a3f00453) (3,166 ARC-Easy/ARC-Challenge rows; CC-BY-SA-4.0) and [QASC](https://huggingface.co/datasets/allenai/qasc/tree/a34ba204eb9a33b919c10cc08f4f1c8dae5ec070) (7,590 rows; CC-BY-4.0).
 
-- Before/After Comparison
+---
 
-  - To verify that vocabulary pruning preserved the behaviour learned during fine-tuning, we compared the vocabulary-pruned Muta directly against the untouched **Qwen2.5-1.5B-Instruct** base model under the same CPU setup.
+### Before/After Comparison
+
+To verify that vocabulary pruning preserved the behaviour learned during fine-tuning, we compared the vocabulary-pruned Muta directly against the untouched **Qwen2.5-1.5B-Instruct** base model under the same CPU setup.
 
 ---
 
@@ -2505,6 +2507,60 @@ A more comprehensive report on the optimization experiments can be found [here](
 > 4. Give one simple example or analogy.
 > 5. Correct the misconception without sounding dismissive.
 > 6. End with one short question that checks whether the student now understands the idea.
+
+##### Base model response — `Qwen/Qwen2.5-1.5B-Instruct`
+
+> The student's statement is close, but there are a few key points to clarify:
+>
+> "At chemical equilibrium, the reaction has stopped because the amounts of reactants and products are now equal."
+>
+> **Explanation:** At chemical equilibrium, **the reaction rates are equal**, not the concentrations. The key concept is that the forward and reverse reactions occur at the same rate, balancing out each other.
+>
+> **Misconception:** The student might have confused "equal reaction rates" with "equal concentrations." While both terms relate to equilibrium, they refer to different aspects of the system.
+>
+> **Simple analogy:** Imagine a seesaw. At equilibrium, both sides (the reactants and products) are balanced, like two people sitting on each side of the seesaw. They don't necessarily need to be at the same height or have the same weight, just balanced.
+>
+> **Corrected statement:** "At chemical equilibrium, the reaction has stopped because the forward and reverse reactions occur at the same rate."
+>
+> **Check your understanding:** Can you think of another real-world situation where two processes are balanced in a similar way?
+>
+> This example should help clarify that equal reaction rates and equal concentrations are different concepts related to chemical equilibrium.
+
+##### Vocabulary-pruned Muta response — `Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf`
+
+> Your statement is almost correct, but there's a crucial part missing: the key concept of chemical equilibrium. Let's break it down together:
+>
+> ### Chemical Equilibrium
+>
+> When a chemical reaction reaches equilibrium, it means that the rates at which reactants are converted into products and vice versa are equal. This does not mean that the amounts of reactants and products have stopped changing; rather, it's about balance.
+>
+> ### What Does This Mean?
+>
+> At equilibrium:
+>
+> 1. The concentrations of all substances are constant.
+> 2. The forward and reverse reactions proceed at the same rate.
+> 3. There is no net change in the amounts of reactants and products over time.
+>
+> ### Example
+>
+> Imagine you have a balanced chemical equation like:
+>
+> `A + B → C`
+>
+> At equilibrium, let's say:
+>
+> - Reactant A has 1 unit.
+> - Reactant B has 1 unit.
+> - Product C has 2 units.
+>
+> Even though the amounts of A and B are constant, the reaction is not stopping. The rates at which they react to form C and decompose back into A and B are equal.
+>
+> ### Key Takeaway
+>
+> Chemical equilibrium means the system has reached a state where the forward and reverse reactions are balanced, leading to constant concentrations without the actual stoppage of the reactions themselves.
+>
+> To check if you understand this concept better, let's discuss an example with numbers. Say you have 10 grams of A, 10 grams of B, and 20 grams of C initially. How would that chemical equilibrium look?
 
 We evaluated both responses against the scientific and tutoring requirements:
 
@@ -2568,18 +2624,180 @@ We evaluated both responses against the scientific and tutoring requirements:
 
 </div>
 
-The main difference was **scientific consistency**. The base model initially explained equilibrium correctly, but later reintroduced the student's original misconception by stating that **“the reaction has stopped.”**
+The main difference was **scientific consistency**. The base model initially explained equilibrium correctly but later reintroduced the student's original misconception by stating that **“the reaction has stopped.”**
 
-The vocabulary-pruned Muta preserved the crucial concept that equilibrium is **dynamic**: the forward and reverse reactions continue at equal rates, while the macroscopic concentrations remain constant and need not be equal.
+The vocabulary-pruned Muta preserved the crucial concept that equilibrium is **dynamic**: the forward and reverse reactions continue at equal rates, while macroscopic concentrations remain constant and need not be equal.
 
-This first comparison, therefore, shows that the vocabulary-pruned fine-tuned model preserved the reasoning and tutoring behavior learned during fine-tuning and outperformed the untouched base model on this misconception-correction task.
+This comparison therefore shows that the vocabulary-pruned fine-tuned model preserved the reasoning and tutoring behaviour learned during fine-tuning and outperformed the untouched base model on this misconception-correction task.
 
 ---
 
-#### Prompt 2 — Pending
+#### Prompt 2 — Mathematical reasoning and misconception correction
 
-A second prompt will test a different capability so that the comparison is not based on a single type of scientific reasoning task.
+**Prompt**
 
+> A student says:
+>
+> “I travelled 60 km at 30 km/h and another 60 km at 60 km/h. My average speed was 45 km/h because (30 + 60) ÷ 2 = 45.”
+>
+> Respond as a mathematics tutor helping the student understand whether this reasoning is correct.
+>
+> Your response should:
+> 1. Identify the exact mistake in the student's reasoning.
+> 2. Calculate the time spent on each part of the journey.
+> 3. Calculate the total distance and total time.
+> 4. Use the correct definition of average speed to find the answer.
+> 5. Explain clearly why simply averaging 30 km/h and 60 km/h does not work here.
+> 6. State when taking the arithmetic mean of two speeds would be valid.
+> 7. Give one quick unit check.
+> 8. End with one short question that checks whether the student now understands the difference.
+
+##### Base model response — `Qwen/Qwen2.5-1.5B-Instruct`
+
+> The student's reasoning is incorrect because they have averaged the speeds, which does not give the correct average speed. The correct approach to find the average speed involves calculating the total distance traveled and dividing it by the total time taken. Here’s how you can explain this step-by-step:
+>
+> ### Step 1: Calculate Time Spent on Each Part of the Journey
+>
+> - For the first part of the journey: `Time = Distance / Speed = 60 km / 30 km/h = 2 hours`
+> - For the second part of the journey: `Time = Distance / Speed = 60 km / 60 km/h = 1 hour`
+>
+> ### Step 2: Calculate Total Distance and Total Time
+>
+> - **Total distance:** `60 km + 60 km = 120 km`
+> - **Total time:** `2 hours + 1 hour = 3 hours`
+>
+> ### Step 3: Calculate Average Speed
+>
+> `Average speed = Total distance / Total time = 120 km / 3 hours = 40 km/h`
+>
+> ### Step 4: Why Averaging Speeds Does Not Work Here
+>
+> When you average speeds, you are not considering the time taken for each part of the journey. To get the correct average speed, you must sum the distances and divide by the total time taken.
+>
+> ### Step 5: When Averaging Speeds Is Valid
+>
+> You can average speeds when you are comparing different conditions over the same period of time. For example, if you were traveling at two different constant speeds for equal intervals of time, but these intervals may not be equal in duration.
+>
+> ### Step 6: Quick Unit Check
+>
+> The student’s calculation should result in a total distance of `120 km` and a total time of `3 hours`. This is because the speeds are per hour, so the units work out correctly.
+>
+> ### Step 7: One Quick Unit Check (End Question)
+>
+> Is the average speed for this trip equal to 45 km/h?
+>
+> By checking if the average speed is indeed 40 km/h, the student can confirm that their initial reasoning was incorrect.
+
+##### Vocabulary-pruned Muta response — `Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf`
+
+> The mistake in the student's reasoning is in calculating the average speed. The correct formula for average speed is the total distance divided by the total time, not the average of the two speeds.
+>
+> Let's calculate the time spent on each part of the journey:
+>
+> - For the first 60 km at 30 km/h: Time = Distance ÷ Speed = 60 km ÷ 30 km/h = 2 hours.
+> - For the next 60 km at 60 km/h: Time = Distance ÷ Speed = 60 km ÷ 60 km/h = 1 hour.
+>
+> So, the total time spent on both parts of the journey is 2 + 1 = 3 hours. The total distance traveled is 60 km + 60 km = 120 km.
+>
+> Now, let's calculate the correct average speed:
+>
+> - Total distance = 120 km.
+> - Total time = 3 hours.
+> - Average speed = Total distance ÷ Total time = 120 km ÷ 3 hours = 40 km/h.
+>
+> The correct average speed is 40 km/h, not 45 km/h. The student's answer of 45 km/h is the arithmetic mean of the two speeds (30 km/h and 60 km/h), which is not valid for calculating average speed.
+>
+> The average speed is found by dividing the total distance by the total time, not by averaging the two speeds directly. This is because the formula for average speed is based on the entire journey, where both speeds are being considered over the same period of time (the whole journey).
+>
+> As a quick unit check, the student's answer (45 km/h) is slightly off from the correct value (40 km/h). A more accurate check would be to divide 120 km by the total time of 3 hours, which indeed gives 40 km/h.
+>
+> Now, let's rephrase what the student should have done:
+>
+> - The student should have calculated the time spent on each part: 2 hours for the first 60 km and 1 hour for the next 60 km.
+> - The total distance is 120 km.
+> - The correct average speed is 40 km/h.
+>
+> The mistake was in averaging the speeds directly, which is not valid for calculating average speed. The correct calculation shows that the student should have used the formula for average speed instead of the arithmetic mean of the two speeds.
+>
+> Did this explanation help clarify the issue? Let me know if you need any further assistance.
+
+We evaluated the responses against the mathematical and tutoring requirements:
+
+<div align="center">
+
+<table border="1" cellspacing="0" cellpadding="8" style="border-collapse: collapse; width: 100%; text-align: center;">
+  <tr>
+    <th style="border: 1px solid #888; padding: 8px 10px;">Criterion</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">Base Qwen2.5-1.5B</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">Vocab-pruned Muta</th>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">Identifies the averaging mistake</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">2 / 2</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">2 / 2</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">Correct travel times</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">1 / 1</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">1 / 1</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">Correct total distance and time</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">1 / 1</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">1 / 1</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">Correct average speed: 40 km/h</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">2 / 2</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">2 / 2</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">Explains why 45 km/h is wrong</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">1 / 1</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">1 / 1</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">States when arithmetic mean is valid</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">0.5 / 1</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">0 / 1</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">Proper unit check</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">0.5 / 1</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">0.5 / 1</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">Ends with requested diagnostic question</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">0 / 1</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">0 / 1</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;"><strong>Total</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>8.0 / 10</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>7.5 / 10</strong></td>
+  </tr>
+</table>
+
+</div>
+
+Both models correctly solved the mathematical problem and identified that average speed must be computed from **total distance ÷ total time**.
+
+The base model attempted to explain when the arithmetic mean of two speeds is valid, but introduced a contradiction by saying the speeds could be used for **“equal intervals of time”** while those intervals **“may not be equal in duration.”** The correct condition is that the two speeds must be maintained for **equal amounts of time**.
+
+The vocabulary-pruned Muta avoided that contradiction, but omitted the requested condition entirely. Both responses also gave only weak dimensional checks and neither ended exactly with the requested diagnostic question.
+
+Unlike Prompt 1, this second prompt therefore produced **no clear model advantage**. It is useful as a control: vocabulary pruning did not damage the model's core mathematical reasoning, while the stronger differentiation between the fine-tuned and untouched models remained visible in the more demanding misconception-correction behaviour tested in Prompt 1.
+
+---
 
 - LoRA adapter weights: [adapter_model.safetensors](provenance/adapter_model.safetensors) and config: [adapter_config.json](provenance/adapter_config.json)
 - The training/fine-tuning script or config that produced the model: [train_lora.py](provenance/scripts/train_lora.py)
@@ -2587,4 +2805,5 @@ A second prompt will test a different capability so that the comparison is not b
 - The training dataset: [dataset](provenance/dataset)
 - SHA256 checksums of the base model file: [checksums](provenance/SHA256SUMS)
 - The merge/quantization script: [merge_and_quantize.py](provenance/scripts/merge_and_quantize.py)
+
 </details>
