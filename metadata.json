@@ -38,8 +38,7 @@
     "runtime": "llama.cpp",
     "quantization": "GGUF Q4_K_M",
     "parameters_estimate": "1.5B",
-    "packaging": "binary_bundle",
-    "base_model_commit_sha": "775b11afaf83e0dc75bd5abaf90133e47b3ec082"
+    "packaging": "binary_bundle"
   },
   "_runtime": {
     "model_path": "model/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf"
