@@ -18,11 +18,11 @@ Audit baseline: the tracked local and public `main` commit was `a3e5f085387678e2
 
 | Area | Status | Repository evidence |
 |---|---|---|
-| Gate 1 core repository and root files | Complete | Public GitHub remote; `metadata.json`, `download_model.sh`, `REPORT.md`, and `model/` exist; the Gate 2 provenance package is still missing |
+| Gate 1 core repository and root files | Complete | Public GitHub remote; `metadata.json`, `download_model.sh`, `REPORT.md`, and `model/` exist; the Gate 2 evidence bundle is under [`provenance/`](provenance/README.md) |
 | Model weights excluded from Git | Complete | Ignore rules cover GGUF/bin/safetensors in `model/`; history contains no model weights |
 | Final Gate 2 model | Not frozen | `NEWREPORT.md` selects Qwen2.5 1.5B, but every tracked release artifact still selects Qwen3.5 0.8B |
 | Accuracy/usefulness evidence | Partial | Initial judge-prompt comparison exists; blind held-out and tutoring-quality gates remain open |
-| Gate 2 provenance | Missing | No `Model Provenance` section or `provenance/` directory |
+| Gate 2 provenance | Partial | [`provenance/`](provenance/README.md) now contains the adapter, scripts/configs, loss logs/curves, private-safe dataset proof, quantization receipts, and SHA256 ledger; the final release metadata/report still need synchronization |
 | Benchmark reproducibility | Partial | Numbers and some settings exist; raw runs, pinned tools, exact target validation, thermal and crash evidence do not |
 | Offline release | Partial | Offline inference is described, but no bundled/pinned runtime or clean offline rehearsal is stored |
 | Eligibility attestations | Blocked | Personal, project-age, stage, residency, and funding facts require owner confirmation |
@@ -118,7 +118,7 @@ Hard failures: any OOM or sandbox execution crash disqualifies the submission. T
 ## 4. Model provenance and adaptation authenticity
 
 - [x] A high-level Qwen3.5 training summary, dataset names/counts, and aggregate before/after scores exist as historical evidence.
-- [ ] Decide and state the final adaptation path: LoRA, QLoRA, full fine-tune, or prompt/system-prompt-only.
+- [ ] Decide and state the final adaptation path: LoRA, QLoRA, full fine-tune, or prompt/system-prompt-only. The evidence bundle records BF16 LoRA; the release files still need to be synchronized.
 - [ ] Add a section literally titled `Model Provenance` to `REPORT.md`.
 - [ ] State the exact final base-model name.
 - [ ] State the exact public source repository.
@@ -128,20 +128,19 @@ Hard failures: any OOM or sandbox execution crash disqualifies the submission. T
 - [ ] For every training dataset, record its name, canonical source, immutable revision, approximate size, license, selection/filtering method, and split policy.
 - [ ] Add at least two full same-prompt comparisons: unmodified base output beside final adapted-GGUF output under identical inference conditions.
 - [ ] Show that changes are material and improve the stated tutoring task; aggregate benchmark gains alone are insufficient.
-- [ ] Create `provenance/`.
-- [ ] For LoRA/QLoRA, commit `provenance/adapter_model.safetensors`.
-- [ ] For LoRA/QLoRA, commit `provenance/adapter_config.json`.
-- [ ] Commit the exact training script/config or an executed notebook with outputs intact.
-- [ ] Commit step- or epoch-level loss/metric logs as log, CSV, JSON, or exported W&B/TensorBoard evidence.
-- [ ] Include the training dataset where size and license allow it.
-- [ ] If the dataset cannot be included, provide **all** required substitutes: description, representative sample, link, source, size, and license.
-- [ ] Record SHA-256 for the exact base-model file.
-- [ ] Record SHA-256 for every adapter, if applicable.
-- [ ] Record SHA-256 for the exact final quantized GGUF.
-- [ ] Commit the exact merge, GGUF conversion, and quantization script/config.
-- [ ] Record tool versions/commits and all commands needed to reproduce base → adapter → merged model → final GGUF.
-- [ ] If Colab, Kaggle, or another hosted notebook was used, add a publicly accessible execution link.
-- [ ] If training was fully local, state that the hosted-notebook requirement is not applicable.
+- [x] Create `provenance/`.
+- [x] For LoRA/QLoRA, stage `provenance/adapter_model.safetensors`.
+- [x] For LoRA/QLoRA, stage `provenance/adapter_config.json`.
+- [x] Stage the exact training script/config in `provenance/scripts/` and `provenance/configs/`.
+- [x] Stage step- and epoch-level loss/metric logs plus rendered curves in `provenance/logs/` and `provenance/loss-curves/`.
+- [ ] Include the training dataset where size and license allow it; the mixed private corpus is intentionally not copied.
+- [x] For the private corpus, provide **all** required substitutes: description, representative sample, link, source, size, and license in [`provenance/dataset/README.md`](provenance/dataset/README.md).
+- [x] Record SHA-256 for the exact base-model file in [`provenance/SHA256SUMS`](provenance/SHA256SUMS).
+- [x] Record SHA-256 for the adapter and each recorded full-run adapter in [`provenance/SHA256SUMS`](provenance/SHA256SUMS) / [`provenance/README.md`](provenance/README.md).
+- [x] Record SHA-256 for the exact final quantized GGUF in [`provenance/SHA256SUMS`](provenance/SHA256SUMS) / [`provenance/README.md`](provenance/README.md).
+- [x] Stage the exact merge, GGUF conversion, and quantization script/config in `provenance/scripts/` and `provenance/quantization/`.
+- [x] Record tool versions/commits and reproduction commands in the quantization manifests and `provenance/README.md`.
+- [x] Hosted-notebook link: not applicable; training/export used authenticated SSH/Slurm/Oracle infrastructure, as recorded in `provenance/README.md`.
 - [ ] Ensure the training evidence, hashes, report, metadata, download URL, and downloaded bytes describe one identical final artifact.
 
 The repository currently claims weight-level LoRA training, so the prompt-only exemption cannot be used unless that claim and the final adaptation path genuinely change.
