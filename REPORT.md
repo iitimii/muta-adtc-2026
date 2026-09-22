@@ -2131,13 +2131,6 @@ By step 100:
 
 `val_kl under Q4_0 noise: 0.2466 → 0.2128`
 
-The GPU host became unreachable near step 160 of the planned 362 steps, but our hourly off-box backup preserved the **step-100 checkpoint**, which became the exported model.
-
-Q4_0 perplexity degradation fell from:
-
-- **7.6% without QAT**
-- to **1.6% with QAT**
-
 <div align="center">
 
 <table border="1" cellspacing="0" cellpadding="8" style="border-collapse: collapse; width: 100%; text-align: center;">
