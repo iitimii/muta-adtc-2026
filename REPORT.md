@@ -2408,49 +2408,6 @@ By step 100:
 
 </div>
 
-A second blind grading of the delivered model produced:
-
-- **33.7** on the held-out development prompts,
-- **32.0** on the official prompts,
-- corresponding `S_total` values of **74.45** and **74.03**.
-
-Its same-batch 26-layer control scored **69.54** and **69.21**.
-
-#### Held-out capability checks
-
-<div align="center">
-
-<table border="1" cellspacing="0" cellpadding="8" style="border-collapse: collapse; width: 100%; text-align: center;">
-  <tr>
-    <th style="border: 1px solid #888; padding: 8px 12px;">Model</th>
-    <th style="border: 1px solid #888; padding: 8px 12px;">ARC-Easy-500</th>
-    <th style="border: 1px solid #888; padding: 8px 12px;">GSM8K-100</th>
-    <th style="border: 1px solid #888; padding: 8px 12px;">Hit Length Cap</th>
-    <th style="border: 1px solid #888; padding: 8px 12px;">Loops /40</th>
-    <th style="border: 1px solid #888; padding: 8px 12px;">Tutoring Probe /10</th>
-  </tr>
-
-  <tr>
-    <td style="border: 1px solid #888; padding: 8px 12px; text-align: left;">26-layer parent</td>
-    <td style="border: 1px solid #888; padding: 8px 12px;">70.0%</td>
-    <td style="border: 1px solid #888; padding: 8px 12px;">49%</td>
-    <td style="border: 1px solid #888; padding: 8px 12px;">6%</td>
-    <td style="border: 1px solid #888; padding: 8px 12px;">8</td>
-    <td style="border: 1px solid #888; padding: 8px 12px;">3.24</td>
-  </tr>
-
-  <tr>
-    <td style="border: 1px solid #888; padding: 8px 12px; text-align: left;"><strong>Delivered refinement</strong></td>
-    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>73.4%</strong></td>
-    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>53%</strong></td>
-    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>3%</strong></td>
-    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>4</strong></td>
-    <td style="border: 1px solid #888; padding: 8px 12px;"><strong>3.26</strong></td>
-  </tr>
-</table>
-
-</div>
-
 ### What improved
 
 Compared with the published Muta Tutor, the refinement:
