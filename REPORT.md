@@ -2,6 +2,12 @@
 
 **Domain:** Mathematics and Scientific Reasoning
 
+**Team ID:** muta
+
+**Domain:** `math_scientific_reasoning`
+
+**Model:** [Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf](https://huggingface.co/timiiowolabi/Muta-Tutor-Qwen2.5-1.5B-ADTC-GGUF/blob/main/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf)
+
 <details>
 <summary><strong>Gate 1 — Problem, Design Decisions, Initial Results & Re-analysis</strong></summary>
 
