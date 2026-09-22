@@ -2399,6 +2399,7 @@ By step 100:
 </table>
 
 </div>
+
 ### What improved
 
 Compared with the published Muta Tutor, the full compression chain:
