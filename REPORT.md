@@ -2417,7 +2417,8 @@ Compared with the published Muta Tutor, the refinement:
 - reduced the model to approximately **593 MB**,
 - but sacrificed some judge and ARC accuracy.
 
-So this is best understood as our **high-efficiency deployment variant of Muta Tutor**.
+So this is best understood as our high-efficiency deployment variant of Muta Tutor.
+
 ---
 
 <span style="color: orange"><strong>
