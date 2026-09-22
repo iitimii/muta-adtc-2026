@@ -15,7 +15,7 @@
     "description": "Muta: an offline tutor that teaches African students at every level to reason through maths and science problems"
   },
   "provenance": {
-    "base_model_source": "huggingface:Qwen/Qwen2.5-1.5B-Instruct",
+    "base_model_source": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct",
     "base_model_commit_sha": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
     "fine_tuning_method": "lora",
     "training_datasets": [
