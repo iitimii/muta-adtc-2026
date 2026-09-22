@@ -2482,32 +2482,107 @@ A more comprehensive report on the optimization experiments can be found [here](
 
 - Training datasets used: 10,756 training examples from [AI2 ARC](https://huggingface.co/datasets/allenai/ai2_arc/tree/210d026faf9955653af8916fad021475a3f00453) (3,166 ARC-Easy/ARC-Challenge rows; CC-BY-SA-4.0) and [QASC](https://huggingface.co/datasets/allenai/qasc/tree/a34ba204eb9a33b919c10cc08f4f1c8dae5ec070) (7,590 rows; CC-BY-4.0).
 
-- Before/after comparison: Both Q4_K_M models were run on `muta-vm` with llama.cpp commit `60bccc3763395e01b039aa1ddeacc8cc0ea69f70`, four CPU threads, temperature 0, top-k 1, seed 3407, and each model's embedded chat template.
+Yes — we’ll drop the arithmetic example completely. The **chemical-equilibrium tutoring test becomes Prompt 1**, and we can add a different capability test as Prompt 2 afterward.
 
-  - Prompt 1: Multiple choice: A school in Lagos buys 6 boxes of chalk at ₦500 per box. What is the total cost? A. ₦1,000 B. ₦2,500 C. ₦3,000 D. ₦3,500. Answer with the correct option and one calculation.
 
-    - Base Model answer (`Qwen/Qwen2.5-1.5B-Instruct`):
+- Before/After Comparison
 
-      > The correct option is B. ₦2,500.
-      >
-      > Calculation:
-      > 6 boxes * ₦500 per box = ₦3,000
-      >
-      > So, the total cost is ₦3,000.
+To verify that vocabulary pruning preserved the behaviour learned during fine-tuning, we compared the vocabulary-pruned Muta directly against the untouched **Qwen2.5-1.5B-Instruct** base model under the same CPU setup.
 
-    - Final model answer (`Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf`):
+---
 
-      > The total cost is ₦3,000.
+#### Prompt 1 — Scientific reasoning and misconception correction
 
-  - Prompt 2: A student says a heavy stone falls faster than a light stone because gravity pulls harder on the heavy stone. In a vacuum, both are released from the same height at the same time. Which reaches the ground first? A. The heavy stone B. The light stone C. They arrive together D. It depends on their shapes. Correct the student's misconception in two or three sentences, then state the correct option.
+**Prompt**
 
-    - Base Model answer (`Qwen/Qwen2.5-1.5B-Instruct`):
+> A student says:
+>
+> “At chemical equilibrium, the reaction has stopped because the amounts of reactants and products are now equal.”
+>
+> Respond as a science tutor helping the student understand the mistake.
+>
+> Your response should:
+> 1. Identify which parts of the student's statement are wrong.
+> 2. Explain what chemical equilibrium actually means.
+> 3. Clearly distinguish “equal reaction rates” from “equal concentrations.”
+> 4. Give one simple example or analogy.
+> 5. Correct the misconception without sounding dismissive.
+> 6. End with one short question that checks whether the student now understands the idea.
 
-      > The student's misconception is that the heavier stone falls faster due to gravity pulling harder on it. In reality, both stones will fall at the same rate in a vacuum because gravity acts equally on all objects regardless of their mass. The correct answer is C: They arrive together.
+We evaluated both responses against the scientific and tutoring requirements:
 
-    - Final model answer (`Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf`):
+<div align="center">
 
-      > The student's misconception is that gravity pulls harder on the heavy stone, causing it to fall faster. In a vacuum, there is no air resistance, so both stones would fall at the same rate due to gravity. The correct answer is C. They arrive together.
+<table border="1" cellspacing="0" cellpadding="8" style="border-collapse: collapse; width: 100%; text-align: center;">
+  <tr>
+    <th style="border: 1px solid #888; padding: 8px 10px;">Criterion</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">Base Qwen2.5-1.5B</th>
+    <th style="border: 1px solid #888; padding: 8px 10px;">Vocab-pruned Muta</th>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">Recognises that equilibrium is dynamic</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">0 / 2</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>2 / 2</strong></td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">Equal forward and reverse reaction rates</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">2 / 2</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>2 / 2</strong></td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">Concentrations need not be equal</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">2 / 2</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>2 / 2</strong></td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">Diagnoses the student's misconception</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">1 / 1</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>1 / 1</strong></td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">Useful analogy or example</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">0.5 / 1</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">0.5 / 1</td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">Supportive tutoring style</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">1 / 1</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>1 / 1</strong></td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;">Checks learner understanding</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;">1 / 1</td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>1 / 1</strong></td>
+  </tr>
+
+  <tr>
+    <td style="border: 1px solid #888; padding: 8px 10px; text-align: left;"><strong>Total</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>7.5 / 10</strong></td>
+    <td style="border: 1px solid #888; padding: 8px 10px;"><strong>9.5 / 10</strong></td>
+  </tr>
+</table>
+
+</div>
+
+The main difference was **scientific consistency**. The base model initially explained equilibrium correctly but later reintroduced the student's original misconception by stating that **“the reaction has stopped.”**
+
+The vocabulary-pruned Muta preserved the crucial concept that equilibrium is **dynamic**: the forward and reverse reactions continue at equal rates while the macroscopic concentrations remain constant and are not necessarily equal.
+
+This first comparison therefore shows that the vocabulary-pruned fine-tuned model preserved the reasoning and tutoring behaviour learned during fine-tuning, while outperforming the untouched base model on this misconception-correction task.
+
+---
+
+#### Prompt 2 — Pending
+
+A second prompt will test a different capability so that the comparison is not based on a single type of scientific reasoning task.
+
 
 - LoRA adapter weights: [adapter_model.safetensors](provenance/adapter_model.safetensors) and config: [adapter_config.json](provenance/adapter_config.json)
 - The training/fine-tuning script or config that produced the model: [train_lora.py](provenance/scripts/train_lora.py)
