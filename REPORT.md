@@ -3,27 +3,15 @@
 **Domain:** Mathematics and Scientific Reasoning
 
 <details>
-<summary><strong>Gate 1 — Problem, Design Decisions, Results & Re-analysis</strong></summary>
+<summary><strong>Gate 1 — Problem, Design Decisions, Initial Results & Re-analysis</strong></summary>
 
 ## Technical Report for Muta: Offline Adaptive STEM Tutor for African Students
 
 View our comprehensive report [here](https://muta-iq.vercel.app/).
 
-**Team ID:** muta
-
-**Domain:** `math_scientific_reasoning`
-
-**Model:** Fine-tuned Qwen3.5 0.8B Q4_0
-
-**Runtime:** llama.cpp / GGUF
-
-**Deployment target:** CPU-only consumer laptops
-
 > **Submitted model:** `Muta-Tutor-Qwen3.5-0.8B-Q4_0.gguf` — fine-tuned Qwen3.5 0.8B, GGUF Q4_0
 
 > (SHA-256 `552de22f7ea6f161a458985900e2c961d7578baa1ea9c23018ae27151623ff26`).
-
-> The Qwen2.5 1.5B Q4_K_M model discussed below was our strongest **alternative** and was **not** submitted.
 
 ---
 
