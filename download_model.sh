@@ -10,10 +10,10 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MODEL_DIR="$HERE/model"
-MODEL_FILE="$MODEL_DIR/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M.gguf"
+MODEL_FILE="$MODEL_DIR/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf"
 
 
-MODEL_URL="https://huggingface.co/timiiowolabi/Muta-Tutor-Qwen2.5-1.5B-ADTC-GGUF/resolve/4033d975866ef2bacd8c7372d05fd381854c535c/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M.gguf"
+MODEL_URL="https://huggingface.co/timiiowolabi/Muta-Tutor-Qwen2.5-1.5B-ADTC-GGUF/resolve/4fda6989e2820016256a4390e33aab2e745d5d34/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf"
 # ───────────────────────────────────────────────────────────────────────────────
 
 mkdir -p "$MODEL_DIR"
