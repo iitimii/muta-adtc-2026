@@ -26,7 +26,7 @@
   "test_prompts": [
     {
       "prompt_id": "tp_001",
-      "prompt": "Multiple choice: A school in Lagos buys 6 boxes of chalk at ₦500 per box. What is the total cost? A. ₦1,000 B. ₦2,500 C. ₦3,000 D. ₦3,500. Answer with the correct option and one calculation."
+      "prompt": "A shop reduces the price of an item by 20%, then later increases the reduced price by 20%. Is the final price the same as the original price? Show the calculation briefly and give the final percentage change."
     },
     {
       "prompt_id": "tp_002",
