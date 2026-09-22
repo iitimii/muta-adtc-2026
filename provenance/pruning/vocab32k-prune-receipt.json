@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "operation": "post-export vocabulary pruning; no gradient update",
+  "source": {
+    "file": "Muta-Tutor-Qwen2.5-1.5B-Q4_K_M.gguf",
+    "sha256": "a750d00d458c6ab38925364ea1413db00648449180941e47025736d09922e1eb",
+    "bytes": 986048128
+  },
+  "artifact": {
+    "repository": "timiiowolabi/Muta-Tutor-Qwen2.5-1.5B-ADTC-GGUF",
+    "file": "Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf",
+    "url": "https://huggingface.co/timiiowolabi/Muta-Tutor-Qwen2.5-1.5B-ADTC-GGUF/blob/main/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf",
+    "hf_revision": "4fda6989e2820016256a4390e33aab2e745d5d34",
+    "sha256": "3038036a93039e80d282581d451abfdf998cd2929d2d26720a2cc711bff33a94",
+    "bytes": 830115168
+  },
+  "tokenizer": {
+    "repository": "Qwen/Qwen2.5-1.5B-Instruct",
+    "revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+    "vocab_size_before": 151936,
+    "vocab_size_after": 32000,
+    "merges_before": 151387,
+    "merges_after": 31722
+  },
+  "keep_set_corpus": {
+    "rows": 26015,
+    "tokens": 4051489,
+    "tokens_kept": 4051489,
+    "token_mass_kept": 1.0,
+    "sources": [
+      {
+        "description": "incumbent licensed-MCQ training split",
+        "rows": 10756,
+        "sha256": "0d1b52db8dc0785fe8c0b62cbe374e79c35192b9ccd7fe86480c998808c3734c"
+      },
+      {
+        "description": "licensed-hybrid training split",
+        "rows": 15259,
+        "sha256": "d70dfe0e0126489a3abc4c0370875aee4c398539dda21c8412558f9756de2090"
+      }
+    ]
+  },
+  "tools": {
+    "gguf": "0.19.0",
+    "transformers": "5.5.0"
+  },
+  "verification": {
+    "tensor_count": 338,
+    "params_count": 1359492608,
+    "retained_vocab_rows_byte_exact": true,
+    "non_vocab_tensors_byte_exact": true
+  },
+  "upstream_manifest": {
+    "url": "https://huggingface.co/timiiowolabi/Muta-Tutor-Qwen2.5-1.5B-ADTC-GGUF/resolve/main/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.vocab-prune-manifest.json",
+    "bytes": 344178,
+    "sha256": "28bff2371d9485a1611b98865053b5dacbf8b150b9426f8922589436f5e1257b"
+  }
+}

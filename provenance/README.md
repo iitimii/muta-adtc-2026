@@ -1,117 +1,128 @@
-# Model Provenance
+# Model provenance
 
-This directory is the Gate 2 proof bundle for the retained Muta incumbent. It
-contains the final LoRA adapter, reproducible training/export source, exact
-loss records, private-safe dataset evidence, and SHA256 receipts. Large GGUF
-and training-corpus files are intentionally not copied into this repository.
+This directory records the training, export, evaluation, and packaging
+evidence for the Muta Tutor Qwen2.5 model. Large model and dataset files are
+kept in their named external locations; hashes make each input and output
+checkable.
 
-## Final artifact and decision
+## Current artifact
 
-The retained deployment artifact is the previously published Muta model:
+The current model is the vocabulary-pruned Q4_K_M export:
+
+| Item | Recorded value |
+|---|---|
+| File | `Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf` |
+| Source | [Hugging Face artifact](https://huggingface.co/timiiowolabi/Muta-Tutor-Qwen2.5-1.5B-ADTC-GGUF/blob/main/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf) |
+| Size | 830,115,168 bytes |
+| SHA-256 | `3038036a93039e80d282581d451abfdf998cd2929d2d26720a2cc711bff33a94` |
+| HF revision | `4fda6989e2820016256a4390e33aab2e745d5d34` |
+| Operation | Post-export vocabulary pruning; no additional gradient update |
+
+The unpruned Q4_K_M file is the source and the file used for the original
+incumbent measurements:
+
+| Item | Recorded value |
+|---|---|
+| File | `Muta-Tutor-Qwen2.5-1.5B-Q4_K_M.gguf` |
+| SHA-256 | `a750d00d458c6ab38925364ea1413db00648449180941e47025736d09922e1eb` |
+| Model card | [timiiowolabi/Muta-Tutor-Qwen2.5-1.5B-ADTC-GGUF](https://huggingface.co/timiiowolabi/Muta-Tutor-Qwen2.5-1.5B-ADTC-GGUF) |
+
+The old `qwen35-judge-hybrid` file is a separate template-packaging
+experiment. It is not the current artifact and did not change model tensors.
+The three 300,350-row training treatments are also historical challengers;
+none was promoted.
+
+## Fine-tuning lineage
+
+The current artifact inherits the following fine-tuning run from the unpruned
+source:
 
 | Item | Value |
 |---|---|
-| Model | `Muta-Tutor-Qwen2.5-1.5B-Q4_K_M.gguf` |
-| Hugging Face model card | [timiiowolabi/Muta-Tutor-Qwen2.5-1.5B-ADTC-GGUF](https://huggingface.co/timiiowolabi/Muta-Tutor-Qwen2.5-1.5B-ADTC-GGUF) |
-| Evaluated incumbent path | `models/candidates/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M.gguf` (not copied here) |
-| Evaluated incumbent GGUF SHA256 | `a750d00d458c6ab38925364ea1413db00648449180941e47025736d09922e1eb` |
-| Current packaged candidate | `Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-qwen35-judge-hybrid.gguf`; same tensors, embedded template metadata only |
-| Packaged candidate GGUF SHA256 | `ac512cc323a84546333baa256216fdf2035668f6ef092df1e2928bcc04339e3c` |
-| Decision | Retain incumbent weights; the three 300,350-row challengers were not promoted |
+| Base | `Qwen/Qwen2.5-1.5B-Instruct` at revision `989aa7980e4cf806f80c7fef2b1adb7bc71aa306` |
+| Base license | Apache-2.0; `model.safetensors` SHA-256 `dd924a11b4c220f385b51ffa522daea7c9f3d850e31b162bb5661df483c6d3ee` |
+| Method | BF16 LoRA; not QLoRA and not full-weight training |
+| LoRA | rank 16, α 16, dropout 0; target projections `q/k/v/o/up/down/gate` |
+| Optimisation | learning rate 2e-5; batch 4 × gradient accumulation 4 (effective batch 16); max length 1,024; seed 3407 |
+| Run | 500 optimizer steps (about 0.744 epoch); A100-SXM4-40GB; CUDA 12.8; PyTorch 2.7.0 |
+| Data | 10,756 training rows and 566 validation rows |
+| Loss | Completion-only; prompt tokens masked |
 
-The adapter files at the root of this directory are the exact LoRA adapter
-used for the evaluated incumbent weights. The current packaged candidate
-adds only the separately recorded judge-hybrid chat template; it does not
-change tensors or claim a new fine-tuning run. The three later full-data treatments are
-represented by their manifests, step logs, curves, and quantization manifests;
-their non-promoted adapter weights remain in the private campaign archive.
+The adapter and its configuration are `adapter_model.safetensors` and
+`adapter_config.json`. The adapter represents the fine-tuning step; vocabulary
+pruning is a later packaging transformation.
 
-## Base model and adaptation
+## Dataset used for the incumbent
 
-| Item | Value |
-|---|---|
-| Base | `Qwen/Qwen2.5-1.5B-Instruct` |
-| Immutable revision | `989aa7980e4cf806f80c7fef2b1adb7bc71aa306` |
-| Base license | Apache-2.0 |
-| Base `model.safetensors` SHA256 | `dd924a11b4c220f385b51ffa522daea7c9f3d850e31b162bb5661df483c6d3ee` |
-| Method | BF16 LoRA; not QLoRA and not a full-weight fine-tune |
-| Adapter | `adapter_model.safetensors` + `adapter_config.json` |
-| LoRA settings | rank 16, alpha 16, dropout 0, learning rate 2e-5, effective batch 16, max length 1,024, one epoch / 500 steps for the incumbent |
-| Trainable modules | `q_proj`, `k_proj`, `v_proj`, `o_proj`, `up_proj`, `down_proj`, `gate_proj` |
-| Loss | Assistant-completion loss; prompt tokens masked |
+The incumbent was trained on the private, license-recorded `licensed-mcq`
+split, not on the later 300,350-row corpus. Its training manifest records:
 
-The incumbent proof adapter is 70 MB and is intentionally committed directly,
-as allowed by the Gate 2 requirement. Its hashes are in `SHA256SUMS`.
+- 10,756 training rows: 1,061 ARC-Challenge, 2,105 ARC-Easy, and 7,590 QASC;
+- 566 validation rows: 48 ARC-Challenge, 120 ARC-Easy, and 398 QASC;
+- train SHA-256 `0d1b52db8dc0785fe8c0b62cbe374e79c35192b9ccd7fe86480c998808c3734c`;
+- validation SHA-256 `fd48e23f20afb5ae8986730b19cb42523610cd0620e71021e9e2e8aa99dbf69b`;
+- source revisions ARC `210d026faf9955653af8916fad021475a3f00453` and QASC
+  `a34ba204eb9a33b919c10cc08f4f1c8dae5ec070`;
+- recorded licenses CC-BY-SA-4.0 (ARC) and CC-BY-4.0 (QASC).
 
-## Training evidence
+The separate 300,350-row private corpus is documented in
+[`dataset/README.md`](dataset/README.md) as a later, non-promoted campaign.
+Its rights inventory is retained for audit, but it must not be described as
+the training set for the current model.
 
-The exact source/configuration files are under `scripts/` and `configs/`.
-The incumbent run is the historical 10,756-row LoRA adaptation. The later
-full-data campaign used the same base family and three independently recorded
-treatments, each with 300,350 rows, one epoch, 4,693 optimizer steps, and
-minimum scheduled development loss selection:
+The three later runs used one epoch and 4,693 optimizer steps each. Their
+selected development losses were 0.01899942942 (fresh `r16/lr1e-5`),
+0.02247324772 (fresh warm `r16/lr5e-6`), and 0.02292131260 (warm-pilot
+continuation `r16/lr5e-6`). Their complete adapter and GGUF receipts remain in
+`configs/`, `logs/`, and `quantization/`.
 
-| Treatment | Selected dev loss | Adapter SHA256 | Final Q4_K_M SHA256 |
-|---|---:|---|---|
-| Clean fresh LoRA, `r16/lr1e-5` | 0.01899942942 | `312523b2c0c74f246cfee5ce37cdcb69c9a4541e73b1fc8c80654b1ad3e2e33d` | `720fcc69f1ec1b83d601d7406756e44b0ae96b96ba626b97d5fb5ac874108530` |
-| Fresh warm LoRA, `r16/lr5e-6` | 0.02247324772 | `5dd66ca8c79455b8ef3deb0219f6e91397f412a05fc4f3846bd194e0fea2e5c6` | `75f6a7563ede859aca6c6ddba1625068156e143858c7f841b27ff6208a2b84f3` |
-| Warm-pilot continuation, `r16/lr5e-6` | 0.02292131260 | `51ead3a0792dec2c022d824ac5f738d3ebfb1c099d2d43a20869c12ed0c50b46` | `426640b0f4089d63ba8328c6d7fd2b201aeb7e92dd552492f1be594d9f385352` |
+## Merge, quantization, and vocabulary pruning
 
-Loss and step evidence is preserved as both CSV and JSONL under `logs/`, with
-rendered SVG/PNG curves under `loss-curves/`. These are development metrics,
-not claims of independent tutoring-quality improvement. The final comparison
-retained the incumbent because the challengers did not show a robust overall
-advantage under the frozen held-out, STEM, judges, and practical tests.
+The reproducible model path is:
 
-## Dataset and rights
+1. Load the pinned Qwen2.5 base and the incumbent LoRA adapter.
+2. Merge the adapter into BF16 weights.
+3. Convert the merged weights to F16 GGUF.
+4. Quantize the F16 GGUF to Q4_K_M.
+5. Build a tokenizer keep-set and prune the vocabulary and its embedding/output
+   rows to 32,000 entries.
 
-The full training artifact is private and is not included here. Its size,
-manifest, source attribution, license records, selection policy, and a
-six-row public-safe projection are documented in
-[`dataset/README.md`](dataset/README.md) and
-[`dataset/training-sample6-20260919.json`](dataset/training-sample6-20260919.json).
-The full manifest SHA256 is
-`93b7dbcbad72350e099d8951effcbc9a253693dc364b25ffc165102a6e844f4e` and the
-dataset fingerprint is
-`037edf28cccff62d90c23e2d6caf56b9998dea6928080f98af2a513f9f92910e`.
+The pruning receipt is
+[`pruning/vocab32k-prune-receipt.json`](pruning/vocab32k-prune-receipt.json).
+It records the source and output hashes, the Qwen tokenizer revision, and the
+verification results. The vocabulary changed from 151,936 to 32,000 tokens;
+merge rules changed from 151,387 to 31,722. The keep-set corpus contained
+26,015 rows and 4,051,489 tokens (the 10,756 incumbent training rows plus a
+separate 15,259-row licensed-hybrid corpus). All observed tokens were retained.
+The artifact retained 338 tensors; non-vocabulary tensors and retained
+vocabulary rows were byte-exact. This step did not retrain the model.
 
-Recorded private Hub mirror (authenticated access; not a redistribution grant):
-[muta-stem-v2-sft-300k-quality-first-20260917-v1](https://huggingface.co/datasets/timiiowolabi/muta-stem-v2-sft-300k-quality-first-20260917-v1).
-The separate evaluation sets are private [Muta-STEM-100](https://huggingface.co/datasets/timiiowolabi/Muta-STEM-100)
-and [Muta-Practical-2000](https://huggingface.co/datasets/timiiowolabi/Muta-Practical-2000).
+Converter and quantizer hashes, inputs, outputs, and logs are in
+`quantization/*-quantization-manifest.json`. The llama.cpp revision used for
+the recorded export is `60bccc3763395e01b039aa1ddeacc8cc0ea69f70`.
 
-The rights table is deliberately conservative: 280,000 Muta-authored rows are
-recorded MIT; 20,000 DeepMind Mathematics rows are recorded Apache-2.0; 47
-WAEC and 303 CheetahWAEC rows are recorded restricted/all-rights-reserved or
-third-party material. No publisher permission or public redistribution right
-is inferred for those restricted rows. The committed sample excludes all 350
-restricted rows and the full corpus remains private.
+## Evaluation scope
 
-## Merge, conversion, and quantization
+The 77.8% ARC-Easy result and the scalar/vector totals in the model card are
+measurements of the unpruned `a750…` source, not measurements of the current
+`vocab32k` file. Results for the pruned artifact are recorded separately in
+the Gate 2 report and must not be substituted into this training receipt.
 
-The reproducible path is:
+## Evidence checklist
 
-1. Load the pinned Qwen2.5 base and the LoRA adapter with the training source
-   in `scripts/`.
-2. Merge the adapter into BF16 weights with the recorded merge/export source.
-3. Convert the merged Hugging Face directory to F16 GGUF with
-   `convert_hf_to_gguf.py`.
-4. Quantize F16 to `Q4_K_M` with `llama-quantize`.
+| Required evidence | Location | Status |
+|---|---|---|
+| LoRA adapter and configuration | `adapter_model.safetensors`, `adapter_config.json` | Present |
+| Training script and run configuration | `scripts/train_lora.py`, `scripts/train_lora_round2.py`, `configs/*training-manifest.json` | Present |
+| Training logs and metrics | `logs/`, `loss-curves/` | Present |
+| Dataset description, sample, source, size, and rights | `dataset/README.md`, `dataset/training-sample6-20260919.json` | Present; full corpus remains private |
+| Base, adapter, and final GGUF checksums | `ARTIFACT-SHA256SUMS`, `SHA256SUMS`, `pruning/vocab32k-prune-receipt.json` | Present |
+| Merge and quantization procedure | `scripts/merge_and_quantize.py`, `quantization/` | Present |
+| Hosted notebook link | No hosted notebook was used; training ran through authenticated SSH/GPU infrastructure | Not applicable |
 
-The three exact command/manifest receipts are in
-`quantization/*-quantization-manifest.json`; they record converter and
-quantizer hashes, llama.cpp commit `60bccc3763395e01b039aa1ddeacc8cc0ea69f70`,
-inputs, outputs, and logs. The local copy of the project merge script is
-`scripts/merge_and_quantize.py`.
+## Reproducibility
 
-## Hosted notebook and reproducibility note
-
-No hosted notebook was used. Training and export ran through an authenticated
-SSH/GPU infrastructure; the hosted-notebook-link requirement is
-therefore not applicable. Exact local scripts, manifests, logs, curves, and
-hashes are included here. The private corpus and remote checkpoint tree are
-not reproduced in this public submission repository.
-
-See [`SHA256SUMS`](SHA256SUMS) for the machine-checkable receipt and
-[`ARTIFACT-SHA256SUMS`](ARTIFACT-SHA256SUMS) for the external base/GGUF
-receipts whose large binaries are not copied here.
+No hosted notebook was used. Training and export ran through authenticated
+SSH/GPU infrastructure. Exact local scripts, manifests, logs, curves, and
+hashes are included here. See [`SHA256SUMS`](SHA256SUMS) for files in this
+bundle and [`ARTIFACT-SHA256SUMS`](ARTIFACT-SHA256SUMS) for external binaries.

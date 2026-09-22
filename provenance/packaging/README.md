@@ -1,16 +1,14 @@
-# Incumbent chat-template packaging
+# Packaging records
 
-The requested `qwen35_judge_hybrid.jinja` is embedded as
-`tokenizer.chat_template` in the packaged GGUF
-`Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-qwen35-judge-hybrid.gguf`.
+The current artifact is the vocabulary-pruned
+`Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf`. Its post-export pruning
+receipt is in [`../pruning/vocab32k-prune-receipt.json`](../pruning/vocab32k-prune-receipt.json).
 
-The incumbent remains unchanged. The output has the same 338 tensors and the
-same tensor-only SHA256; only the chat-template metadata changed. The output
-was loaded by llama.cpp without an external template override and passed the
-single-turn and multi-turn smoke requests. Exact hashes are in
+The files in this directory document a separate experiment: embedding
+`qwen35_judge_hybrid.jinja` as `tokenizer.chat_template` in
+`Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-qwen35-judge-hybrid.gguf`. That candidate
+preserved the 338 tensors and changed metadata only. It is not the current
+model, and the Qwen3.5-oriented template was not treated as a new fine-tune.
+The exact conversion and smoke-test details are in
 [`chat-template-embedding-receipt.json`](chat-template-embedding-receipt.json)
 and [`chat-template-hf-upload.json`](chat-template-hf-upload.json).
-
-The template is Qwen3.5-oriented while the weights/tokenizer are Qwen2.5, so
-this is a mechanically validated candidate, not an automatic replacement for
-the incumbent. Use the existing matched quality suites before promotion.

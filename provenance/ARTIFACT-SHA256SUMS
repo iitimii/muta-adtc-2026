@@ -4,8 +4,10 @@
 dd924a11b4c220f385b51ffa522daea7c9f3d850e31b162bb5661df483c6d3ee  base/Qwen2.5-1.5B-Instruct/model.safetensors  # Qwen/Qwen2.5-1.5B-Instruct @ 989aa7980e4cf806f80c7fef2b1adb7bc71aa306; Apache-2.0
 aad98dc13535c2e5144f78850f297ba95621bd4ed51f79e4fcc634aae432c795  adapter_model.safetensors  # committed in this directory
 782b6afad59a93f3432b4da5e8b9e536f728a0d832f34370ca582f87a2b4b387  adapter_config.json  # committed in this directory
-a750d00d458c6ab38925364ea1413db00648449180941e47025736d09922e1eb  models/candidates/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M.gguf  # final incumbent GGUF; external local source / Hugging Face model card
-ac512cc323a84546333baa256216fdf2035668f6ef092df1e2928bcc04339e3c  models/candidates/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-qwen35-judge-hybrid.gguf  # current packaged candidate; embedded template metadata only
+a750d00d458c6ab38925364ea1413db00648449180941e47025736d09922e1eb  models/candidates/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M.gguf  # unpruned fine-tuned source/evaluated incumbent; external
+3038036a93039e80d282581d451abfdf998cd2929d2d26720a2cc711bff33a94  models/candidates/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf  # current vocabulary-pruned HF artifact; external
+0abfd46da8ab3dabe6f7ce76b98e8dfe29775ed439e0ccb19e377f338d2c334a  provenance/pruning/vocab32k-prune-receipt.json  # local pruning receipt
+ac512cc323a84546333baa256216fdf2035668f6ef092df1e2928bcc04339e3c  models/candidates/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-qwen35-judge-hybrid.gguf  # historical template-packaging candidate; metadata only
 720fcc69f1ec1b83d601d7406756e44b0ae96b96ba626b97d5fb5ac874108530  models/round2/full/Muta-Round2-Full-clean-r16-lr1e5-300350-bestdev-Q4_K_M.gguf  # non-promoted challenger
 75f6a7563ede859aca6c6ddba1625068156e143858c7f841b27ff6208a2b84f3  models/round2/full/Muta-Round2-Full-warm-fresh-r16-lr5e6-300350-bestdev-Q4_K_M.gguf  # non-promoted challenger
 426640b0f4089d63ba8328c6d7fd2b201aeb7e92dd552492f1be594d9f385352  models/round2/full/Muta-Round2-Full-warm-pilot-cont-r16-lr5e6-300350-bestdev-Q4_K_M.gguf  # non-promoted challenger
