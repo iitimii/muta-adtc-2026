@@ -2021,6 +2021,7 @@ We also built:
 - a 130-prompt termination gate with loop detection,
 - bit-exact Q4_0/Q8_0 fake quantization with straight-through gradients.
 
+<span id="vocab-pruning"></span>
 #### Step 1 — Vocabulary pruning
 
 Vocabulary was reduced from approximately **152K → 32K**, retaining byte tokens, special tokens, corpus-observed tokens, and merge-order coverage.
@@ -2419,7 +2420,9 @@ Compared with the published Muta Tutor, the refinement:
 So this is best understood as our **high-efficiency deployment variant of Muta Tutor**.
 ---
 
-<span style="color: orange"><strong>Our conclusion remains unchanged: Muta Tutor Qwen2.5-1.5B is our quality-first model. This compression work produced a substantially faster and smaller deployment variant, but it does not preserve the tutoring and reasoning quality, which made the original model our winner.</strong></span>
+<span style="color: orange"><strong>
+Since accuracy is our highest priority for an educational model, we will only adopt the <a href="#vocab-pruning">vocabulary-pruning optimization</a>, as it reduced model size and improved deployment efficiency without any measured loss in accuracy. The resulting model, <code>Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf</code>, provides a smaller and faster deployment variant while preserving the capability of our selected Muta Tutor. It can be found <a href="https://huggingface.co/timiiowolabi/Muta-Tutor-Qwen2.5-1.5B-ADTC-GGUF/blob/main/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf">here</a>.
+</strong></span>
 
 A more comprehensive report on our several optimizations can be found [here](https://muta-iq.vercel.app/#gate-2-finetuning).
 
