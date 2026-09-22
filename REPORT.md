@@ -3,7 +3,7 @@
 **Domain:** Mathematics and Scientific Reasoning
 
 <details>
-<summary><strong>Gate 1 — Initial Submission, Results & Re-analysis</strong></summary>
+<summary><strong>Gate 1 — Problem, Design Decisions, Results & Re-analysis</strong></summary>
 
 ## Technical Report for Muta: Offline Adaptive STEM Tutor for African Students
 
