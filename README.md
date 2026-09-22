@@ -19,7 +19,7 @@ This repository is Muta's entry for the **Africa Deep Tech Challenge 2026** Lapt
 | Domain | `math_scientific_reasoning` |
 | Submitter | Nelson Elijah · [@nelsonifechukwu](https://github.com/nelsonifechukwu) |
 | Cross-disciplinary pairing | Education (load-bearing) |
-| Model | `Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf` — fine-tuned [Qwen/Qwen2.5-1.5B](https://huggingface.co/Qwen/Qwen2.5-1.5B) |
+| Model | `Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf` — fine-tuned [Qwen/Qwen2.5-1.5B-Instruct](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct) |
 | Runtime | `llama.cpp` |
 | Quantization | GGUF Q4_0 |
 | Parameters | ~1.5B |
@@ -69,9 +69,8 @@ adtc-profiler run --submission . --mode participant --output submission.json
 
 ## The model
 
-- **Base:** `Qwen/Qwen2.5-1.5B`, fine-tuned with BF16 LoRA (rank 16, 400 steps, lr 2e-5, seed 3407) on 15,355 multiple-choice maths/science questions drawn only from the *training* splits of ARC-Easy, ARC-Challenge, OpenBookQA, and QASC, de-duplicated against 8,477 held-out questions. The adapter is merged and exported as Q4_K_M GGUF.
+- **Base:** `Qwen/Qwen2.5-1.5B-Instruct`, fine-tuned with BF16 LoRA (rank 16, 400 steps, lr 2e-5, seed 3407) on 15,355 multiple-choice maths/science questions drawn only from the *training* splits of ARC-Easy, ARC-Challenge, OpenBookQA, and QASC, de-duplicated against 8,477 held-out questions. The adapter is merged and exported as Q4_K_M GGUF.
 - **Why this model:** It was the winner of a 15-candidate sweep across Qwen3.5-0.8B and Qwen2.5-1.5B on the challenge's combined accuracy/throughput/memory objective under the *scalar* CPU kernels the official profiler is built with. The full rationale, rejected alternatives, and lessons learned are in [REPORT.md](REPORT.md).
-- **Provenance:** the Hugging Face repo ships the training manifest, dataset manifest (with source licenses and revisions), artifact hashes, and the full fine-tuning summary alongside the weights.
 
 ### Test prompts (`metadata.json` → `test_prompts`)
 
@@ -88,7 +87,15 @@ Development benchmarks (throughput, memory, accuracy) are in [REPORT.md](REPORT.
 
 ## Open-source tools used
 
-[llama.cpp](https://github.com/ggerganov/llama.cpp) (GGUF conversion, Q4_0 quantization, `llama-bench`) · [adtc-profiler](https://github.com/Africa-Deep-Tech-Foundation/adtc-profiler) with [lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness) · [PyTorch](https://pytorch.org) 2.7 / CUDA 12.8 for LoRA fine-tuning · [Qwen3.5-0.8B](https://huggingface.co/Qwen/Qwen2.5-1.5B) base weights · training data from [AI2 ARC](https://huggingface.co/datasets/allenai/ai2_arc) (CC-BY-SA-4.0), [OpenBookQA](https://huggingface.co/datasets/allenai/openbookqa), and [QASC](https://huggingface.co/datasets/allenai/qasc) (CC-BY-4.0) · weights hosted on [Hugging Face](https://huggingface.co).
+- [llama.cpp](https://github.com/ggerganov/llama.cpp) (GGUF conversion, Q4_0 quantization, `llama-bench`)
+- [adtc-profiler](https://github.com/Africa-Deep-Tech-Foundation/adtc-profiler)
+- [lm-evaluation-harness](https://github.com/EleutherAI/lm-evaluation-harness)
+- [PyTorch](https://pytorch.org) 2.7 / CUDA 12.8 for LoRA fine-tuning
+- [Qwen2.5-1.5B-Instruct](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct) base weights
+- training data from [AI2 ARC](https://huggingface.co/datasets/allenai/ai2_arc) (CC-BY-SA-4.0)
+- [OpenBookQA](https://huggingface.co/datasets/allenai/openbookqa)
+- [QASC](https://huggingface.co/datasets/allenai/qasc) (CC-BY-4.0)
+- weights hosted on [Hugging Face](https://huggingface.co).
 
 ---
 
