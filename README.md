@@ -54,7 +54,7 @@ bash download_model.sh
 
 # 2. Try it with llama.cpp (CPU only, fully offline)
 llama-cli -m model/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf -t 4 \
-  -p "Multiple choice: A school in Lagos buys 6 boxes of chalk at ₦500 per box. What is the total cost? A. ₦1,000 B. ₦2,500 C. ₦3,000 D. ₦3,500. Answer with the correct option and one calculation."
+  -p "A shop reduces the price of an item by 20%, then later increases the reduced price by 20%. Is the final price the same as the original price? Show the calculation briefly and give the final percentage change."
 
 # 3. Reproduce the profiler run (participant mode)
 python3 -m pip install "git+https://github.com/Africa-Deep-Tech-Foundation/adtc-profiler.git"
@@ -62,8 +62,6 @@ adtc-profiler run --submission . --mode participant --output submission.json
 ```
 
 `download_model.sh` writes to exactly the path declared in `metadata.json` → `_runtime.model_path` (`model/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf`), skips the download if the file already exists, and needs only `curl` or `wget`.
-
-**Integrity:** SHA-256 `552de22f7ea6f161a458985900e2c961d7578baa1ea9c23018ae27151623ff26`
 
 ---
 
@@ -74,7 +72,7 @@ adtc-profiler run --submission . --mode participant --output submission.json
 
 ### Test prompts (`metadata.json` → `test_prompts`)
 
-1. **tp_001** — *Multiple choice: A school in Lagos buys 6 boxes of chalk at ₦500 per box. What is the total cost? A. ₦1,000 B. ₦2,500 C. ₦3,000 D. ₦3,500. Answer with the correct option and one calculation.*
+1. **tp_001** — *A shop reduces the price of an item by 20%, then later increases the reduced price by 20%. Is the final price the same as the original price? Show the calculation briefly and give the final percentage change.*
 2. **tp_002** — *Multiple choice: Which process allows green plants to use sunlight to make food? A. Respiration B. Photosynthesis C. Evaporation D. Condensation. Answer with the correct option and one sentence of explanation.*
 
 ---
