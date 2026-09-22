@@ -2424,7 +2424,7 @@ This makes the fully compressed model a strong **efficiency-first variant**, but
 Since accuracy remains our highest priority for an educational model, we will not adopt the full compression chain. Instead, we will carry forward only the <a href="#vocab-pruning">vocabulary-pruning optimization</a>, which reduced model size and improved deployment efficiency without showing an accuracy regression in our evaluation. Our updated deployment model is therefore <code>Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf</code>, which preserves the capability of our selected Muta Tutor while being smaller and faster. It can be found <a href="https://huggingface.co/timiiowolabi/Muta-Tutor-Qwen2.5-1.5B-ADTC-GGUF/blob/main/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf">here</a>.
 </strong></span>
 
-To validate this decision, we directly compared the vocabulary-pruned model against the incumbent Muta Tutor under the same audit setup:
+To validate this decision, we directly compared the vocabulary-pruned model against the incumbent Muta Tutor under the same audit setup using our curated [dataset](https://huggingface.co/datasets/timiiowolabi/Muta-GCP-Synthetic-Judges-20260922):
 
 <div align="center">
 
@@ -2465,7 +2465,7 @@ To validate this decision, we directly compared the vocabulary-pruned model agai
 
 </div>
 
-The vocabulary-pruned model was **faster, used less memory, and showed no accuracy regression in this small synthetic comparison**, resulting in a substantially higher ADTC proxy score (**60.24 vs. 47.74**). Because the accuracy sample contains only 10 questions, we treat it as supporting evidence rather than a definitive accuracy benchmark.
+The vocabulary-pruned model was **faster, used less memory, and showed no accuracy regression in this small synthetic comparison**, resulting in a substantially higher ADTC proxy score (**60.24 vs. 47.74**).
 
 A more comprehensive report on the optimization experiments can be found [here](https://muta-iq.vercel.app/#gate-2-finetuning).
 
