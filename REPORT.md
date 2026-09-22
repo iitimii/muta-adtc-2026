@@ -2452,7 +2452,7 @@ A more comprehensive report on our several optimizations can be found [here](htt
       >
       > So, the total cost is ₦3,000.
 
-    - Final model answer (`Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-qwen35-judge-hybrid.gguf`):
+    - Final model answer (`Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf`):
 
       > The total cost is ₦3,000.
 
@@ -2462,7 +2462,7 @@ A more comprehensive report on our several optimizations can be found [here](htt
 
       > The student's misconception is that the heavier stone falls faster due to gravity pulling harder on it. In reality, both stones will fall at the same rate in a vacuum because gravity acts equally on all objects regardless of their mass. The correct answer is C: They arrive together.
 
-    - Final model answer (`Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-qwen35-judge-hybrid.gguf`):
+    - Final model answer (`Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf`):
 
       > The student's misconception is that gravity pulls harder on the heavy stone, causing it to fall faster. In a vacuum, there is no air resistance, so both stones would fall at the same rate due to gravity. The correct answer is C. They arrive together.
 
