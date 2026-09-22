@@ -2479,4 +2479,45 @@ A more comprehensive report on our several optimizations can be found [here](htt
 <details>
 <summary><strong>Model Provenance</strong></summary>
 
+- Base model name and exact source: [`Qwen/Qwen2.5-1.5B-Instruct`](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct/tree/989aa7980e4cf806f80c7fef2b1adb7bc71aa306).
+
+- Git Commit SHA: `989aa7980e4cf806f80c7fef2b1adb7bc71aa306`.
+
+- Fine-tuning method used: Weight-level BF16 LoRA (rank 16, 500 steps), with the adapter merged into the base model; this was not QLoRA or a full-weight fine-tune.
+
+- Training datasets used: 10,756 training examples from [AI2 ARC](https://huggingface.co/datasets/allenai/ai2_arc/tree/210d026faf9955653af8916fad021475a3f00453) (3,166 ARC-Easy/ARC-Challenge rows; CC-BY-SA-4.0) and [QASC](https://huggingface.co/datasets/allenai/qasc/tree/a34ba204eb9a33b919c10cc08f4f1c8dae5ec070) (7,590 rows; CC-BY-4.0).
+
+- Before/after comparison: Both Q4_K_M models were run on `muta-vm` with llama.cpp commit `60bccc3763395e01b039aa1ddeacc8cc0ea69f70`, four CPU threads, temperature 0, top-k 1, seed 3407, and each model's embedded chat template.
+
+  - Prompt 1: Multiple choice: A school in Lagos buys 6 boxes of chalk at ₦500 per box. What is the total cost? A. ₦1,000 B. ₦2,500 C. ₦3,000 D. ₦3,500. Answer with the correct option and one calculation.
+
+    - Base Model answer (`Qwen/Qwen2.5-1.5B-Instruct`):
+
+      > The correct option is B. ₦2,500.
+      >
+      > Calculation:
+      > 6 boxes * ₦500 per box = ₦3,000
+      >
+      > So, the total cost is ₦3,000.
+
+    - Final model answer (`Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-qwen35-judge-hybrid.gguf`):
+
+      > The total cost is ₦3,000.
+
+  - Prompt 2: A student says a heavy stone falls faster than a light stone because gravity pulls harder on the heavy stone. In a vacuum, both are released from the same height at the same time. Which reaches the ground first? A. The heavy stone B. The light stone C. They arrive together D. It depends on their shapes. Correct the student's misconception in two or three sentences, then state the correct option.
+
+    - Base Model answer (`Qwen/Qwen2.5-1.5B-Instruct`):
+
+      > The student's misconception is that the heavier stone falls faster due to gravity pulling harder on it. In reality, both stones will fall at the same rate in a vacuum because gravity acts equally on all objects regardless of their mass. The correct answer is C: They arrive together.
+
+    - Final model answer (`Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-qwen35-judge-hybrid.gguf`):
+
+      > The student's misconception is that gravity pulls harder on the heavy stone, causing it to fall faster. In a vacuum, there is no air resistance, so both stones would fall at the same rate due to gravity. The correct answer is C. They arrive together.
+
+- LoRA adapter weights: [adapter_model.safetensors](provenance/adapter_model.safetensors) and config: [adapter_config.json](provenance/adapter_config.json)
+- The training/fine-tuning script or config that produced the model: [train_lora.py](provenance/scripts/train_lora.py)
+- Training run logs: [logs](provenance/logs)
+- The training dataset: [dataset](provenance/dataset)
+- SHA256 checksums of the base model file: [checksums](provenance/SHA256SUMS)
+- The merge/quantization script: [merge_and_quantize.py](provenance/scripts/merge_and_quantize.py)
 </details>
