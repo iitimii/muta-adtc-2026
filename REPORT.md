@@ -2431,9 +2431,9 @@ A more comprehensive report on our several optimizations can be found [here](htt
 <details>
 <summary><strong>Model Provenance</strong></summary>
 
-- Base model name and exact source: [`Qwen/Qwen2.5-1.5B-Instruct`](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct/tree/989aa7980e4cf806f80c7fef2b1adb7bc71aa306).
+- Base model name and exact source: [`Qwen/Qwen2.5-1.5B-Instruct`](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct/tree/775b11afaf83e0dc75bd5abaf90133e47b3ec082).
 
-- Git Commit SHA: `989aa7980e4cf806f80c7fef2b1adb7bc71aa306`.
+- Git Commit SHA: `775b11afaf83e0dc75bd5abaf90133e47b3ec082`.
 
 - Fine-tuning method used: Weight-level BF16 LoRA (rank 16, 500 steps), with the adapter merged into the base model; this was not QLoRA or a full-weight fine-tune.
 
