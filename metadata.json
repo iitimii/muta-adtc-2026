@@ -16,7 +16,7 @@
   },
   "provenance": {
     "base_model_source": "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct",
-    "base_model_commit_sha": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+    "base_model_commit_sha": "775b11afaf83e0dc75bd5abaf90133e47b3ec082",
     "fine_tuning_method": "lora",
     "training_datasets": [
       "huggingface:allenai/ai2_arc@210d026faf9955653af8916fad021475a3f00453 (3,166 rows; CC-BY-SA-4.0)",
