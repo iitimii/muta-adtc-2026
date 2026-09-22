@@ -1913,8 +1913,7 @@ After the Gate 2 experiments, we retained **Muta Tutor Qwen2.5-1.5B** as our str
 We explored pruning, quantization, distillation, vocabulary reduction, MoE conversion, width reduction, and quantization-aware training—all methods for optimizing models.
 
 Thus, our resulting deployment is:
-
-> **[refine-qat100-Q4_0.gguf](https://huggingface.co/timiiowolabi/muta-compress-20260920/blob/main/refine-final/gguf/refine-qat100-Q4_0.gguf)** — a dense Qwen2 architecture, 26 layers, FFN width 7168, 32K vocabulary, **1.05B parameters**, approximately **593 MB**.
+> **[Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf](https://huggingface.co/timiiowolabi/Muta-Tutor-Qwen2.5-1.5B-ADTC-GGUF/resolve/4fda6989e2820016256a4390e33aab2e745d5d34/Muta-Tutor-Qwen2.5-1.5B-Q4_K_M-vocab32k.gguf)** — a dense Qwen2.5 architecture with a pruned 32K vocabulary, **1.5B parameters** and approximately **830 MB**.
 
 ---
 
