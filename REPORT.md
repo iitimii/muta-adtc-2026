@@ -1896,7 +1896,7 @@ A more comprehensive Gate 2 record can be found in [03 · Improving Accuracy: Mo
 
 <details>
 
-<summary><strong>Optimization and Final Decision</strong></summary>
+<summary><strong>Optimizations, Benchmarking and Final Decision</strong></summary>
 
 ## Optimizing the Selected Muta Tutor for CPU Deployment
 
@@ -2459,7 +2459,7 @@ To validate this decision, we directly compared the vocabulary-pruned model agai
 
 </div>
 
-The vocabulary-pruned model was **faster, used less memory, and showed no accuracy regression in this small synthetic comparison**, resulting in a substantially higher ADTC proxy score (**60.24 vs. 47.74**).
+The vocabulary-pruned model was **faster, used less memory, never throttled the CPU, and showed no accuracy regression in this small synthetic comparison**, resulting in a substantially higher ADTC proxy score (**60.24 vs. 47.74**).
 
 A more comprehensive report on the optimization experiments can be found [here](https://muta-iq.vercel.app/#gate-2-finetuning).
 
