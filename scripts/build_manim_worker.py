@@ -85,10 +85,18 @@ def _safe_link(root: Path, path: Path) -> str:
     return target
 
 
-def _repair_pillow_pango_collisions(root: Path, builder_prefix: Path) -> list[dict]:
+def _repair_pillow_pango_collisions(
+    root: Path, builder_prefix: Path, target_arch: str
+) -> list[dict]:
     """Keep Pillow's private copies private while Pango resolves its matching Conda ABI."""
     repairs = []
-    for name in ("libharfbuzz.0.dylib", "libfreetype.6.dylib"):
+    repair_names = {
+        "aarch64": ("libharfbuzz.0.dylib", "libfreetype.6.dylib"),
+        # The Intel dependency closure does not load these names through Pango, and its
+        # architecture-matched Conda runtime intentionally does not ship root HarfBuzz.
+        "x86_64": (),
+    }[target_arch]
+    for name in repair_names:
         destination = root / "_internal" / name
         source = builder_prefix / "lib" / name
         if destination.is_symlink():
@@ -321,7 +329,9 @@ def build(args: argparse.Namespace) -> Path:
     if staging.exists():
         shutil.rmtree(staging)
     shutil.copytree(frozen, staging, symlinks=True)
-    repairs = _repair_pillow_pango_collisions(staging, Path(str(identity["prefix"])))
+    repairs = _repair_pillow_pango_collisions(
+        staging, Path(str(identity["prefix"])), args.target_arch
+    )
     executable = staging / "muta-manim"
     executable.chmod(executable.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
     licenses = staging / "licenses"

@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from scripts import build_manim_worker as builder
 from scripts import verify_manim_worker as verifier
 
 
@@ -156,6 +157,47 @@ def _worker(tmp_path: Path) -> Path:
         )
     )
     return root
+
+
+def _pillow_collision_tree(tmp_path: Path) -> tuple[Path, Path]:
+    root = tmp_path / "worker"
+    private = root / "_internal/PIL/.dylibs"
+    private.mkdir(parents=True)
+    prefix = tmp_path / "builder"
+    (prefix / "lib").mkdir(parents=True)
+    for name in ("libharfbuzz.0.dylib", "libfreetype.6.dylib"):
+        (private / name).write_bytes(f"pillow-{name}".encode())
+        (root / "_internal" / name).symlink_to(f"PIL/.dylibs/{name}")
+    return root, prefix
+
+
+def test_arm_worker_repairs_pillow_pango_library_collisions(tmp_path: Path) -> None:
+    root, prefix = _pillow_collision_tree(tmp_path)
+    for name in ("libharfbuzz.0.dylib", "libfreetype.6.dylib"):
+        (prefix / "lib" / name).write_bytes(f"conda-{name}".encode())
+
+    repairs = builder._repair_pillow_pango_collisions(root, prefix, "aarch64")
+
+    assert {item["path"] for item in repairs} == {
+        "_internal/libharfbuzz.0.dylib",
+        "_internal/libfreetype.6.dylib",
+    }
+    for name in ("libharfbuzz.0.dylib", "libfreetype.6.dylib"):
+        repaired = root / "_internal" / name
+        assert not repaired.is_symlink()
+        assert repaired.read_bytes() == f"conda-{name}".encode()
+
+
+def test_intel_worker_preserves_safe_private_pillow_aliases(tmp_path: Path) -> None:
+    root, prefix = _pillow_collision_tree(tmp_path)
+
+    repairs = builder._repair_pillow_pango_collisions(root, prefix, "x86_64")
+
+    assert repairs == []
+    for name in ("libharfbuzz.0.dylib", "libfreetype.6.dylib"):
+        alias = root / "_internal" / name
+        assert alias.is_symlink()
+        assert alias.resolve().is_file()
 
 
 def test_worker_manifest_accepts_safe_relative_aliases(tmp_path: Path) -> None:
