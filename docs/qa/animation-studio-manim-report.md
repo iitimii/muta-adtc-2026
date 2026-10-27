@@ -87,8 +87,9 @@ The same rule covers explicit function relations: repeated typed AST context is 
 conflicting equations, outputs, or independent variables cannot be silently ignored.
 Brief clauses are checked across both newlines and semicolons. Probe-only requirements such as
 “Show the tangent at x=2” are not misclassified as new equations, while standalone domain clauses
-such as “Use domain x in [-pi, pi]” are parsed into the function's typed range. Multiple probes or
-ranges in one semicolon-delimited field and dangling arithmetic tails fail closed.
+such as “Use domain x in [-pi, pi]” or “Use range for x = [-pi, pi]” are parsed into the
+function's typed range. Multiple probes or ranges in one semicolon-delimited field and dangling
+positive or negative arithmetic tails fail closed.
 Explicit function requests that do not parse into the allow-listed typed AST now fail closed in both
 browser and model-planner boundaries, so they cannot become prose-only process storyboards.
 Non-mathematical novel process planning remains available.
@@ -97,14 +98,33 @@ Generated process narrations are also checked for completion before project cons
 planner requests one concise 60–90-character sentence per step, ending well before the existing
 120-character schema limit. Missing punctuation and obvious incomplete endings trigger the single
 bounded structured repair with “incomplete_sentence”; Muta does not conceal truncation by appending
-punctuation to cut-off model text. User-authored process labels remain unchanged.
+punctuation to cut-off model text. Completion checks ignore inert closing quotes/brackets before
+inspecting the last lexical word and accept common Latin, CJK and Arabic sentence terminators.
+User-authored process labels remain unchanged.
 
-Post-regression automated gates: 2,395 selected Python tests, 191/191 Node tests, focused Animation
-Studio 33/33, focused planner 10/10, Ruff, whitespace, source-inventory, and built-asset parity.
+If the bounded local model supplies one or more complete generated sentences followed only by a
+clipped fragment, the planner keeps the already-complete sentence prefix and discards that fragment
+before revalidation. It never invents punctuation or words. An explicit request for two through
+eight steps is also enforced against the proposal, including during the one structured repair.
+The model prompt excludes thank-you, end-screen, return-to-storyboard and other interface/meta
+states so the bounded scene budget remains focused on the requested teaching sequence.
+The preview/render action area persistently tells the learner to review every scene and the maths
+before rendering because open-ended tutor narration is not formally verified. Typed function ASTs
+and numerical calculus checks remain deterministic; that does not certify model-written analogies.
 
-Final whole-brief/caption gate: 2,320 Python tests passed, 77 skipped and one deselected; 193/193
-Node tests passed; focused Animation Studio 35/35 and planner 12/12 passed. Touched-file Ruff,
-whitespace, generated localisation inventory, and source/built-asset parity also passed.
+Final whole-brief/caption gate: 2,328 Python tests passed, 77 skipped and one deselected (2,405
+selected); 193/193 Node tests passed; focused Animation Studio 35/35 and planner 20/20 passed.
+Touched-file Ruff, whitespace, generated localisation inventory, and source/built-asset parity also
+passed.
+
+The exact packaged Qwen2.5 model was exercised through the development gateway with the equality
+brief that had previously returned HTTP 503. The revised planner returned HTTP 200 on its first
+attempt in 10.38 seconds, with exactly three scenes and three complete captions. Trusted Manim
+source generation preserved all three captions. One generated seesaw analogy was still
+semantically ambiguous, demonstrating why open-ended narrative is labelled for learner review and
+must not be described as formally verified. The packaging gate must configure the bundled Manim
+worker and inspect the resulting MP4; the plain development environment does not stand in for that
+packaged-runtime check.
 
 ## Artifacts and hashes
 

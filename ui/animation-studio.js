@@ -216,6 +216,7 @@
 
   function explicitFunctionRequest(source) {
     const value = normalizeFunctionInput(source).toLowerCase();
+    if (/^(?:(?:use|set|show)\s+)?(?:the\s+)?(?:domain|range|interval)\b/.test(value.trim())) return false;
     if (!/\b[yzsv]\s*=/.test(value)
       && !/\b(?:plot|graph|trace)\b/.test(value)
       && /\b(?:at|when)\s+[xt]\s*=/.test(value)) return false;
@@ -232,7 +233,7 @@
     const scalar = scalarPattern();
     const briefFields = raw.split("\n").map((field) => field.split(";").map((clause) => clause.trim()).filter(Boolean));
     const briefClauses = briefFields.flat();
-    if (briefFields.some((clauses) => clauses.slice(1).some((clause) => /^[+*/×÷^)]/.test(clause)))) return null;
+    if (briefFields.some((clauses) => clauses.slice(1).some((clause) => /^[+\-*/×÷^)]/.test(clause)))) return null;
     const rangeFields = briefFields.map((clauses) => clauses.filter((clause) => explicitScalarRangeRequest(clause) || (integralIntent && explicitIntegralBoundsRequest(clause))));
     if (rangeFields.some((clauses) => clauses.length > 1)) return null;
     const rangeLines = rangeFields.flat();
@@ -912,6 +913,7 @@
       this.exportAbort?.abort(); this.exportAbort = null;
       this.manimCapabilityAbort?.abort(); this.manimCapabilityAbort = null;
       this.projectActions.replaceChildren();
+      const reviewNotice = document.createElement("p"); reviewNotice.className = "animation-review-notice"; reviewNotice.setAttribute("role", "note"); reviewNotice.textContent = text("animationReviewBeforeRender"); this.projectActions.append(reviewNotice);
       const save = button(text("animationSave"), "animation-primary"); save.addEventListener("click", () => { saveProject(this.project); this.error.textContent = text("animationSaved"); });
       const projectExport = button(text("animationExport")); projectExport.addEventListener("click", () => exportProject(this.project));
       const transcriptExport = button(text("animationTranscriptDownload")); transcriptExport.addEventListener("click", () => exportTranscript(this.project));

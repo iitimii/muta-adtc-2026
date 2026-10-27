@@ -77,6 +77,10 @@ def test_planner_schema_is_closed_and_contains_no_source_fields() -> None:
     for forbidden in ("javascript", "html", "shader", "url", "source", "renderer"):
         assert f'"{forbidden}"' not in encoded
 
+    exact = animation_planner_schema(3)["schema"]["properties"]["steps"]
+    assert exact["minItems"] == 3
+    assert exact["maxItems"] == 3
+
 
 def test_valid_plan_builds_only_typed_process_scenes() -> None:
     engine = _Engine([_valid()])
@@ -161,6 +165,107 @@ def test_generated_narration_with_trailing_article_is_not_made_valid_by_punctuat
 
     assert project is None and repaired is True
     assert len(engine.local.calls) == MAX_ANIMATION_PLAN_ATTEMPTS
+
+
+@pytest.mark.parametrize(
+    "narration",
+    [
+        "x" * 114 + " the.”",
+        "The balance remains the.)",
+        "The balance remains the...",
+    ],
+)
+def test_closing_marks_cannot_conceal_an_incomplete_generated_sentence(
+    narration: str,
+) -> None:
+    incomplete = {**_valid()}
+    incomplete["steps"] = [dict(step) for step in _valid()["steps"]]
+    incomplete["steps"][0]["narration"] = narration
+    engine = _Engine([incomplete, _valid()])
+
+    project, repaired = plan_animation_project(engine, _request())
+
+    assert project is not None and repaired is True
+    assert len(engine.local.calls) == 2
+
+
+@pytest.mark.parametrize(
+    "narration",
+    [
+        "水流进入第一个容器。",
+        "ينتقل الماء إلى الوعاء الأول؟",
+        "L’eau entre dans le premier récipient.»",
+    ],
+)
+def test_generated_narration_accepts_multilingual_sentence_terminators(
+    narration: str,
+) -> None:
+    multilingual = {**_valid()}
+    multilingual["steps"] = [dict(step) for step in _valid()["steps"]]
+    multilingual["steps"][0]["narration"] = narration
+    engine = _Engine([multilingual])
+
+    project, repaired = plan_animation_project(engine, _request())
+
+    assert project is not None and repaired is False
+    assert project.scenes[0].narration == narration
+
+
+def test_generated_narration_keeps_complete_sentence_and_drops_only_clipped_suffix() -> None:
+    clipped = {**_valid()}
+    clipped["steps"] = [dict(step) for step in _valid()["steps"]]
+    clipped["steps"][0]["narration"] = (
+        "When you perform the same operation on both sides of an equation, you're keeping the "
+        "balance the same. This is because, "
+    )
+    clipped["steps"][1]["narration"] = (
+        "For example, if you have 2x = 4 and you add 3 to both sides, you get 2x + 3 = 4 + 3, "
+        "which simplifies to 2x + 3 = 7. The"
+    )
+    clipped["steps"][2]["narration"] = (
+        "The equality is preserved because the operation doesn't change the value of the "
+        "equation. It just adds the same value to"
+    )
+    engine = _Engine([clipped])
+
+    project, repaired = plan_animation_project(engine, _request())
+
+    assert project is not None and repaired is False
+    assert [scene.narration for scene in project.scenes] == [
+        (
+            "When you perform the same operation on both sides of an equation, you're keeping the "
+            "balance the same."
+        ),
+        (
+            "For example, if you have 2x = 4 and you add 3 to both sides, you get 2x + 3 = 4 + 3, "
+            "which simplifies to 2x + 3 = 7."
+        ),
+        "The equality is preserved because the operation doesn't change the value of the equation.",
+    ]
+
+
+def test_explicit_requested_step_count_is_enforced_during_bounded_repair() -> None:
+    too_many = {**_valid()}
+    too_many["steps"] = [dict(_valid()["steps"][index % 3]) for index in range(8)]
+    engine = _Engine([too_many, _valid()])
+    request = AnimationPlanRequest(
+        student_id="learner",
+        topic="Why equal operations preserve equality",
+        level="secondary",
+        concept="A balanced equation",
+        requirements="Explain the idea in three clear steps.",
+    )
+
+    project, repaired = plan_animation_project(engine, request)
+
+    assert project is not None and repaired is True
+    assert len(project.scenes) == 3
+    assert "step_count_mismatch" in engine.local.calls[1][0][1]["content"]
+    first_schema = engine.local.calls[0][1]["response_format"]["json_schema"]
+    assert first_schema["schema"]["properties"]["steps"]["minItems"] == 3
+    assert first_schema["schema"]["properties"]["steps"]["maxItems"] == 3
+    assert "Return exactly 3 steps" in engine.local.calls[0][0][0]["content"]
+    assert "return-to-storyboard" in engine.local.calls[0][0][0]["content"]
 
 
 def test_whitespace_topic_fails_request_validation() -> None:

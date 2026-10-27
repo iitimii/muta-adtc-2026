@@ -196,8 +196,25 @@ test("separate probe and domain requirement clauses preserve the typed function"
   });
   assert.deepEqual(domain.scenes[0].data.domain, [-Math.PI, Math.PI]);
 
+  for (const requirements of [
+    "Use domain x = [-pi, pi]",
+    "Use range for x = [-pi, pi]",
+    "Use interval x = [-pi, pi]",
+  ]) {
+    const bounded = animator.planProject({
+      topic: "Sine graph",
+      concept: "Plot y=sin(x)",
+      requirements,
+      level: "secondary",
+    });
+    assert.deepEqual(bounded.scenes[0].data.domain, [-Math.PI, Math.PI]);
+  }
+
   assert.equal(animator.parseFunction("Derivative y=x^2 at x=2; at x=3"), null);
   assert.equal(animator.parseFunction("Integral y=x^2 from 0 to 1; from 2 to 3"), null);
+  assert.equal(animator.parseFunction("Plot y=sin(x); Use domain x in [-pi, pi]; -1"), null);
+  assert.equal(animator.parseFunction("Derivative y=x^2; Show the tangent at x=2; -1"), null);
+  assert.equal(animator.parseFunction("Integral y=x^2; Use integral from 0 to 1; -1"), null);
 });
 
 test("tertiary derivative and definite-integral workflows compute real quantities", () => {

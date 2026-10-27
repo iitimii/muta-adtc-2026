@@ -166,8 +166,9 @@ Implementation and QA plan:
 The function planner classifies each newline- or semicolon-delimited brief clause by role before
 checking consistency. A requirement such as “Show the tangent at x=2” is a calculus probe, not a
 second function relation. A standalone “Use domain x in [-pi, pi]” clause is a typed range and
-supplies the exact function domain. Conflicting equations, multiple same-field probes or ranges,
-malformed scalar tails, and dangling arithmetic clauses still fail closed. Identical repeated
+supplies the exact function domain; equivalent domain/range/interval assignments using `=` are
+handled the same way. Conflicting equations, multiple same-field probes or ranges, malformed scalar
+tails, and dangling positive or negative arithmetic clauses still fail closed. Identical repeated
 relations remain valid.
 
 The local-model process planner retains the 120-character schema ceiling but now prompts for one
@@ -175,7 +176,19 @@ complete 60–90-character sentence per narration, ending in punctuation well be
 Proposal validation rejects missing terminal punctuation and obvious incomplete endings such as a
 trailing article or conjunction. The existing single structured-repair attempt receives an
 “incomplete_sentence” error; raw model text is never patched by appending punctuation. This applies
-only to model-generated proposals and does not rewrite user-authored process labels.
+only to model-generated proposals and does not rewrite user-authored process labels. Terminal
+quotes/brackets cannot conceal an incomplete lexical ending, while common Latin, CJK and Arabic
+sentence terminators remain valid.
+
+For small-model schema truncation, keep an already-complete generated sentence prefix only when the
+remaining suffix is incomplete, then run the same completion validation again. Do not append or
+invent text. When the brief explicitly requests two through eight steps, require that exact scene
+count and include a mismatch in the single bounded repair response.
+Exclude thank-you, end-screen, return-to-storyboard and interface/meta filler from the model prompt;
+every accepted state must belong to the requested teaching sequence.
+Keep a brief persistent notice beside the preview/render actions: learners must review every scene
+and the maths because tutor-written process explanations can be wrong. Do not imply that typed-AST
+numeric validation certifies open-ended model narration.
 
 ## Acceptance criteria
 
