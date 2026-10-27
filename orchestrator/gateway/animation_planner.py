@@ -37,6 +37,7 @@ _INCOMPLETE_SENTENCE_ENDING = re.compile(
 _SENTENCE_PUNCTUATION = frozenset(".!?…。！？؟۔")
 _SENTENCE_CLOSERS = frozenset("\"'’”»›)]}")
 _STEP_COUNT_WORDS = {
+    "zero": 0,
     "one": 1,
     "two": 2,
     "three": 3,
@@ -50,6 +51,26 @@ _STEP_COUNT_WORDS = {
     "eleven": 11,
     "twelve": 12,
 }
+_COUNT_NUMBER_WORDS = (
+    "zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|"
+    "thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|"
+    "twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|"
+    "hundred|thousand|million|billion|trillion|dozen"
+)
+_COUNT_SIGN_TRANSLATION = str.maketrans(
+    {"−": "-", "–": "-", "—": "-", "﹣": "-", "－": "-", "＋": "+"}
+)
+_STEP_COUNT_PATTERN = re.compile(
+    # Consume the entire numeric/English count, including unsupported compound forms.
+    # A suffix such as "three" in "twenty-three" must never become the scene count.
+    r"(?<![\w./,+-])([+-]?(?:\d+(?:[.,]\d+)*|\.\d+)(?:e[+-]?\d+)?"
+    r"(?:\s*/\s*[+-]?(?:\d+(?:\.\d+)?|\.\d+))?|"
+    r"[+-]?(?:(?:minus|negative|plus|positive)[ -]+)?(?:" + _COUNT_NUMBER_WORDS + r")"
+    r"(?:[ -]+(?:and[ -]+)?(?:" + _COUNT_NUMBER_WORDS + r"))*)"
+    r"(?:(?:\s+(?:clear|distinct|ordered|simple|visual|animation))*\s+|\s*-\s*)"
+    r"(?:steps?|stages?|scenes?|states?)\b",
+    re.IGNORECASE,
+)
 _META_STEP_TITLE = re.compile(
     r"^(?:end(?:\s+of\s+(?:the\s+)?animation)?|end[ -]?screen|thank\s+you(?:\s+for\s+learning)?|"
     r"return\s+to\s+(?:the\s+)?storyboard|storyboard\s+return|back\s+to\s+(?:the\s+)?storyboard)"
@@ -146,21 +167,17 @@ def _requested_step_count(request: AnimationPlanRequest) -> tuple[int | None, st
     counts: set[int] = set()
     source = "\n".join(
         part for part in (request.topic, request.concept, request.requirements) if part
-    )
-    pattern = re.compile(
-        r"(?<![\w.])([+-]?\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)"
-        r"(?:(?:\s+(?:clear|distinct|ordered|simple|visual|animation))*\s+|\s*-\s*)"
-        r"(?:steps?|stages?|scenes?|states?)\b",
-        re.IGNORECASE,
-    )
-    for match in pattern.finditer(source):
+    ).translate(_COUNT_SIGN_TRANSLATION)
+    for match in _STEP_COUNT_PATTERN.finditer(source):
         token = match.group(1).casefold()
-        if token.lstrip("+-").isdigit():
+        if re.fullmatch(r"[+-]?\d+", token):
             if len(token.lstrip("+-")) > 3:
                 return None, "Lesson animations support an explicit request of two to eight scenes."
             counts.add(int(token))
-        else:
+        elif token in _STEP_COUNT_WORDS:
             counts.add(_STEP_COUNT_WORDS[token])
+        else:
+            return None, "Lesson animations support an explicit request of two to eight scenes."
     if not counts:
         return None, None
     if len(counts) != 1:
