@@ -260,6 +260,13 @@
     const variables = [...expressionVariables(expressionAst)].filter((name) => ["x", "t"].includes(name));
     if (variables.length !== 1 || expressionVariables(expressionAst).size !== 1) return null;
     const variable = variables[0];
+    if (raw.includes("\n")) {
+      const relationLines = raw.split("\n").filter((line) => /\b[yzsv]\s*=/i.test(line) || explicitFunctionRequest(line));
+      const lineRelations = relationLines.map((line) => parseFunction(line));
+      if (lineRelations.some((relation) => !relation)) return null;
+      const relationSignatures = new Set(lineRelations.map((relation) => JSON.stringify({ output: relation.output, variable: relation.variable, expression_ast: relation.expression_ast })));
+      if (relationSignatures.size > 1) return null;
+    }
     if (rangeMatch?.variable && rangeMatch.variable !== variable) return null;
     let domain = requestedRange ? [Math.min(...requestedRange), Math.max(...requestedRange)] : (/\b(?:sin|cos|tan)\s*\(/i.test(expressionText) ? [-2 * Math.PI, 2 * Math.PI]
       : /\bexp\s*\(/i.test(expressionText) ? [-4, 4] : expressionText.includes("/") ? [-6, 6]

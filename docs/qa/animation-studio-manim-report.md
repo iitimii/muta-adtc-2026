@@ -83,6 +83,8 @@ punctuation followed by another token, multiple explicit probe clauses, and inco
 interval clauses all fail closed. Explicit range variables obey the same x/t agreement invariant.
 Every title, concept and requirement line is checked; identical repeated context is allowed, while
 conflicting or malformed range/probe clauses in any later field invalidate the complete request.
+The same rule covers explicit function relations: repeated typed AST context is allowed, while
+conflicting equations, outputs, or independent variables cannot be silently ignored.
 Explicit function requests that do not parse into the allow-listed typed AST now fail closed in both
 browser and model-planner boundaries, so they cannot become prose-only process storyboards.
 Non-mathematical novel process planning remains available.

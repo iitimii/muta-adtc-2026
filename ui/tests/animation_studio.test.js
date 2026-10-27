@@ -148,6 +148,27 @@ test("Unicode exponent runs preserve one exponent instead of chaining powers", (
   assert.equal(animator.parseFunction("Plot y = x²⁻³"), null);
 });
 
+test("all explicit function relations in a brief must agree", () => {
+  const identical = animator.planProject({
+    topic: "Plot y=sin(x)",
+    concept: "Graph y = sin(x)",
+    level: "secondary",
+  });
+  assert.equal(identical.scenes[0].data.expression_text, "sin(x)");
+  const conflicts = [
+    { topic: "Plot y=sin(x)", concept: "Plot y=cos(x)" },
+    { topic: "Plot y=x²", concept: "y=x^2", requirements: "y=x^3" },
+    { topic: "Plot y=x^2", concept: "Plot z=x^2" },
+    { topic: "Plot y=x^2", concept: "Plot y=t^2" },
+  ];
+  for (const brief of conflicts) {
+    assert.throws(
+      () => animator.planProject({ ...brief, level: "secondary" }),
+      /could not safely resolve that explicit function/,
+    );
+  }
+});
+
 test("tertiary derivative and definite-integral workflows compute real quantities", () => {
   const derivative = plan("plot y = x^3 and show the tangent at x = 2", "tertiary");
   assert.equal(derivative.scenes[1].data.mode, "derivative");
