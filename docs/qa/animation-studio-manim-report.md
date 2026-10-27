@@ -26,12 +26,13 @@ derivative/tangent, and definite-integral scenes. The browser generated the same
 
 Final automated gates after the review fixes:
 
-- Python: 2,385 tests collected; the full default suite reached 100% with expected platform skips
+- Python: 2,394 tests collected; the full default suite reached 100% with expected platform skips
   and zero failures.
-- Browser modules: 187/187 Node tests passed, including same-ID edit/reorder source and render races.
+- Browser modules: 189/189 Node tests passed, including same-ID source, Manim render, and browser
+  fallback-export races.
 - Rust/Tauri: 12/12 launcher tests passed after a clean rebuild with temporary resource fixtures;
   the fixtures were removed after the run.
-- Focused planner/render/contract gate: 69/69 passed; Ruff and diff whitespace checks passed.
+- Focused planner/render/contract gate: 78/78 passed; Ruff and diff whitespace checks passed.
 - Real browser: desktop, 375 px portrait, and phone landscape screenshots; real authenticated
   trusted-source and MP4 requests; zero console errors. The rendered H.264 MP4 was decoded and
   played inside Muta with native controls and no autoplay. Its time scrubber appeared, the playback
@@ -41,6 +42,10 @@ Final automated gates after the review fixes:
   `animation-studio-desktop.png`, `animation-studio-mobile-375.png`, and
   `animation-studio-landscape.png`; `animation-studio-inline-mp4.png` records the final in-app
   playback state.
+- Capability fallback browser QA used the explicit older-macOS reason. Canvas preview, timeline
+  buttons, transcript, trusted source, and browser export remained available; only `Render Manim
+  video` was disabled, exposed the reason as help text, and had a visibly disabled state. The
+  capture is `animation-studio-manim-unavailable.png`.
 
 ## Artifacts and hashes
 
@@ -53,6 +58,7 @@ Final automated gates after the review fixes:
 | `animation-studio-manim-scientific.png` | `582f7850369018b1ae008e1102aefe9d23434dd29b65b94adc4bc913231f5b01` | Settled real-Manim frame proving `0.000001 × x` is typeset as grouped `1 × 10⁻⁶ · x` while its sampled curve uses the same value |
 | `animation-studio-manim-scientific-powers.png` | `c6388a2caeb3772e218a0b8f8447740100c9ca29f23fde1c49deedf73ff08a73` | Settled real-Manim frames proving the scientific literal remains grouped as both exponent and exponent base |
 | `animation-studio-inline-mp4.png` | `ed8fb13584696d1f19308370816e279243213246755f45495e778c0a52e183bd` | Real Muta browser showing decoded trusted MP4 playback, native controls, and the distinct rendered-MP4 download action |
+| `animation-studio-manim-unavailable.png` | `1f4b7f21a37b00e0e6a14e8b046d17bdeae0c2af2dcd8c520c3abe65a13c7639` | Real Muta browser showing canvas/source preserved while only unavailable Manim rendering is disabled with the macOS reason |
 
 `ffprobe` result for the final MP4:
 
@@ -91,6 +97,13 @@ clipping.
 - Trusted MP4 object URLs are revoked on edit, regeneration, replacement, and teardown; the player
   never autoplays, and its explicit rendered-MP4 download action cannot be confused with the browser
   canvas encoder's separate fallback action.
+- Browser-native encoding has its own project revision and controller identity guard, so a stale
+  same-ID export cannot download or clear a newer export's cancellation handle.
+- Server numeric fields are strict: booleans and numeric strings cannot become counts, coordinates,
+  timing, domains, calculus probes, or typed-AST numbers. Curve/derivative/integral probe fields
+  have the same exclusivity rules in browser and server validation.
+- An explicit packaging unavailable reason wins before discovery, and frozen builds never fall back
+  to a host-installed `manim` on `PATH`.
 - A second concurrent render receives immediate busy admission instead of queueing.
 - Client cancellation and timeout terminate the complete worker process group.
 - Final output selection accepts exactly one `MutaLesson.mp4` outside Manim partial files.

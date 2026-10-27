@@ -469,6 +469,7 @@
     "learning.animationDownloadManimSource": "Download Manim code",
     "learning.animationManimSourceReady": "Manim scene code downloaded.",
     "learning.animationRenderManimVideo": "Render Manim video",
+    "learning.animationRenderCapabilityChecking": "Checking the offline Manim renderer…",
     "learning.animationRenderingManimVideo": "Rendering the lesson with offline Manim…",
     "learning.animationManimVideoReady": "Manim video ready to play.",
     "learning.animationDownloadVideo": "Download video",

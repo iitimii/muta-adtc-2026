@@ -477,6 +477,7 @@
 .animation-stage canvas { width: 100%; height: var(--animation-height, 360px); display: block; outline-offset: -4px; touch-action: manipulation; }
 .animation-caption { position: absolute; inset: auto 14px 14px; margin: 0; padding: 9px 12px; border-radius: 9px; background: color-mix(in srgb, var(--card) 92%, transparent); color: var(--text); box-shadow: 0 5px 22px color-mix(in srgb, var(--text) 12%, transparent); font-size: .74rem; line-height: 1.4; }
 .animation-timeline { display: flex; gap: 7px; padding: 10px; overflow-x: auto; border: 1px solid var(--border); border-top: 0; background: var(--bg); scrollbar-width: thin; }
+.animation-timeline-item { display: flex; flex: 0 0 auto; }
 .animation-timeline-step { min-height: 44px; flex: 0 0 auto; padding: 0 11px; border: 1px solid var(--border); border-radius: 9px; background: var(--card); color: var(--muted); font: 650 .68rem/1 var(--sans); }
 .animation-timeline-step[data-active="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--text); }
 .animation-controls { display: grid; grid-template-columns: auto auto auto auto minmax(8rem, 1fr) auto; gap: 7px; align-items: center; padding: 10px; border: 1px solid var(--border); border-top: 0; border-radius: 0 0 13px 13px; background: var(--card); }
@@ -488,6 +489,7 @@
 .animation-scene-editor { min-width: 0; margin: 0; padding: 13px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); }
 .animation-scene-editor legend { padding: 0 5px; color: var(--accent); font-size: .7rem; font-weight: 800; }
 .animation-export-note { flex: 1 1 100%; margin: 0; color: var(--muted); font-size: .7rem; line-height: 1.45; }
+.animation-project-actions button:disabled { cursor: not-allowed; opacity: .5; }
 .animation-project-source { flex: 1 1 100%; min-width: 0; border-top: 1px solid var(--border); }
 .animation-project-source summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; color: var(--text); font-size: .72rem; font-weight: 750; }
 .animation-project-source pre { max-height: 240px; margin: 0; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--muted); font: 500 .68rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }

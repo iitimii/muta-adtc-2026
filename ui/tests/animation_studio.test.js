@@ -148,6 +148,14 @@ test("function imports require expression text AST and declared variable to agre
   assert.match(animator.validateProject(mismatched).error, /must agree/);
   const wrongVariable = structuredClone(project); wrongVariable.scenes[0].data.variable = "t";
   assert.match(animator.validateProject(wrongVariable).error, /must agree/);
+  const curveWithProbe = structuredClone(project); curveWithProbe.scenes[0].data.parameter = 1;
+  assert.match(animator.validateProject(curveWithProbe).error, /do not accept calculus probes/);
+  const derivativeWithBounds = plan("plot y = x^3 and show the tangent at x = 2", "tertiary");
+  derivativeWithBounds.scenes[1].data.bounds = [-1, 1];
+  assert.match(animator.validateProject(derivativeWithBounds).error, /Derivative probe/);
+  const integralWithParameter = plan("integral y = x^2 from 0 to 1", "tertiary");
+  integralWithParameter.scenes[1].data.parameter = 0.5;
+  assert.match(animator.validateProject(integralWithParameter).error, /Integral bounds/);
 });
 
 test("pi ranges use concise educational labels", () => {
@@ -193,6 +201,21 @@ test("trusted Manim source and MP4 use only the authenticated project endpoints"
     assert.equal(request.options.method, "POST");
     assert.deepEqual(JSON.parse(request.options.body).project, project);
   }
+});
+
+test("Manim capability keeps source available while disabling only unsupported rendering", async () => {
+  const unavailable = await animator.requestManimCapability({
+    fetchImpl: async (url, options) => {
+      assert.equal(url, "/v1/animation/render-capability");
+      assert.equal(options.method, "GET");
+      return { ok: true, json: async () => ({ available: false, renderer: "manim", detail: "Offline Manim rendering requires macOS 14 or later." }) };
+    },
+  });
+  assert.deepEqual(unavailable, { available: false, renderer: "manim", detail: "Offline Manim rendering requires macOS 14 or later." });
+  await assert.rejects(
+    animator.requestManimCapability({ fetchImpl: async () => ({ ok: true, json: async () => ({ available: "yes", detail: "bad" }) }) }),
+    /invalid Manim capability/,
+  );
 });
 
 test("trusted render endpoints fail closed on invalid files and empty video", async () => {
@@ -242,6 +265,19 @@ test("Studio Manim rendering can return an inline MP4 blob without forced downlo
     });
     assert.ok(result.blob instanceof Blob);
     assert.equal(result.mime, "video/mp4");
+    assert.equal(clicks, 0);
+  } finally { global.document = originalDocument; URL.createObjectURL = originalCreate; URL.revokeObjectURL = originalRevoke; }
+});
+
+test("a stale same-ID browser export is discarded before download", () => {
+  const project = plan("Explain 3/4", "early-primary");
+  let clicks = 0;
+  const originalDocument = global.document; const originalCreate = URL.createObjectURL; const originalRevoke = URL.revokeObjectURL;
+  global.document = { body: { appendChild() {} }, createElement: () => ({ click() { clicks += 1; }, remove() {} }) };
+  URL.createObjectURL = () => "blob:stale-browser-export"; URL.revokeObjectURL = () => {};
+  try {
+    const result = animator.deliverBrowserVideo(new Blob(["old video"]), project, { mime: "video/webm", extension: "webm" }, { isCurrent: () => false });
+    assert.equal(result.discarded, true);
     assert.equal(clicks, 0);
   } finally { global.document = originalDocument; URL.createObjectURL = originalCreate; URL.revokeObjectURL = originalRevoke; }
 });
@@ -338,5 +374,11 @@ test("production module contains no executable source sink", () => {
   assert.match(source, /renderedVideo\.controls = true/);
   assert.match(source, /renderedVideo\.playsInline = true/);
   assert.match(source, /URL\.revokeObjectURL\(this\.manimVideoUrl\)/);
+  assert.match(source, /this\.exportAbort\?\.abort\(\); this\.exportAbort = null/);
+  assert.match(source, /this\.exportAbort === exportAbort/);
+  assert.match(source, /this\.manimCapabilityAbort\?\.abort\(\); this\.manimCapabilityAbort = null/);
+  assert.match(source, /manimVideo\.disabled = !result\.available/);
+  assert.match(source, /item\.setAttribute\("role", "listitem"\)/);
+  assert.doesNotMatch(source, /node\.setAttribute\("role", "listitem"\)/);
   assert.doesNotMatch(source, /renderedVideo\.autoplay/);
 });

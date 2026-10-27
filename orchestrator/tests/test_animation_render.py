@@ -99,6 +99,36 @@ def test_emitter_covers_parameterised_math_and_process_families() -> None:
     assert "scale_to_fit_width" not in source
 
 
+@pytest.mark.parametrize(
+    "scene",
+    [
+        _scene("array-bool", "array", {"rows": True, "columns": 4, "phase": "build"}),
+        _scene("array-text", "array", {"rows": 2, "columns": "4", "phase": "build"}),
+        _scene("vector-bool", "vector", {"x": True, "y": 2, "label": "force"}),
+        _scene("vector-text", "vector", {"x": 1, "y": "2", "label": "force"}),
+        {**_scene("duration-text", "array", {"rows": 2, "columns": 4, "phase": "build"}), "duration_ms": "900"},
+        _scene("domain-text", "function", {**_function(), "domain": ["-3", 3]}),
+        _scene(
+            "ast-bool",
+            "function",
+            {
+                **_function(),
+                "expression_text": "x*1",
+                "expression_ast": {
+                    "type": "binary",
+                    "op": "*",
+                    "left": {"type": "variable", "name": "x"},
+                    "right": {"type": "number", "value": True},
+                },
+            },
+        ),
+    ],
+)
+def test_animation_project_rejects_coercive_numeric_payloads(scene: dict) -> None:
+    with pytest.raises(ValidationError):
+        _project([scene])
+
+
 def test_model_text_is_inert_and_never_becomes_import_or_call_syntax() -> None:
     attack = "'); __import__('os').system('touch /tmp/pwned') #\nAwait f(x)"
     source = emit_manim_source(
@@ -270,6 +300,42 @@ def test_bounded_worker_invokes_fixed_cli_and_returns_real_mp4_bytes(
     assert command[2:8] == [str(executable), "--silent", "-qm", "--format", "mp4", "--disable_caching"]
     assert command[-1] == "MutaLesson"
     assert "http_proxy" not in observed["environment"]
+
+
+def test_explicit_unavailable_reason_prevents_all_manim_discovery(monkeypatch) -> None:
+    monkeypatch.setenv(
+        "MUTA_MANIM_UNAVAILABLE_REASON",
+        "Offline Manim rendering requires macOS 14 or later.",
+    )
+    monkeypatch.setenv("MUTA_MANIM_BIN", "/host/must-not-run")
+    monkeypatch.setattr(
+        animation_render.shutil,
+        "which",
+        lambda _name: pytest.fail("disabled capability must not inspect PATH"),
+    )
+
+    capability = animation_render.manim_capability()
+
+    assert capability.available is False
+    assert capability.executable is None
+    assert capability.detail == "Offline Manim rendering requires macOS 14 or later."
+
+
+def test_frozen_capability_never_discovers_host_path(monkeypatch) -> None:
+    monkeypatch.delenv("MUTA_MANIM_UNAVAILABLE_REASON", raising=False)
+    monkeypatch.delenv("MUTA_MANIM_BIN", raising=False)
+    monkeypatch.delenv("MUTA_MANIM_RUNTIME_DIR", raising=False)
+    monkeypatch.setattr(animation_render.sys, "frozen", True, raising=False)
+    monkeypatch.setattr(
+        animation_render.shutil,
+        "which",
+        lambda _name: pytest.fail("frozen capability must not inspect host PATH"),
+    )
+
+    capability = animation_render.manim_capability()
+
+    assert capability.available is False
+    assert capability.executable is None
 
 
 @pytest.mark.parametrize(

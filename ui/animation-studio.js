@@ -87,9 +87,11 @@
       if (!sameStructure(parsedExpression, data.expression_ast)
         || expressionVariables(parsedExpression).size !== 1
         || !expressionVariables(parsedExpression).has(data.variable)) return "Function expression text and typed expression must agree.";
-      if (data.mode === "derivative" && !finite(data.parameter, data.domain[0], data.domain[1])) return "Derivative probe is invalid.";
+      if (data.mode === "derivative" && (!finite(data.parameter, data.domain[0], data.domain[1]) || data.bounds != null)) return "Derivative probe is invalid.";
       if (data.mode === "integral" && (!Array.isArray(data.bounds) || data.bounds.length !== 2
-        || !data.bounds.every((value) => finite(value, data.domain[0], data.domain[1])) || data.bounds[0] === data.bounds[1])) return "Integral bounds are invalid.";
+        || !data.bounds.every((value) => finite(value, data.domain[0], data.domain[1])) || data.bounds[0] === data.bounds[1]
+        || data.parameter != null)) return "Integral bounds are invalid.";
+      if (data.mode === "curve" && (data.parameter != null || data.bounds != null)) return "Curve scenes do not accept calculus probes.";
     } else if (scene.kind === "process") {
       if (!onlyKeys(data, ["steps", "active"]) || !Array.isArray(data.steps) || data.steps.length < 2 || data.steps.length > 8
         || !data.steps.every((step) => boundedVisibleText(step, 120)) || !Number.isInteger(data.active)
@@ -336,6 +338,18 @@
     let payload = null; try { payload = await response.json(); } catch { /* handled below */ }
     if (!response.ok || typeof payload?.source !== "string" || !payload.source.trim()) throw new Error(payload?.detail || "Muta could not generate trusted Manim scene code.");
     return { source: payload.source, filename: payload.filename || `${validated.project.id}-manim.py` };
+  }
+
+  async function requestManimCapability(options = {}) {
+    const fetchImpl = options.fetchImpl || global.fetch;
+    if (typeof fetchImpl !== "function") throw new Error("The offline Manim renderer is not ready.");
+    const response = await fetchImpl("/v1/animation/render-capability", {
+      method: "GET", signal: options.signal, headers: requestHeaders(options),
+    });
+    if (!response.ok) throw new Error("Muta could not check the offline Manim renderer.");
+    const payload = await response.json();
+    if (typeof payload?.available !== "boolean" || typeof payload?.detail !== "string" || !payload.detail.trim()) throw new Error("Muta received an invalid Manim capability response.");
+    return { available: payload.available, detail: payload.detail, renderer: "manim" };
   }
 
   async function requestManimSourceRevision(project, revision, currentRevision, options = {}) {
@@ -650,7 +664,7 @@
       this.visibility = () => { if (document.visibilityState !== "visible") this.pause(); }; document.addEventListener("visibilitychange", this.visibility);
     }
     resize() { const width = Math.max(280, Math.floor(this.root.getBoundingClientRect().width - 2)); const height = Math.max(300, Math.min(540, Math.round(width * .58))); this.canvas.parentElement.style.setProperty("--animation-height", `${height}px`); this.canvas.style.height = `${height}px`; this.render(); }
-    renderTimeline() { this.timeline.replaceChildren(); this.project.scenes.forEach((scene, index) => { const node = button(`${index + 1}. ${scene.title}`, "animation-timeline-step"); node.dataset.active = String(index === this.index); node.setAttribute("role", "listitem"); node.setAttribute("aria-current", index === this.index ? "step" : "false"); node.addEventListener("click", () => this.goTo(index)); this.timeline.append(node); }); }
+    renderTimeline() { this.timeline.replaceChildren(); this.project.scenes.forEach((scene, index) => { const item = document.createElement("div"); item.className = "animation-timeline-item"; item.setAttribute("role", "listitem"); const node = button(`${index + 1}. ${scene.title}`, "animation-timeline-step"); node.dataset.active = String(index === this.index); node.setAttribute("aria-current", index === this.index ? "step" : "false"); node.addEventListener("click", () => this.goTo(index)); item.append(node); this.timeline.append(item); }); }
     render() { const scene = this.project.scenes[this.index]; const progress = this.poster ? 1 : (scene.duration_ms ? this.elapsed / scene.duration_ms : 1); drawFrame(this.canvas, this.project, this.index, progress); this.caption.textContent = scene.narration; this.previous.disabled = this.index === 0; this.next.disabled = this.index === this.project.scenes.length - 1; this.updateSeek(); }
     updateSeek() { const prior = this.project.scenes.slice(0, this.index).reduce((sum, scene) => sum + scene.duration_ms, 0); this.seek.value = String(Math.min(Number(this.seek.max), prior + this.elapsed)); }
     toggle() { if (this.playing) this.pause(); else this.start(); }
@@ -664,7 +678,12 @@
     destroy() { if (this.destroyed) return; this.destroyed = true; this.pause(); this.resizeObserver?.disconnect(); this.intersectionObserver?.disconnect(); document.removeEventListener("visibilitychange", this.visibility); this.play?.removeEventListener("click", this.onPlay); this.restart?.removeEventListener("click", this.onRestart); this.previous?.removeEventListener("click", this.onPrevious); this.next?.removeEventListener("click", this.onNext); this.seek?.removeEventListener("input", this.onSeek); this.speedSelect?.removeEventListener("change", this.onSpeed); this.canvas?.removeEventListener("keydown", this.onKey); this.exportStream?.getTracks?.().forEach((track) => track.stop()); mounted.delete(this); }
   }
 
-  async function exportVideo(project, onProgress = () => {}, { signal } = {}) {
+  function deliverBrowserVideo(blob, project, capability, { isCurrent } = {}) {
+    if (typeof isCurrent === "function" && !isCurrent()) return { bytes: blob.size, mime: capability.mime, discarded: true };
+    downloadBlob(blob, `${project.id}.${capability.extension}`); return { bytes: blob.size, mime: capability.mime };
+  }
+
+  async function exportVideo(project, onProgress = () => {}, { signal, isCurrent } = {}) {
     const capability = videoCapability(); if (!capability.supported) throw new Error(capability.reason);
     const result = validateProject(project); if (!result.ok) throw new Error(result.error);
     const canvas = document.createElement("canvas"); canvas.style.cssText = "position:fixed;left:-9999px;top:-9999px;width:960px;height:540px"; document.body.append(canvas);
@@ -676,14 +695,15 @@
       const done = new Promise((resolve, reject) => { recorder.addEventListener("stop", () => resolve(new Blob(chunks, { type: capability.mime })), { once: true }); recorder.addEventListener("error", () => reject(recorder.error || new Error("Video encoding failed.")), { once: true }); });
       recorder.start(500); const total = sumDuration(result.project.scenes); const start = performance.now();
       await new Promise((resolve, reject) => {
-        const abort = () => { cancelAnimationFrame(frameId); reject(new Error("Video export was cancelled.")); };
+        const abort = () => { cancelAnimationFrame(frameId); const error = new Error("Video export was cancelled."); error.name = "AbortError"; reject(error); };
         const frame = (time) => { if (signal?.aborted) { abort(); return; } const elapsed = Math.min(total, time - start); let remaining = elapsed; let index = 0; while (index < result.project.scenes.length - 1 && remaining > result.project.scenes[index].duration_ms) { remaining -= result.project.scenes[index].duration_ms; index += 1; } const progress = remaining / result.project.scenes[index].duration_ms; const rendered = drawFrame(canvas, result.project, index, progress, { width: 960, height: 540 }); drawExportCaption(canvas, rendered.scene, rendered.width, rendered.height); onProgress(elapsed / total); if (elapsed >= total) { signal?.removeEventListener?.("abort", abort); resolve(); } else frameId = requestAnimationFrame(frame); };
         signal?.addEventListener?.("abort", abort, { once: true }); frameId = requestAnimationFrame(frame);
       });
       recorder.stop(); const blob = await done; if (!blob.size) throw new Error("The browser returned an empty video.");
-      downloadBlob(blob, `${result.project.id}.${capability.extension}`); return { bytes: blob.size, mime: capability.mime };
+      return deliverBrowserVideo(blob, result.project, capability, { isCurrent });
     } catch (error) {
       if (recorder?.state && recorder.state !== "inactive") { try { recorder.stop(); } catch { /* recorder already failed */ } }
+      if (error.name === "AbortError") throw error;
       throw new Error(`Video export could not complete: ${error.message}`);
     } finally { cancelAnimationFrame(frameId); stream?.getTracks?.().forEach((track) => track.stop()); canvas.remove(); }
   }
@@ -773,6 +793,8 @@
     renderProjectActions() {
       this.clearRenderedManimVideo();
       this.manimAbort?.abort(); this.manimAbort = null;
+      this.exportAbort?.abort(); this.exportAbort = null;
+      this.manimCapabilityAbort?.abort(); this.manimCapabilityAbort = null;
       this.projectActions.replaceChildren();
       const save = button(text("animationSave"), "animation-primary"); save.addEventListener("click", () => { saveProject(this.project); this.error.textContent = text("animationSaved"); });
       const projectExport = button(text("animationExport")); projectExport.addEventListener("click", () => exportProject(this.project));
@@ -787,8 +809,11 @@
       const renderedVideo = document.createElement("video"); renderedVideo.className = "animation-rendered-video"; renderedVideo.controls = true; renderedVideo.playsInline = true; renderedVideo.preload = "metadata"; renderedVideo.hidden = true; renderedVideo.setAttribute("aria-label", text("animationManimVideoReady")); this.renderedManimVideo = renderedVideo; this.projectActions.append(renderedVideo);
       const downloadRendered = button(text("animationDownloadRenderedManimVideo")); downloadRendered.hidden = true; downloadRendered.addEventListener("click", () => { if (this.manimVideoBlob && this.manimVideoRevision === this.projectRevision) downloadBlob(this.manimVideoBlob, `${this.project.id}-manim.mp4`); }); this.projectActions.append(downloadRendered);
       const manimVideo = button(text("animationRenderManimVideo"), "animation-primary"); manimVideo.addEventListener("click", async () => { manimVideo.disabled = true; this.manimAbort?.abort(); const renderAbort = new AbortController(); const renderRevision = this.projectRevision; const renderProject = clone(this.project); const isCurrent = () => !this.destroyed && this.projectRevision === renderRevision && this.manimAbort === renderAbort; this.manimAbort = renderAbort; this.error.textContent = text("animationRenderingManimVideo"); try { const result = await exportManimVideo(renderProject, { signal: renderAbort.signal, isCurrent, download: false }); if (isCurrent() && !result.discarded) { this.clearRenderedManimVideo({ keepElement: true }); this.manimVideoBlob = result.blob; this.manimVideoRevision = renderRevision; this.manimVideoUrl = URL.createObjectURL(result.blob); renderedVideo.src = this.manimVideoUrl; renderedVideo.hidden = false; renderedVideo.load(); downloadRendered.hidden = false; this.error.textContent = text("animationManimVideoReady"); } } catch (error) { if (error.name !== "AbortError" && isCurrent()) this.error.textContent = error.message; } finally { manimVideo.disabled = false; if (this.manimAbort === renderAbort) this.manimAbort = null; } }); this.projectActions.append(manimVideo);
+      const manimCapabilityNote = document.createElement("p"); manimCapabilityNote.className = "animation-export-note"; manimCapabilityNote.textContent = text("animationRenderCapabilityChecking"); this.projectActions.append(manimCapabilityNote); manimVideo.disabled = true;
+      const capabilityRevision = this.projectRevision; const capabilityAbort = new AbortController(); this.manimCapabilityAbort = capabilityAbort;
+      requestManimCapability({ signal: capabilityAbort.signal }).then((result) => { if (this.destroyed || this.projectRevision !== capabilityRevision || this.manimCapabilityAbort !== capabilityAbort) return; manimVideo.disabled = !result.available; manimCapabilityNote.hidden = result.available; manimCapabilityNote.textContent = result.detail; if (!result.available) manimVideo.title = result.detail; }).catch((error) => { if (error.name !== "AbortError" && !this.destroyed && this.projectRevision === capabilityRevision && this.manimCapabilityAbort === capabilityAbort) { manimVideo.disabled = true; manimCapabilityNote.hidden = false; manimCapabilityNote.textContent = error.message; manimVideo.title = error.message; } }).finally(() => { if (this.manimCapabilityAbort === capabilityAbort) this.manimCapabilityAbort = null; });
       const capability = videoCapability();
-      if (capability.supported) { const video = button(text("animationDownloadVideo")); video.addEventListener("click", async () => { video.disabled = true; this.exportAbort?.abort(); this.exportAbort = new AbortController(); this.error.textContent = text("animationEncodingVideo"); try { await exportVideo(this.project, (progress) => { this.error.textContent = text("animationEncodingProgress", { percent: Math.round(progress * 100) }); }, { signal: this.exportAbort.signal }); this.error.textContent = text("animationVideoReady"); } catch (error) { this.error.textContent = error.message; } finally { video.disabled = false; this.exportAbort = null; } }); this.projectActions.append(video); }
+      if (capability.supported) { const video = button(text("animationDownloadVideo")); video.addEventListener("click", async () => { video.disabled = true; this.exportAbort?.abort(); const exportAbort = new AbortController(); const exportRevision = this.projectRevision; const exportProjectSnapshot = clone(this.project); const isCurrent = () => !this.destroyed && this.projectRevision === exportRevision && this.exportAbort === exportAbort; this.exportAbort = exportAbort; this.error.textContent = text("animationEncodingVideo"); try { const result = await exportVideo(exportProjectSnapshot, (progress) => { if (isCurrent()) this.error.textContent = text("animationEncodingProgress", { percent: Math.round(progress * 100) }); }, { signal: exportAbort.signal, isCurrent }); if (isCurrent() && !result.discarded) this.error.textContent = text("animationVideoReady"); } catch (error) { if (error.name !== "AbortError" && isCurrent()) this.error.textContent = error.message; } finally { video.disabled = false; if (this.exportAbort === exportAbort) this.exportAbort = null; } }); this.projectActions.append(video); }
       else { const note = document.createElement("p"); note.className = "animation-export-note"; note.textContent = text("animationVideoUnavailable"); this.projectActions.append(note); }
     }
     renderEditor() {
@@ -810,7 +835,7 @@
       const token = ++this.operationToken; this.clearTimers(); this.pendingProject = null; this.plannerAbort?.abort(); this.plannerAbort = null; this.generate.disabled = false; this.cancelGenerate.hidden = true; this.progress.hidden = true;
       try { const parsed = JSON.parse(await file.text()); if (this.destroyed || token !== this.operationToken) return; const result = validateProject(parsed); if (!result.ok) throw new Error(result.error); this.topic.value = result.project.topic; this.level.value = result.project.level; this.concept.value = result.project.title; this.requirements.value = result.project.summary; this.updatePrompt(); this.showProject(result.project, { persist: true }); this.error.textContent = text("animationImported"); } catch (error) { if (!this.destroyed && token === this.operationToken) this.error.textContent = `${text("animationImportFailed")} ${error.message}`; }
     }
-    destroy() { if (this.destroyed) return; this.destroyed = true; this.operationToken += 1; this.exportAbort?.abort(); this.plannerAbort?.abort(); this.sourceAbort?.abort(); this.manimAbort?.abort(); this.clearRenderedManimVideo(); this.clearTimers(); this.player?.destroy(); mounted.delete(this); }
+    destroy() { if (this.destroyed) return; this.destroyed = true; this.operationToken += 1; this.exportAbort?.abort(); this.plannerAbort?.abort(); this.sourceAbort?.abort(); this.manimAbort?.abort(); this.manimCapabilityAbort?.abort(); this.clearRenderedManimVideo(); this.clearTimers(); this.player?.destroy(); mounted.delete(this); }
   }
 
   function mountStudio(root, options = {}) { return new Studio(root, options); }
@@ -824,7 +849,7 @@
   global.MutaAnimator = Object.freeze({
     VERSION, KIND, validateProject, planProject, requestAnimationPlan, parseFraction, parseArray, parsePolynomial, parseFunction, formatMathValue,
     parseVector, parseProcess, polynomialValue, expressionValue, numericalDerivative, numericalIntegral, projectDescription, loadProjects, saveProject,
-    removeProject, exportProject, exportTranscript, exportVideo, videoCapability, requestManimSource, requestManimSourceRevision, downloadManimSource, exportManimVideo, drawFrame, drawExportCaption,
+    removeProject, exportProject, exportTranscript, deliverBrowserVideo, exportVideo, videoCapability, requestManimCapability, requestManimSource, requestManimSourceRevision, downloadManimSource, exportManimVideo, drawFrame, drawExportCaption,
     mountPlayer, mountStudio, cleanup,
   });
   if (typeof module !== "undefined" && module.exports) module.exports = global.MutaAnimator;

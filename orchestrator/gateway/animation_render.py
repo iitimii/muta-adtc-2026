@@ -521,10 +521,15 @@ def source_filename(project: AnimationPlanProject) -> str:
 
 
 def manim_capability() -> ManimCapability:
+    unavailable_reason = os.environ.get("MUTA_MANIM_UNAVAILABLE_REASON", "").strip()
+    if unavailable_reason:
+        return ManimCapability(False, None, unavailable_reason)
     configured = os.environ.get("MUTA_MANIM_BIN", "").strip()
     runtime = os.environ.get("MUTA_MANIM_RUNTIME_DIR", "").strip()
     bundled = str(Path(runtime) / "bin" / "manim") if runtime else ""
-    executable = configured or bundled or shutil.which("manim")
+    executable = configured or bundled
+    if not executable and not getattr(sys, "frozen", False):
+        executable = shutil.which("manim") or ""
     if executable and Path(executable).is_file() and os.access(executable, os.X_OK):
         return ManimCapability(True, str(Path(executable).resolve()), "Offline Manim is ready.")
     return ManimCapability(

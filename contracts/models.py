@@ -15,16 +15,21 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    StrictFloat,
+    StrictInt,
     StringConstraints,
     field_validator,
     model_validator,
 )
+from pydantic_core import PydanticCustomError
 
 ResourceId = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{32}$")]
 CourseId = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{32}$")]
 ClassPostId = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{32}$")]
 ClassReplyId = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{32}$")]
 AnimationStepText = Annotated[str, StringConstraints(min_length=1, max_length=120)]
+AnimationInteger = StrictInt
+AnimationNumber = StrictFloat
 
 
 class TutoringMode(str, Enum):
@@ -316,7 +321,7 @@ class AnimationProcessData(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     steps: list[AnimationStepText] = Field(min_length=2, max_length=8)
-    active: int = Field(ge=0, le=7)
+    active: AnimationInteger = Field(ge=0, le=7)
 
     @field_validator("steps")
     @classmethod
@@ -344,8 +349,8 @@ class AnimationProcessData(BaseModel):
 class AnimationFractionData(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    numerator: int = Field(ge=0, le=48)
-    denominator: int = Field(ge=2, le=12)
+    numerator: AnimationInteger = Field(ge=0, le=48)
+    denominator: AnimationInteger = Field(ge=2, le=12)
     phase: Literal["partition", "shade", "recap"]
 
     @field_validator("denominator")
@@ -360,8 +365,8 @@ class AnimationFractionData(BaseModel):
 class AnimationArrayData(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    rows: int = Field(ge=1, le=12)
-    columns: int = Field(ge=1, le=12)
+    rows: AnimationInteger = Field(ge=1, le=12)
+    columns: AnimationInteger = Field(ge=1, le=12)
     phase: Literal["build", "addition", "equation"]
 
 
@@ -370,12 +375,32 @@ class AnimationFunctionData(BaseModel):
 
     expression_ast: dict[str, Any]
     expression_text: str = Field(min_length=1, max_length=180)
-    domain: tuple[float, float]
+    domain: tuple[AnimationNumber, AnimationNumber]
     variable: Literal["x", "t"]
     output: Literal["y", "z", "s", "v"]
     mode: Literal["curve", "derivative", "integral"]
-    parameter: float | None = Field(default=None, ge=-1000, le=1000)
-    bounds: tuple[float, float] | None = None
+    parameter: AnimationNumber | None = Field(default=None, ge=-1000, le=1000)
+    bounds: tuple[AnimationNumber, AnimationNumber] | None = None
+
+    @field_validator("expression_ast")
+    @classmethod
+    def expression_numbers_are_strict_json_numbers(cls, value: dict[str, Any]) -> dict[str, Any]:
+        stack: list[Any] = [value]
+        visited = 0
+        while stack:
+            current = stack.pop()
+            visited += 1
+            if visited > 256:
+                raise ValueError("function expression exceeds the structural budget")
+            if isinstance(current, dict):
+                if current.get("type") == "number":
+                    number = current.get("value")
+                    if isinstance(number, bool) or not isinstance(number, (int, float)):
+                        raise ValueError("function expression numbers must be JSON numbers")
+                stack.extend(current.values())
+            elif isinstance(current, list):
+                stack.extend(current)
+        return value
 
     @field_validator("domain")
     @classmethod
@@ -406,8 +431,8 @@ class AnimationFunctionData(BaseModel):
 class AnimationVectorData(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    x: float = Field(ge=-1000, le=1000)
-    y: float = Field(ge=-1000, le=1000)
+    x: AnimationNumber = Field(ge=-1000, le=1000)
+    y: AnimationNumber = Field(ge=-1000, le=1000)
     label: str = Field(min_length=1, max_length=80)
 
 
@@ -417,7 +442,7 @@ class _AnimationSceneBase(BaseModel):
     id: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{0,79}$")
     title: str = Field(min_length=1, max_length=140)
     narration: str = Field(min_length=1, max_length=700)
-    duration_ms: int = Field(ge=900, le=10000)
+    duration_ms: AnimationInteger = Field(ge=900, le=10000)
 
 
 class AnimationProcessScene(_AnimationSceneBase):
@@ -468,6 +493,15 @@ class AnimationPlanProject(BaseModel):
     created_at: str = Field(min_length=1, max_length=40)
     updated_at: str = Field(min_length=1, max_length=40)
     scenes: list[AnimationPlanScene] = Field(min_length=1, max_length=10)
+
+    @field_validator("version", mode="before")
+    @classmethod
+    def version_is_strict_integer_one(cls, value: Any) -> Any:
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise PydanticCustomError(
+                "animation_version_type", "animation version must be integer 1"
+            )
+        return value
 
     @model_validator(mode="after")
     def scene_budget_is_bounded(self) -> AnimationPlanProject:

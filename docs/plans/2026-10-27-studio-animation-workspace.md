@@ -111,12 +111,19 @@ Runtime/package contract:
 - Process labels are bounded to 120 characters, reject Unicode control/format characters, and
   require a visible base character at schema validation, matching the browser and planner budgets
   before any text reaches source emission or Pango.
+- Every numeric project field uses strict JSON-number validation. Booleans and numeric strings are
+  rejected rather than coerced, including number leaves inside the typed expression AST; browser
+  and server enforce the same mutually exclusive curve/derivative/integral probe fields.
 - Production video uses Manim's fixed medium-quality profile (1280 × 720 at 30 fps); the browser
   canvas remains the immediate low-cost preview.
 - Formulae use Manim 0.22's offline `MathTypst`; numeric tick labels use inert `Text`, so the runtime
   does not require a LaTeX installation or network font/resource lookup.
 - One render is admitted at a time. Further requests fail immediately rather than forming an
   unbounded queue; disconnect/cancellation and timeout terminate the complete render process group.
+- `MUTA_MANIM_UNAVAILABLE_REASON` is the packaging-to-feature capability contract: when set, it
+  prevents executable discovery and supplies the learner-facing reason. Frozen builds never probe
+  host `PATH`; the Studio checks the capability endpoint, disables only trusted MP4 rendering, and
+  keeps canvas preview and trusted source available.
 
 ## Acceptance criteria
 
@@ -136,6 +143,7 @@ Runtime/package contract:
 
 - Play/pause, restart, previous/next scene, seek, and speed controls work with pointer, touch, and keyboard.
 - Every interactive control has an accessible name, visible focus, and a minimum 44 × 44 CSS-pixel target.
+- Timeline list items wrap native scene-selector buttons rather than replacing their button roles.
 - The canvas has an accessible description, captions update with the current scene, and a full transcript is available.
 - Editing or reordering a saved project refreshes both JSON and Manim-source disclosures. Source
   responses carry a local revision guard, so an older same-ID request cannot replace the current
@@ -143,6 +151,8 @@ Runtime/package contract:
 - The same project revision guard aborts in-flight Manim requests and checks again after the video
   blob arrives, so an old same-ID render cannot populate playback, download, or clear the controller
   for a newer render.
+- Browser-native fallback encoding uses the same revision/controller identity rule: edits abort it,
+  stale blobs are discarded before download, and an older completion cannot clear a newer export.
 - A successful trusted render appears in-app with native play/pause, seek, volume, and platform
   fullscreen controls and never autoplays; the separate download action is unambiguous.
 - Reduced-motion users do not receive automatic motion; hidden/offscreen previews stop scheduling frames.
