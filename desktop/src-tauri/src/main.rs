@@ -5,11 +5,14 @@ use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::path::{Component, Path, PathBuf};
 use std::process::{Child, Command, Stdio};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU16, Ordering};
 use std::sync::Mutex;
 use std::thread;
 use std::time::{Duration, Instant};
-use tauri::{Emitter, Manager, RunEvent};
+use tauri::{
+    webview::{DownloadEvent, WebviewWindowBuilder},
+    Emitter, Manager, RunEvent,
+};
 
 #[cfg(unix)]
 use std::os::unix::process::CommandExt;
@@ -23,6 +26,9 @@ const READY_POLL_INTERVAL: Duration = Duration::from_millis(350);
 // new origin and forgot all of it, so the gateway prefers one stable loopback port and falls
 // back to a random free port only when that one is taken. MUTA_DESKTOP_GATEWAY_PORT overrides.
 const PREFERRED_GATEWAY_PORT: u16 = 46871;
+const GENERATED_DOWNLOAD_EXTENSIONS: [&str; 8] = [
+    "json", "mp4", "muta", "mutaanim", "pem", "py", "txt", "webm",
+];
 
 #[derive(Debug, Deserialize)]
 struct ProductManifest {
@@ -127,6 +133,13 @@ impl Default for StartupSnapshot {
 struct StartupStatus(Mutex<StartupSnapshot>);
 struct LaunchState(AtomicBool);
 struct ShutdownState(AtomicBool);
+struct TrustedGatewayPort(AtomicU16);
+
+#[derive(Clone, Debug)]
+struct DownloadRoots {
+    raw: PathBuf,
+    canonical: PathBuf,
+}
 
 fn update_startup(
     app: &tauri::AppHandle,
@@ -206,6 +219,206 @@ fn available_port() -> Result<u16, String> {
         .local_addr()
         .map(|address| address.port())
         .map_err(|error| error.to_string())
+}
+
+fn url_has_no_credentials(url: &tauri::Url) -> bool {
+    url.username().is_empty() && url.password().is_none()
+}
+
+fn bundled_webview_origin(url: &tauri::Url) -> bool {
+    url_has_no_credentials(url)
+        && match url.scheme() {
+            "tauri" => url.host_str() == Some("localhost") && url.port().is_none(),
+            "http" => url.host_str() == Some("tauri.localhost") && url.port().is_none(),
+            _ => false,
+        }
+}
+
+fn gateway_webview_origin(url: &tauri::Url, trusted_gateway_port: u16) -> bool {
+    trusted_gateway_port != 0
+        && url_has_no_credentials(url)
+        && url.scheme() == "http"
+        && url.host_str() == Some("127.0.0.1")
+        && url.port_or_known_default() == Some(trusted_gateway_port)
+}
+
+fn trusted_webview_origin(url: &tauri::Url, trusted_gateway_port: u16) -> bool {
+    bundled_webview_origin(url) || gateway_webview_origin(url, trusted_gateway_port)
+}
+
+fn download_source_url(url: &tauri::Url) -> Option<tauri::Url> {
+    if url.scheme() != "blob" {
+        return Some(url.clone());
+    }
+    tauri::Url::parse(url.as_str().strip_prefix("blob:")?).ok()
+}
+
+fn same_origin(left: &tauri::Url, right: &tauri::Url) -> bool {
+    left.scheme() == right.scheme()
+        && left.host_str() == right.host_str()
+        && left.port_or_known_default() == right.port_or_known_default()
+}
+
+fn allowed_download_url(
+    url: &tauri::Url,
+    current_url: &tauri::Url,
+    trusted_gateway_port: u16,
+) -> bool {
+    let Some(source_url) = download_source_url(url) else {
+        return false;
+    };
+    trusted_webview_origin(current_url, trusted_gateway_port)
+        && trusted_webview_origin(&source_url, trusted_gateway_port)
+        && same_origin(current_url, &source_url)
+}
+
+fn portable_download_file_name(file_name: &str) -> bool {
+    if file_name.is_empty()
+        || file_name.len() > 240
+        || file_name == "."
+        || file_name == ".."
+        || file_name.starts_with('.')
+        || file_name.ends_with(['.', ' '])
+        || file_name
+            .chars()
+            .any(|character| character.is_control() || r#"<>:"/\|?*"#.contains(character))
+    {
+        return false;
+    }
+    let reserved_stem = file_name
+        .split('.')
+        .next()
+        .unwrap_or_default()
+        .to_ascii_uppercase();
+    if matches!(
+        reserved_stem.as_str(),
+        "CON"
+            | "PRN"
+            | "AUX"
+            | "NUL"
+            | "COM1"
+            | "COM2"
+            | "COM3"
+            | "COM4"
+            | "COM5"
+            | "COM6"
+            | "COM7"
+            | "COM8"
+            | "COM9"
+            | "LPT1"
+            | "LPT2"
+            | "LPT3"
+            | "LPT4"
+            | "LPT5"
+            | "LPT6"
+            | "LPT7"
+            | "LPT8"
+            | "LPT9"
+    ) {
+        return false;
+    }
+    Path::new(file_name)
+        .extension()
+        .and_then(|value| value.to_str())
+        .map(|extension| {
+            GENERATED_DOWNLOAD_EXTENSIONS
+                .iter()
+                .any(|allowed| extension.eq_ignore_ascii_case(allowed))
+        })
+        .unwrap_or(false)
+}
+
+#[cfg(any(windows, test))]
+fn windows_path_key_text(value: &str) -> Option<String> {
+    let replaced = value.replace('/', "\\");
+    let simplified = if let Some(rest) = replaced.strip_prefix(r"\\?\UNC\") {
+        format!(r"\\{rest}")
+    } else if let Some(rest) = replaced.strip_prefix(r"\\?\") {
+        rest.to_string()
+    } else if replaced.starts_with(r"\\.\") {
+        return None;
+    } else {
+        replaced
+    };
+    let trimmed = simplified.trim_end_matches('\\');
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_lowercase())
+    }
+}
+
+fn platform_paths_equal(left: &Path, right: &Path) -> bool {
+    #[cfg(windows)]
+    {
+        let Some(left) = windows_path_key_text(&left.to_string_lossy()) else {
+            return false;
+        };
+        let Some(right) = windows_path_key_text(&right.to_string_lossy()) else {
+            return false;
+        };
+        left == right
+    }
+    #[cfg(not(windows))]
+    {
+        left == right
+    }
+}
+
+fn prepare_download_roots(raw: PathBuf) -> Option<DownloadRoots> {
+    fs::create_dir_all(&raw).ok()?;
+    let raw_metadata = fs::symlink_metadata(&raw).ok()?;
+    if !raw_metadata.is_dir() || raw_metadata.file_type().is_symlink() {
+        return None;
+    }
+    let canonical = fs::canonicalize(&raw).ok()?;
+    let canonical_metadata = fs::symlink_metadata(&canonical).ok()?;
+    if !canonical_metadata.is_dir()
+        || canonical_metadata.file_type().is_symlink()
+        || !platform_paths_equal(&raw, &canonical)
+    {
+        return None;
+    }
+    Some(DownloadRoots { raw, canonical })
+}
+
+fn safe_download_destination(downloads: &DownloadRoots, destination: &Path) -> Option<PathBuf> {
+    if !downloads.raw.is_absolute()
+        || !downloads.canonical.is_absolute()
+        || !destination.is_absolute()
+        || destination
+            .components()
+            .any(|component| matches!(component, Component::CurDir | Component::ParentDir))
+        || !platform_paths_equal(destination.parent()?, &downloads.raw)
+    {
+        return None;
+    }
+    let file_name = destination.file_name()?.to_str()?;
+    if !portable_download_file_name(file_name) {
+        return None;
+    }
+    let constrained = downloads.canonical.join(file_name);
+    match fs::symlink_metadata(&constrained) {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Some(constrained),
+        _ => None,
+    }
+}
+
+fn allowed_download(
+    url: &tauri::Url,
+    current_url: &tauri::Url,
+    trusted_gateway_port: u16,
+    downloads: &DownloadRoots,
+    destination: &mut PathBuf,
+) -> bool {
+    let Some(safe_destination) = safe_download_destination(downloads, destination) else {
+        return false;
+    };
+    if !allowed_download_url(url, current_url, trusted_gateway_port) {
+        return false;
+    }
+    *destination = safe_destination;
+    true
 }
 
 fn read_json<T: for<'de> Deserialize<'de>>(path: &Path) -> Result<T, String> {
@@ -790,6 +1003,9 @@ fn launch(app: tauri::AppHandle) -> Result<(), String> {
     if app.state::<ShutdownState>().0.load(Ordering::SeqCst) {
         return Err("Muta is closing".to_string());
     }
+    app.state::<TrustedGatewayPort>()
+        .0
+        .store(0, Ordering::SeqCst);
     update_startup(&app, 14, "startup.verifying", false, false, false)?;
     let resource_dir = app
         .path()
@@ -905,6 +1121,9 @@ fn launch(app: tauri::AppHandle) -> Result<(), String> {
                     .ok_or("main window is missing")?
                     .navigate(url)
                     .map_err(|error| error.to_string())?;
+                app.state::<TrustedGatewayPort>()
+                    .0
+                    .store(gateway_port, Ordering::SeqCst);
                 let process_id = backend.child.id();
                 if let Some(mut stale) = process.replace(backend) {
                     stale.shutdown();
@@ -975,6 +1194,9 @@ fn monitor_backend(app: tauri::AppHandle, process_id: u32) {
             continue;
         };
 
+        app.state::<TrustedGatewayPort>()
+            .0
+            .store(0, Ordering::SeqCst);
         let message = format!("The local backend stopped unexpectedly ({exit_status}).");
         let _ = update_startup(&app, 64, "startup.connecting", false, true, true);
         let _ = app.emit("backend-error", message);
@@ -1077,6 +1299,9 @@ fn retry_startup(app: tauri::AppHandle) -> bool {
 
 fn shutdown(app: &tauri::AppHandle) {
     app.state::<ShutdownState>().0.store(true, Ordering::SeqCst);
+    app.state::<TrustedGatewayPort>()
+        .0
+        .store(0, Ordering::SeqCst);
     let state = app.state::<ProcessState>();
     if let Ok(mut guard) = state.0.lock() {
         if let Some(mut process) = guard.take() {
@@ -1104,8 +1329,47 @@ fn main() {
         .manage(StartupStatus(Mutex::new(StartupSnapshot::default())))
         .manage(LaunchState(AtomicBool::new(false)))
         .manage(ShutdownState(AtomicBool::new(false)))
+        .manage(TrustedGatewayPort(AtomicU16::new(0)))
         .invoke_handler(tauri::generate_handler![startup_snapshot, retry_startup])
         .setup(|app| {
+            let downloads = app
+                .path()
+                .download_dir()
+                .ok()
+                .and_then(prepare_download_roots);
+            let download_app = app.handle().clone();
+            let main_config = app
+                .config()
+                .app
+                .windows
+                .iter()
+                .find(|config| config.label == "main")
+                .ok_or_else(|| std::io::Error::other("main window configuration is missing"))?;
+            WebviewWindowBuilder::from_config(app.handle(), main_config)?
+                .on_download(move |webview, event| match event {
+                    DownloadEvent::Requested { url, destination } => {
+                        let Some(downloads) = downloads.as_ref() else {
+                            return false;
+                        };
+                        let Ok(current_url) = webview.url() else {
+                            return false;
+                        };
+                        let trusted_gateway_port = download_app
+                            .state::<TrustedGatewayPort>()
+                            .0
+                            .load(Ordering::SeqCst);
+                        allowed_download(
+                            &url,
+                            &current_url,
+                            trusted_gateway_port,
+                            downloads,
+                            destination,
+                        )
+                    }
+                    DownloadEvent::Finished { .. } => true,
+                    _ => false,
+                })
+                .build()?;
             start_launch(app.handle().clone());
             Ok(())
         })
@@ -1123,6 +1387,19 @@ fn main() {
 mod tests {
     use super::*;
 
+    fn fresh_download_roots(label: &str) -> DownloadRoots {
+        let unique = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let temp_root = fs::canonicalize(std::env::temp_dir()).unwrap();
+        let root = temp_root.join(format!(
+            "muta-download-{label}-{}-{unique}",
+            std::process::id()
+        ));
+        prepare_download_roots(root).unwrap()
+    }
+
     #[test]
     fn gateway_prefers_its_stable_port_when_free() {
         let free = available_port().unwrap();
@@ -1136,6 +1413,169 @@ mod tests {
         let chosen = gateway_port_from(taken).unwrap();
         assert_ne!(chosen, taken);
         assert!(TcpListener::bind(("127.0.0.1", chosen)).is_ok());
+    }
+
+    #[test]
+    fn generated_downloads_require_the_current_trusted_origin() {
+        let current = tauri::Url::parse("http://127.0.0.1:46871/chat/").unwrap();
+        for allowed in [
+            "blob:http://127.0.0.1:46871/lesson",
+            "http://127.0.0.1:46871/v1/animation/render",
+            "http://127.0.0.1:46871/v1/share/host/ca.pem",
+        ] {
+            assert!(allowed_download_url(
+                &tauri::Url::parse(allowed).unwrap(),
+                &current,
+                46871,
+            ));
+        }
+        assert!(!allowed_download_url(
+            &tauri::Url::parse("blob:http://127.0.0.1:46872/lesson").unwrap(),
+            &current,
+            46871,
+        ));
+        assert!(!allowed_download_url(
+            &tauri::Url::parse("blob:http://student@127.0.0.1:46871/lesson").unwrap(),
+            &current,
+            46871,
+        ));
+        assert!(!allowed_download_url(
+            &tauri::Url::parse("blob:https://example.com/lesson").unwrap(),
+            &current,
+            46871,
+        ));
+        assert!(!allowed_download_url(
+            &tauri::Url::parse("blob:http://127.0.0.1:46871/lesson").unwrap(),
+            &current,
+            0,
+        ));
+        assert!(!allowed_download_url(
+            &tauri::Url::parse("blob:http://127.0.0.1:46871/lesson").unwrap(),
+            &tauri::Url::parse("http://127.0.0.1:46872/chat/").unwrap(),
+            46871,
+        ));
+        assert!(!allowed_download_url(
+            &tauri::Url::parse("blob:http://127.0.0.1:46871/lesson").unwrap(),
+            &tauri::Url::parse("http://student@127.0.0.1:46871/chat/").unwrap(),
+            46871,
+        ));
+
+        let bundled_macos = tauri::Url::parse("tauri://localhost/").unwrap();
+        assert!(allowed_download_url(
+            &tauri::Url::parse("blob:tauri://localhost/lesson").unwrap(),
+            &bundled_macos,
+            0,
+        ));
+        let bundled_windows = tauri::Url::parse("http://tauri.localhost/").unwrap();
+        assert!(allowed_download_url(
+            &tauri::Url::parse("blob:http://tauri.localhost/lesson").unwrap(),
+            &bundled_windows,
+            0,
+        ));
+    }
+
+    #[test]
+    fn windows_verbatim_download_root_matches_the_normal_webview2_path() {
+        let normal = windows_path_key_text(r"C:\Users\Student\Downloads").unwrap();
+        let verbatim = windows_path_key_text(r"\\?\C:\Users\Student\Downloads\").unwrap();
+        assert_eq!(normal, verbatim);
+        assert_eq!(
+            windows_path_key_text(r"\\server\share\Downloads").unwrap(),
+            windows_path_key_text(r"\\?\UNC\server\share\Downloads").unwrap()
+        );
+        assert!(windows_path_key_text(r"\\.\PhysicalDrive0").is_none());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn windows_platform_path_comparison_accepts_only_the_verbatim_prefix_difference() {
+        assert!(platform_paths_equal(
+            Path::new(r"C:\Users\Student\Downloads"),
+            Path::new(r"\\?\C:\Users\Student\Downloads")
+        ));
+        assert!(!platform_paths_equal(
+            Path::new(r"C:\Users\Student\Downloads"),
+            Path::new(r"C:\Users\Student\Other")
+        ));
+    }
+
+    #[test]
+    fn generated_downloads_are_confined_to_a_new_portable_downloads_leaf() {
+        let downloads = fresh_download_roots("policy");
+        let root = downloads.canonical.clone();
+        for file_name in [
+            "Muta lesson.MP4",
+            "physical-science.muta",
+            "lesson.mutaanim",
+            "lesson.py",
+            "lesson.txt",
+            "lesson.webm",
+            "lesson.json",
+            "muta-rootCA.pem",
+        ] {
+            let destination = root.join(file_name);
+            assert_eq!(
+                safe_download_destination(&downloads, &destination),
+                Some(destination)
+            );
+        }
+
+        let nested = root.join("nested");
+        fs::create_dir_all(&nested).unwrap();
+        assert!(safe_download_destination(&downloads, &nested.join("lesson.mp4")).is_none());
+        assert!(
+            safe_download_destination(&downloads, &nested.join("..").join("lesson.mp4")).is_none()
+        );
+        assert!(
+            safe_download_destination(&downloads, &root.parent().unwrap().join("outside.mp4"))
+                .is_none()
+        );
+        assert!(safe_download_destination(&downloads, Path::new("relative.mp4")).is_none());
+        for rejected in [
+            ".lesson.mp4",
+            "lesson.html",
+            "lesson:stream.mp4",
+            "lesson\n.mp4",
+            "CON.mp4",
+            "lesson.mp4.",
+        ] {
+            assert!(safe_download_destination(&downloads, &root.join(rejected)).is_none());
+        }
+
+        let existing = root.join("existing.mp4");
+        fs::write(&existing, b"keep me").unwrap();
+        assert!(safe_download_destination(&downloads, &existing).is_none());
+
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::symlink;
+            let alias = root
+                .parent()
+                .unwrap()
+                .join(format!("muta-download-alias-{}", std::process::id()));
+            let _ = fs::remove_file(&alias);
+            symlink(&root, &alias).unwrap();
+            assert!(prepare_download_roots(alias.clone()).is_none());
+            assert!(safe_download_destination(&downloads, &alias.join("lesson.mp4")).is_none());
+            fs::remove_file(alias).unwrap();
+
+            let linked_target = root.join("linked.mp4");
+            symlink(&existing, &linked_target).unwrap();
+            assert!(safe_download_destination(&downloads, &linked_target).is_none());
+            fs::remove_file(linked_target).unwrap();
+        }
+
+        let current = tauri::Url::parse("http://127.0.0.1:46871/chat/").unwrap();
+        let mut certificate = root.join("muta-rootCA.pem");
+        assert!(allowed_download(
+            &tauri::Url::parse("http://127.0.0.1:46871/v1/share/host/ca.pem").unwrap(),
+            &current,
+            46871,
+            &downloads,
+            &mut certificate,
+        ));
+        assert_eq!(certificate, root.join("muta-rootCA.pem"));
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

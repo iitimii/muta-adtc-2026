@@ -12,6 +12,7 @@
     "windows": [
       {
         "label": "main",
+        "create": false,
         "title": "Muta",
         "width": 1180,
         "height": 800,

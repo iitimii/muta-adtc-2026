@@ -23,6 +23,24 @@ def test_tauri_paints_the_real_browser_frontend_before_starting_dependencies() -
     assert launch.index("if !readiness.ready") < launch.index(".navigate(url)")
 
 
+def test_native_generated_downloads_use_the_guarded_webview_handler() -> None:
+    config = json.loads((DESKTOP / "src-tauri" / "tauri.conf.json").read_text())
+    rust = (DESKTOP / "src-tauri" / "src" / "main.rs").read_text()
+    main_window = next(
+        window for window in config["app"]["windows"] if window["label"] == "main"
+    )
+
+    # Tauri must not auto-create this window before the download callback is attached.
+    assert main_window["create"] is False
+    setup = rust[rust.index(".setup(|app|") : rust.index(".run(", rust.index(".setup(|app|"))]
+    assert "WebviewWindowBuilder::from_config" in setup
+    assert ".on_download(" in setup
+    assert setup.index(".on_download(") < setup.index("start_launch(app.handle().clone())")
+    assert "allowed_download(" in setup and "&current_url" in setup
+    assert ".download_dir()" in setup and "prepare_download_roots" in setup
+    assert "state::<TrustedGatewayPort>()" in setup
+
+
 def test_every_direct_desktop_build_stages_the_verified_ui_export_first() -> None:
     builder = (ROOT / "scripts" / "build_desktop.py").read_text()
     makefile = (ROOT / "Makefile").read_text()

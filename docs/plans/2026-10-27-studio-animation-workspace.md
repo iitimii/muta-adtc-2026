@@ -20,6 +20,21 @@ Use container-based collapse for narrow embedded workspaces, not just viewport b
 Test one visible stage, click-to-play, generate/render progress, failure/retry/cancel, revision
 races, import/reopen, keyboard, light/dark, narrow/landscape, and reduced motion.
 
+### Native WebView download correction
+
+The macOS candidate proved that a real MP4 could render and play inside the application, but the
+desktop shell did not register Tauri's download callback. Locked Wry 0.55.1 cancels a WKWebView
+download when that callback is absent, so a browser-correct `<a download>` action was not a
+desktop-correct file delivery path. The shell must create its configured main WebView manually and
+attach the supported Tauri 2 `on_download` hook. It permits only Muta-generated file types and the
+Host-mode trust certificate from the current bundled origin or the exact loopback port selected by
+the Rust launcher, including generated `blob:` URLs; credentials and other loopback ports fail
+closed. The destination must be a new, portable, direct child of the canonical Downloads folder.
+Parent traversal, symlink parents, control characters, Windows alternate-stream or reserved names,
+and existing targets are rejected so no platform can escape or overwrite through its suggested
+filename. This correction is limited to file delivery: the live native window was confirmed
+responsive, so no speculative navigation or crash-recovery behavior belongs in this fix.
+
 The division screenshot also contains unsupported model narration (incorrect remainder and an
 unrelated wave). Add a bounded whole-number equal-sharing family with derived quotient and
 remainder, parameterised by dividend/divisor, rather than model-written arithmetic. A general
