@@ -173,6 +173,11 @@ test("tertiary derivative and definite-integral workflows compute real quantitie
     "Plot y=x^2 and show the tangent at x=2π+1",
     "Plot y=x^2 with tangent at x=foo",
     "Plot y=x^2 and show the derivative when x=.5+1",
+    "Plot y=x^2 with tangent at x 2",
+    "Derivative y=x^2 at x=2, +1",
+    "Derivative y=x^2 at x=2; +1",
+    "Derivative y=x^2 at x=2) +1",
+    "Derivative y=x^2 at x=2 and x=3",
     "Derivative y=t^2 at x=2",
     "Plot y=x^2 and show the tangent when t=2",
   ];
@@ -192,6 +197,14 @@ test("tertiary derivative and definite-integral workflows compute real quantitie
     "Plot y=x^2 and show integral from 0 to pi+1",
     "Integral y=x^2 between 0 and mystery",
     "Plot y=x^2 with area for x ∈ [0, pi+1]",
+    "Plot y=x^2 with integral from 0",
+    "Plot y=x^2 and show integral between 0",
+    "Plot y=x^2 with integral on [0,foo]",
+    "Plot y=x^2 with integral from 0; to foo",
+    "Plot y=x^2 and show integral from 0 to 1, +2",
+    "Plot y=x^2 with integral from 0 to 1 and 2",
+    "Plot y=x^2 with integral between 0 and 1, not 2",
+    "Integral y=t^2 for 0 < x < 1",
   ];
   for (const prompt of invalidExplicitBounds) {
     assert.equal(animator.parseFunction(prompt), null, prompt);

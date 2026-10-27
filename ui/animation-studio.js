@@ -174,23 +174,30 @@
   }
 
   function scalarTerminatorPattern(words = "and|with|at|when") {
-    return `(?=\\s*(?:$|[\\]\\),.;]|\\n|\\b(?:${words})\\b))`;
+    return `(?=\\s*(?:$|\\n|[,.;:]\\s*(?:$|\\n)|\\b(?:${words})\\b))`;
   }
 
   function scalarRange(source) {
     const scalar = scalarPattern();
     const rangeEnd = scalarTerminatorPattern();
     const patterns = [
-      new RegExp(`\\bfrom\\s*(${scalar})\\s*(?:to|through|until)\\s*(${scalar})${rangeEnd}`, "i"),
-      new RegExp(`\\bbetween\\s*(${scalar})\\s*(?:and|to)\\s*(${scalar})${rangeEnd}`, "i"),
-      new RegExp(`\\b(?:on|over|for)\\s+(?:(?:the\\s+)?(?:domain|range|interval)\\s*)?(?:[xt]\\s*(?:=|in|∈)\\s*)?[\\[(]?\\s*(${scalar})\\s*(?:,|to)\\s*(${scalar})\\s*[\\])]?(?:${rangeEnd})`, "i"),
-      new RegExp(`(?:\\bfor\\s+)?(${scalar})\\s*(?:<=|≤|<)\\s*[xt]\\s*(?:<=|≤|<)\\s*(${scalar})${rangeEnd}`, "i"),
+      { pattern: new RegExp(`\\bfrom\\s*(${scalar})\\s*(?:to|through|until)\\s*(${scalar})${rangeEnd}`, "i"), start: 1, end: 2 },
+      { pattern: new RegExp(`\\bbetween\\s*(${scalar})\\s*(?:and|to)\\s*(${scalar})${rangeEnd}`, "i"), start: 1, end: 2 },
+      { pattern: new RegExp(`\\b(?:on|over|for)\\s+(?:(?:the\\s+)?(?:domain|range|interval)\\s*)?(?:([xt])\\s*(?:=|in|∈)\\s*)?[\\[(]?\\s*(${scalar})\\s*(?:,|to)\\s*(${scalar})\\s*[\\])]?(?:${rangeEnd})`, "i"), variable: 1, start: 2, end: 3 },
+      { pattern: new RegExp(`(?:\\bfor\\s+)?(${scalar})\\s*(?:<=|≤|<)\\s*([xt])\\s*(?:<=|≤|<)\\s*(${scalar})${rangeEnd}`, "i"), variable: 2, start: 1, end: 3 },
     ];
-    const matches = patterns.map((pattern) => source.match(pattern)).filter(Boolean).sort((left, right) => left.index - right.index);
+    const matches = patterns.map((entry) => {
+      const match = source.match(entry.pattern);
+      return match ? { entry, match } : null;
+    }).filter(Boolean).sort((left, right) => left.match.index - right.match.index);
     if (!matches.length) return null;
-    const match = matches[0]; const start = parseScalarExpression(match[1]); const end = parseScalarExpression(match[2]);
+    const { entry, match } = matches[0];
+    const start = parseScalarExpression(match[entry.start]); const end = parseScalarExpression(match[entry.end]);
     if (!Number.isFinite(start) || !Number.isFinite(end) || start === end) return null;
-    return { start, end, index: match.index, length: match[0].length };
+    const tail = source.slice(match.index + match[0].length).split("\n", 1)[0].trim();
+    const trailingProbe = new RegExp(`^(?:and|with)\\s+(?:show\\s+)?(?:a\\s+|the\\s+)?(?:tangent|derivative|gradient|rate\\s+of\\s+change)\\b(?:\\s+(?:at|when)\\s+[xt]\\s*=\\s*${scalar})?\\s*[,.;:]?$`, "i");
+    if (tail && !/^[,.;:]+$/.test(tail) && !trailingProbe.test(tail)) return null;
+    return { start, end, variable: entry.variable && match[entry.variable] ? match[entry.variable].toLowerCase() : null, index: match.index, length: match[0].length };
   }
 
   function explicitScalarRangeRequest(source) {
@@ -209,16 +216,22 @@
   function parseFunction(source) {
     const raw = normalizeFunctionInput(source);
     if (!global.MutaViz?.parseExpressionV2) return null;
+    const lower = raw.toLowerCase();
+    const derivativeIntent = /\b(?:derivative|differentiat(?:e|ed|es|ing|ion)?|tangent|gradient|rate\s+of\s+change)\b/i.test(lower);
+    const integralIntent = /\b(?:definite\s+integral|integral|area\s+under)\b/i.test(lower);
     const scalar = scalarPattern();
     const rangeMatch = scalarRange(raw); const requestedRange = rangeMatch ? [rangeMatch.start, rangeMatch.end] : null;
-    if (explicitScalarRangeRequest(raw) && !rangeMatch) return null;
+    const explicitIntegralBounds = integralIntent && (/\b(?:from|between)\b/i.test(raw)
+      || /\b(?:on|over|for)\b[^\n;]{0,32}(?:\b(?:domain|range|interval)\b|[\[(]|(?:<=|≤|<))/i.test(raw));
+    if ((explicitScalarRangeRequest(raw) || explicitIntegralBounds) && !rangeMatch) return null;
     const withoutRange = rangeMatch ? `${raw.slice(0, rangeMatch.index)}${raw.slice(rangeMatch.index + rangeMatch.length)}` : raw;
     const equation = withoutRange.match(/\b([yzsv])\s*=\s*([^\n;]+)/i); const naked = withoutRange.match(/\b(?:plot|graph|trace)\s+(?:the\s+)?(?:function\s+)?([^\n;]+)/i);
     if (!equation && !naked) return null;
     const output = equation ? equation[1].toLowerCase() : "y"; let expressionText = (equation ? equation[2] : naked[1]).trim();
-    const probeEnd = scalarTerminatorPattern("and|with");
-    const probePattern = new RegExp(`\\s+(?:at|when)\\s+[xt]\\s*=\\s*(${scalar})${probeEnd}.*$`, "i");
-    const explicitProbe = /(?:at|when)\s+[xt]\s*=/i.test(raw);
+    const probePattern = new RegExp(`\\s+(?:at|when)\\s+([xt])\\s*=\\s*(${scalar})\\s*[,.;:]?$`, "i");
+    const probe = raw.match(new RegExp(`(?:at|when)\\s+([xt])\\s*=\\s*(${scalar})\\s*[,.;:]?\\s*(?=$|\\n)`, "i"));
+    const explicitProbe = derivativeIntent && /\b(?:at|when)\b/i.test(raw);
+    if (explicitProbe && !probe) return null;
     expressionText = expressionText.replace(probePattern, "")
       .replace(/\s+(?:with|and)\s+(?:show\s+)?(?:a\s+|the\s+)?(?:tangent|derivative|definite\s+integral|integral|area)\b.*$/i, "")
       .replace(/[,;:]+$/, "").trim();
@@ -226,21 +239,21 @@
     try { expressionAst = global.MutaViz.parseExpressionV2(expressionText); } catch { return null; }
     const variables = [...expressionVariables(expressionAst)].filter((name) => ["x", "t"].includes(name));
     if (variables.length !== 1 || expressionVariables(expressionAst).size !== 1) return null;
-    const variable = variables[0]; const lower = raw.toLowerCase();
+    const variable = variables[0];
+    if (rangeMatch?.variable && rangeMatch.variable !== variable) return null;
     let domain = requestedRange ? [Math.min(...requestedRange), Math.max(...requestedRange)] : (/\b(?:sin|cos|tan)\s*\(/i.test(expressionText) ? [-2 * Math.PI, 2 * Math.PI]
       : /\bexp\s*\(/i.test(expressionText) ? [-4, 4] : expressionText.includes("/") ? [-6, 6]
         : /\^[3-9]/.test(expressionText) ? [-3, 3] : [-6, 6]);
     let mode = "curve"; let parameter; let bounds;
-    if (/\b(?:derivative|differentiat(?:e|ed|es|ing|ion)?|tangent|gradient|rate\s+of\s+change)\b/i.test(lower)) {
-      mode = "derivative"; const probe = lower.match(new RegExp(`(?:at|when)\\s+([xt])\\s*=\\s*(${scalar})${probeEnd}`, "i"));
-      if (explicitProbe && !probe) return null;
+    if (derivativeIntent) {
+      mode = "derivative";
       if (probe && probe[1] !== variable) return null;
       parameter = probe ? parseScalarExpression(probe[2]) : 0;
       if (!Number.isFinite(parameter)) return null;
       const span = domain[1] - domain[0];
       if (parameter <= domain[0]) domain = [parameter - Math.max(1, span * .2), domain[1]];
       if (parameter >= domain[1]) domain = [domain[0], parameter + Math.max(1, span * .2)];
-    } else if (/\b(?:definite\s+integral|integral|area\s+under)\b/i.test(lower)) {
+    } else if (integralIntent) {
       mode = "integral"; bounds = requestedRange ? [...requestedRange] : [Math.max(domain[0], 0), Math.min(domain[1], 1)];
       if (bounds[0] === bounds[1]) return null;
     }
