@@ -207,6 +207,11 @@
       || /(?:<=|≤|<)\s*[xt]\s*(?:<=|≤|<)/i.test(source);
   }
 
+  function explicitIntegralBoundsRequest(source) {
+    return /\b(?:from|between)\b/i.test(source)
+      || /\b(?:on|over|for)\b[^\n;]{0,32}(?:\b(?:domain|range|interval)\b|[\[(]|(?:<=|≤|<))/i.test(source);
+  }
+
   function explicitFunctionRequest(source) {
     const value = normalizeFunctionInput(source).toLowerCase();
     if (/(?:^|[^\w])(?:[a-z]|[a-z][a-z0-9]*\s*\(\s*[a-z]\s*\))\s*=/.test(value)) return true;
@@ -220,18 +225,33 @@
     const derivativeIntent = /\b(?:derivative|differentiat(?:e|ed|es|ing|ion)?|tangent|gradient|rate\s+of\s+change)\b/i.test(lower);
     const integralIntent = /\b(?:definite\s+integral|integral|area\s+under)\b/i.test(lower);
     const scalar = scalarPattern();
+    const rangeLines = raw.split("\n").filter((line) => explicitScalarRangeRequest(line) || (integralIntent && explicitIntegralBoundsRequest(line)));
+    const parsedRanges = rangeLines.map((line) => scalarRange(line));
+    if (parsedRanges.some((range) => !range)) return null;
+    const rangeSignatures = new Set(parsedRanges.map((range) => `${range.start}:${range.end}:${range.variable || ""}`));
+    if (rangeSignatures.size > 1) return null;
     const rangeMatch = scalarRange(raw); const requestedRange = rangeMatch ? [rangeMatch.start, rangeMatch.end] : null;
-    const explicitIntegralBounds = integralIntent && (/\b(?:from|between)\b/i.test(raw)
-      || /\b(?:on|over|for)\b[^\n;]{0,32}(?:\b(?:domain|range|interval)\b|[\[(]|(?:<=|≤|<))/i.test(raw));
-    if ((explicitScalarRangeRequest(raw) || explicitIntegralBounds) && !rangeMatch) return null;
+    if (rangeLines.length && !rangeMatch) return null;
     const withoutRange = rangeMatch ? `${raw.slice(0, rangeMatch.index)}${raw.slice(rangeMatch.index + rangeMatch.length)}` : raw;
     const equation = withoutRange.match(/\b([yzsv])\s*=\s*([^\n;]+)/i); const naked = withoutRange.match(/\b(?:plot|graph|trace)\s+(?:the\s+)?(?:function\s+)?([^\n;]+)/i);
     if (!equation && !naked) return null;
     const output = equation ? equation[1].toLowerCase() : "y"; let expressionText = (equation ? equation[2] : naked[1]).trim();
     const probePattern = new RegExp(`\\s+(?:at|when)\\s+([xt])\\s*=\\s*(${scalar})\\s*[,.;:]?$`, "i");
-    const probe = raw.match(new RegExp(`(?:at|when)\\s+([xt])\\s*=\\s*(${scalar})\\s*[,.;:]?\\s*(?=$|\\n)`, "i"));
-    const explicitProbe = derivativeIntent && /\b(?:at|when)\b/i.test(raw);
-    if (explicitProbe && !probe) return null;
+    const probeLinePattern = `(?:at|when)\\s+([xt])\\s*=\\s*(${scalar})(?=\\s*(?:$|[,.;:]\\s*$|\\b(?:and|with)\\b))`;
+    const probeLines = derivativeIntent ? raw.split("\n").filter((line) => /\b(?:at|when)\b/i.test(line)) : [];
+    const parsedProbes = [];
+    for (const line of probeLines) {
+      const matches = [...line.matchAll(new RegExp(probeLinePattern, "gi"))];
+      if (matches.length !== 1) return null;
+      const tail = line.slice(matches[0].index + matches[0][0].length).trim();
+      if (tail && !/^[,.;:]+$/.test(tail)) return null;
+      const value = parseScalarExpression(matches[0][2]);
+      if (!Number.isFinite(value)) return null;
+      parsedProbes.push({ variable: matches[0][1].toLowerCase(), value });
+    }
+    const probeSignatures = new Set(parsedProbes.map((probeValue) => `${probeValue.variable}:${probeValue.value}`));
+    if (probeSignatures.size > 1) return null;
+    const probe = parsedProbes[0] || null;
     expressionText = expressionText.replace(probePattern, "")
       .replace(/\s+(?:with|and)\s+(?:show\s+)?(?:a\s+|the\s+)?(?:tangent|derivative|definite\s+integral|integral|area)\b.*$/i, "")
       .replace(/[,;:]+$/, "").trim();
@@ -247,8 +267,8 @@
     let mode = "curve"; let parameter; let bounds;
     if (derivativeIntent) {
       mode = "derivative";
-      if (probe && probe[1] !== variable) return null;
-      parameter = probe ? parseScalarExpression(probe[2]) : 0;
+      if (probe && probe.variable !== variable) return null;
+      parameter = probe ? probe.value : 0;
       if (!Number.isFinite(parameter)) return null;
       const span = domain[1] - domain[0];
       if (parameter <= domain[0]) domain = [parameter - Math.max(1, span * .2), domain[1]];

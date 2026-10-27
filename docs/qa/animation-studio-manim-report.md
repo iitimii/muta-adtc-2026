@@ -79,8 +79,10 @@ cannot silently reinterpret a requested `x` probe (or vice versa).
 Likewise, malformed explicit integral bounds such as `from 0 to foo` or `from 0 to π+1` cannot
 fall back to [0, 1]; that default is reserved for requests which state no bounds.
 Scalar clauses are consumed only when their complete same-line tail is valid: appended arithmetic,
-punctuation followed by another token, duplicate probe points, and incomplete `from`/`between`/
+punctuation followed by another token, multiple explicit probe clauses, and incomplete `from`/`between`/
 interval clauses all fail closed. Explicit range variables obey the same x/t agreement invariant.
+Every title, concept and requirement line is checked; identical repeated context is allowed, while
+conflicting or malformed range/probe clauses in any later field invalidate the complete request.
 Explicit function requests that do not parse into the allow-listed typed AST now fail closed in both
 browser and model-planner boundaries, so they cannot become prose-only process storyboards.
 Non-mathematical novel process planning remains available.

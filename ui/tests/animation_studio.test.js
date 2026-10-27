@@ -178,6 +178,8 @@ test("tertiary derivative and definite-integral workflows compute real quantitie
     "Derivative y=x^2 at x=2; +1",
     "Derivative y=x^2 at x=2) +1",
     "Derivative y=x^2 at x=2 and x=3",
+    "Plot y=x^2 and show tangent at x=2 and show tangent at x=3",
+    "Plot y=x^2 with tangent at x=2 and show tangent when x=3",
     "Derivative y=t^2 at x=2",
     "Plot y=x^2 and show the tangent when t=2",
   ];
@@ -188,6 +190,11 @@ test("tertiary derivative and definite-integral workflows compute real quantitie
   const matchingProbeVariable = plan("Derivative y=t^2 when t=2", "tertiary");
   assert.equal(matchingProbeVariable.scenes[1].data.variable, "t");
   assert.equal(matchingProbeVariable.scenes[1].data.parameter, 2);
+  assert.equal(animator.parseFunction("Plot y=x^2 and show tangent at x=2\nwith tangent at x=3"), null);
+  assert.throws(
+    () => animator.planProject({ topic: "Plot y=x^2 and show tangent at x=2", concept: "with tangent at x=3", level: "tertiary" }),
+    /could not safely resolve that explicit function/,
+  );
   const naturalIntegral = plan("Integral y = x^2 from 0 to 1", "tertiary");
   assert.deepEqual(naturalIntegral.scenes[1].data.bounds, [0, 1]);
   const defaultIntegral = plan("Integral y = x^2", "tertiary");
@@ -209,6 +216,17 @@ test("tertiary derivative and definite-integral workflows compute real quantitie
   for (const prompt of invalidExplicitBounds) {
     assert.equal(animator.parseFunction(prompt), null, prompt);
     assert.throws(() => plan(prompt, "tertiary"), /could not safely resolve that explicit function/, prompt);
+  }
+  const crossFieldBounds = [
+    ["Plot y=x^2 from 0 to 1", "with integral from 2 to foo"],
+    ["Plot y=x^2 from 0 to 1", "from 2 to 3"],
+  ];
+  for (const [topic, concept] of crossFieldBounds) {
+    assert.equal(animator.parseFunction(`${topic}\n${concept}`), null);
+    assert.throws(
+      () => animator.planProject({ topic, concept, level: "tertiary" }),
+      /could not safely resolve that explicit function/,
+    );
   }
 });
 
