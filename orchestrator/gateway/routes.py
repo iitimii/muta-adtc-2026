@@ -93,7 +93,7 @@ from contracts.models import (
     VisionReply,
 )
 from orchestrator import bench_metrics
-from orchestrator.gateway.animation_planner import plan_animation_project
+from orchestrator.gateway.animation_planner import AnimationPlanBriefError, plan_animation_project
 from orchestrator.gateway.animation_render import (
     AnimationRenderBusyError,
     AnimationRenderError,
@@ -927,6 +927,8 @@ async def animation_plan(
         raise
     except GenerationCapacityError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except AnimationPlanBriefError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     if project is None:
         raise HTTPException(
             status_code=503,

@@ -37,6 +37,7 @@ _INCOMPLETE_SENTENCE_ENDING = re.compile(
 _SENTENCE_PUNCTUATION = frozenset(".!?…。！？؟۔")
 _SENTENCE_CLOSERS = frozenset("\"'’”»›)]}")
 _STEP_COUNT_WORDS = {
+    "one": 1,
     "two": 2,
     "three": 3,
     "four": 4,
@@ -44,11 +45,53 @@ _STEP_COUNT_WORDS = {
     "six": 6,
     "seven": 7,
     "eight": 8,
+    "nine": 9,
+    "ten": 10,
+    "eleven": 11,
+    "twelve": 12,
 }
+_META_STEP_TITLE = re.compile(
+    r"^(?:end(?:\s+of\s+(?:the\s+)?animation)?|end[ -]?screen|thank\s+you(?:\s+for\s+learning)?|"
+    r"return\s+to\s+(?:the\s+)?storyboard|storyboard\s+return|back\s+to\s+(?:the\s+)?storyboard)"
+    r"[.!:;\s-]*$",
+    re.IGNORECASE,
+)
+_META_STEP_NARRATION = re.compile(
+    r"^(?:thank\s+you\s+for\s+learning|(?:now,?\s+)?let(?:'|’)s\s+(?:go\s+back|return)\s+to\s+"
+    r"(?:the\s+)?storyboard)\b",
+    re.IGNORECASE,
+)
+_PERIOD_ABBREVIATIONS = (
+    "dr.",
+    "mr.",
+    "mrs.",
+    "ms.",
+    "prof.",
+    "sr.",
+    "jr.",
+    "st.",
+    "vs.",
+    "etc.",
+    "e.g.",
+    "i.e.",
+    "fig.",
+    "no.",
+)
+_PERIOD_ABBREVIATION_END = re.compile(
+    r"(?<!\w)(?:" + "|".join(re.escape(value) for value in _PERIOD_ABBREVIATIONS) + r")$",
+    re.IGNORECASE,
+)
+
+
+class AnimationPlanBriefError(ValueError):
+    """The lesson brief requests a shape outside the bounded planner contract."""
 
 
 def _generated_narration_is_complete(value: str) -> bool:
     narration = value.strip()
+    unquoted = narration.rstrip("".join(_SENTENCE_CLOSERS))
+    if _PERIOD_ABBREVIATION_END.search(unquoted):
+        return False
     index = len(narration) - 1
     saw_sentence_punctuation = False
     while index >= 0 and narration[index] in _SENTENCE_PUNCTUATION | _SENTENCE_CLOSERS:
@@ -71,31 +114,78 @@ def _complete_generated_sentence_prefix(value: str) -> str:
     for punctuation_index in range(len(narration) - 1, -1, -1):
         if narration[punctuation_index] not in _SENTENCE_PUNCTUATION:
             continue
+        punctuation = narration[punctuation_index]
         end = punctuation_index + 1
         while end < len(narration) and narration[end] in _SENTENCE_CLOSERS:
             end += 1
         prefix = narration[:end].strip()
+        suffix = narration[end:].lstrip()
+        if not suffix:
+            continue
+        if punctuation == ".":
+            if (
+                punctuation_index > 0
+                and punctuation_index + 1 < len(narration)
+                and narration[punctuation_index - 1].isdigit()
+                and narration[punctuation_index + 1].isdigit()
+            ):
+                continue
+            if end < len(narration) and not narration[end].isspace():
+                continue
+            if not suffix[0].isupper():
+                continue
+            words = re.findall(r"[^\W\d_]+(?:['’][^\W\d_]+)?", prefix, re.UNICODE)
+            if len(words) < 4 or _PERIOD_ABBREVIATION_END.search(prefix):
+                continue
         if _generated_narration_is_complete(prefix):
             return prefix
     return narration
 
 
-def _requested_step_count(request: AnimationPlanRequest) -> int | None:
+def _requested_step_count(request: AnimationPlanRequest) -> tuple[int | None, str | None]:
     counts: set[int] = set()
-    source = "\n".join(part for part in (request.topic, request.concept, request.requirements) if part)
+    source = "\n".join(
+        part for part in (request.topic, request.concept, request.requirements) if part
+    )
     pattern = re.compile(
-        r"\b(2|3|4|5|6|7|8|two|three|four|five|six|seven|eight)"
-        r"(?:\s+(?:clear|distinct|ordered|simple|visual|animation))*"
-        r"\s+(?:steps?|stages?|scenes?|states?)\b",
+        r"(?<![\w.])([+-]?\d+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)"
+        r"(?:(?:\s+(?:clear|distinct|ordered|simple|visual|animation))*\s+|\s*-\s*)"
+        r"(?:steps?|stages?|scenes?|states?)\b",
         re.IGNORECASE,
     )
     for match in pattern.finditer(source):
         token = match.group(1).casefold()
-        counts.add(int(token) if token.isdigit() else _STEP_COUNT_WORDS[token])
-    return counts.pop() if len(counts) == 1 else None
+        if token.lstrip("+-").isdigit():
+            if len(token.lstrip("+-")) > 3:
+                return None, "Lesson animations support an explicit request of two to eight scenes."
+            counts.add(int(token))
+        else:
+            counts.add(_STEP_COUNT_WORDS[token])
+    if not counts:
+        return None, None
+    if len(counts) != 1:
+        return None, "Use one scene count in the brief, not conflicting step or stage counts."
+    count = counts.pop()
+    if count < 2 or count > 8:
+        return None, "Lesson animations support an explicit request of two to eight scenes."
+    return count, None
+
 
 _INTENT_SUPERSCRIPT = str.maketrans(
-    {"⁻": "-", "⁺": "+", "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4", "⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9"}
+    {
+        "⁻": "-",
+        "⁺": "+",
+        "⁰": "0",
+        "¹": "1",
+        "²": "2",
+        "³": "3",
+        "⁴": "4",
+        "⁵": "5",
+        "⁶": "6",
+        "⁷": "7",
+        "⁸": "8",
+        "⁹": "9",
+    }
 )
 
 
@@ -255,6 +345,22 @@ def _proposal_errors(
                 ),
             }
         ]
+    meta_fields = []
+    for index, step in enumerate(proposal.steps):
+        if _META_STEP_TITLE.fullmatch(step.title.strip()) or _META_STEP_NARRATION.match(
+            step.narration.strip()
+        ):
+            meta_fields.append(f"steps.{index}")
+    if meta_fields:
+        return None, [
+            {
+                "code": "meta_step",
+                "detail": (
+                    "Every state must teach the requested sequence; remove thank-you, end-screen, "
+                    "and return-to-storyboard states: " + ", ".join(meta_fields)
+                ),
+            }
+        ]
     for step in proposal.steps:
         step.narration = _complete_generated_sentence_prefix(step.narration)
     incomplete_fields = []
@@ -321,7 +427,9 @@ def plan_animation_project(
         # This planner can produce only prose process scenes. An unresolved explicit function must
         # stay unresolved rather than being converted into an authoritative-looking storyboard.
         return None, False
-    requested_step_count = _requested_step_count(request)
+    requested_step_count, step_count_error = _requested_step_count(request)
+    if step_count_error is not None:
+        raise AnimationPlanBriefError(step_count_error)
     system = (
         "Create one concise educational animation plan as JSON only. Follow the closed schema. "
         "Choose two to eight distinct visual teaching states in causal order. The renderer is "
@@ -362,9 +470,7 @@ def plan_animation_project(
         if decode_error:
             errors = [{"code": decode_error, "detail": "Return one valid JSON object only."}]
             continue
-        proposal, errors = _proposal_errors(
-            candidate, requested_step_count=requested_step_count
-        )
+        proposal, errors = _proposal_errors(candidate, requested_step_count=requested_step_count)
         if proposal is not None:
             try:
                 return _project_from_proposal(request, proposal), attempt > 0
@@ -372,9 +478,7 @@ def plan_animation_project(
                 errors = [
                     {
                         "code": "project_invalid",
-                        "detail": ".".join(str(part) for part in item["loc"])
-                        + ": "
-                        + item["msg"],
+                        "detail": ".".join(str(part) for part in item["loc"]) + ": " + item["msg"],
                     }
                     for item in exc.errors(include_url=False)[:8]
                 ]
@@ -384,4 +488,3 @@ def plan_animation_project(
             ",".join(error["code"] for error in errors),
         )
     return None, True
-

@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from contracts.models import AnimationPlanRequest
 from orchestrator.gateway.animation_planner import (
     MAX_ANIMATION_PLAN_ATTEMPTS,
+    AnimationPlanBriefError,
     animation_planner_schema,
     plan_animation_project,
 )
@@ -268,6 +269,141 @@ def test_explicit_requested_step_count_is_enforced_during_bounded_repair() -> No
     assert "return-to-storyboard" in engine.local.calls[0][0][0]["content"]
 
 
+@pytest.mark.parametrize(
+    "requirements",
+    [
+        "Explain in one step.",
+        "Explain in nine steps.",
+        "Explain in 9 steps.",
+        "Explain in ten steps.",
+        "Explain in 12 scenes.",
+        "Explain in -3 steps.",
+        "Explain in 0 steps.",
+        "Explain in 1000 steps.",
+        "Explain in three steps and then in two stages.",
+    ],
+)
+def test_unsupported_or_conflicting_step_counts_fail_before_model_contact(
+    requirements: str,
+) -> None:
+    engine = _Engine([_valid()])
+    request = AnimationPlanRequest(
+        student_id="learner",
+        topic="A bounded process",
+        level="secondary",
+        requirements=requirements,
+    )
+
+    with pytest.raises(AnimationPlanBriefError, match="scene count|two to eight"):
+        plan_animation_project(engine, request)
+    assert engine.local.calls == []
+
+
+def test_hyphenated_requested_step_count_reaches_schema_and_postdecode_validation() -> None:
+    engine = _Engine([_valid()])
+    request = AnimationPlanRequest(
+        student_id="learner",
+        topic="A bounded process",
+        level="secondary",
+        requirements="Create a 3-step explanation.",
+    )
+
+    project, repaired = plan_animation_project(engine, request)
+
+    assert project is not None and repaired is False
+    steps_schema = engine.local.calls[0][1]["response_format"]["json_schema"]["schema"][
+        "properties"
+    ]["steps"]
+    assert steps_schema["minItems"] == steps_schema["maxItems"] == 3
+
+
+@pytest.mark.parametrize(
+    "narration",
+    [
+        "The measured value is 3.14 and the",
+        "Increase to 1.5 and keep the",
+        "Use 0.5 of the",
+        "Use e.g. a diagram and the",
+        "Use e.g.",
+        "Dr. The",
+    ],
+)
+def test_generated_sentence_prefix_recovery_never_uses_decimals_or_abbreviations(
+    narration: str,
+) -> None:
+    incomplete = {**_valid()}
+    incomplete["steps"] = [dict(step) for step in _valid()["steps"]]
+    incomplete["steps"][0]["narration"] = narration
+    engine = _Engine([incomplete])
+
+    project, repaired = plan_animation_project(engine, _request())
+
+    assert project is None and repaired is True
+    assert len(engine.local.calls) == MAX_ANIMATION_PLAN_ATTEMPTS
+
+
+def test_prefix_recovery_preserves_decimal_value_in_an_already_complete_sentence() -> None:
+    candidate = _valid()
+    candidate["steps"][0]["narration"] = "The measured mass is 2.5 kg. Add the"
+    engine = _Engine([candidate])
+
+    project, _ = plan_animation_project(engine, _request())
+
+    assert project is not None
+    assert project.scenes[0].narration == "The measured mass is 2.5 kg."
+
+
+def test_invalid_count_route_returns_422_and_releases_generation_admission(monkeypatch) -> None:
+    class _ConnectedRequest:
+        @staticmethod
+        async def is_disconnected() -> bool:
+            return False
+
+    monkeypatch.setattr("orchestrator.gateway.routes.wait_for_engine_ready", lambda: None)
+    engine = _Engine([_valid()])
+    generations = GenerationManager(max_active=1)
+    sessions = SessionManager(slots_count=1)
+    request = _request().model_copy(update={"requirements": "Use nine steps."})
+
+    with pytest.raises(HTTPException) as raised:
+        asyncio.run(
+            animation_plan(
+                _ConnectedRequest(),
+                request,
+                engine=engine,
+                sessions=sessions,
+                ladder=DegradationLadder(free_probe=lambda: 8 * 1024**3),
+                generations=generations,
+                caller="learner",
+            )
+        )
+    assert raised.value.status_code == 422
+    assert "two to eight" in raised.value.detail
+    assert engine.local.calls == []
+    assert generations.status()["running"] == 0
+    assert all(not slot["busy"] for slot in sessions.status()["slots"])
+
+
+@pytest.mark.parametrize(
+    ("title", "narration"),
+    [
+        ("End of animation", "The lesson is complete."),
+        ("Return to storyboard", "Now, let's return to the storyboard."),
+        ("Summary", "Thank you for learning!"),
+    ],
+)
+def test_model_meta_states_are_rejected_after_decode(title: str, narration: str) -> None:
+    filler = {**_valid()}
+    filler["steps"] = [dict(step) for step in _valid()["steps"]]
+    filler["steps"][0] = {"title": title, "narration": narration}
+    engine = _Engine([filler, _valid()])
+
+    project, repaired = plan_animation_project(engine, _request())
+
+    assert project is not None and repaired is True
+    assert "meta_step" in engine.local.calls[1][0][1]["content"]
+
+
 def test_whitespace_topic_fails_request_validation() -> None:
     with pytest.raises(ValidationError, match="visible text"):
         AnimationPlanRequest(student_id="learner", topic="  ", level="secondary")
@@ -282,7 +418,9 @@ def test_unknown_executable_fields_fail_closed_after_bounded_attempts() -> None:
 
 
 def test_cancelled_planner_never_contacts_model() -> None:
-    event = threading.Event(); event.set(); engine = _Engine([_valid()])
+    event = threading.Event()
+    event.set()
+    engine = _Engine([_valid()])
     project, repaired = plan_animation_project(engine, _request(), cancel_event=event)
     assert project is None and repaired is False
     assert engine.local.calls == []
@@ -351,4 +489,3 @@ def test_disconnected_queued_planner_is_stopped_and_releases_admission(monkeypat
     assert all(not slot["busy"] for slot in sessions.status()["slots"])
     release.set()
     blocking_job.wait(timeout_s=2)
-

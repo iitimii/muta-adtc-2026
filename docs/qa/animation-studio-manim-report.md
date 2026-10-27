@@ -108,6 +108,14 @@ before revalidation. It never invents punctuation or words. An explicit request 
 eight steps is also enforced against the proposal, including during the one structured repair.
 The model prompt excludes thank-you, end-screen, return-to-storyboard and other interface/meta
 states so the bounded scene budget remains focused on the requested teaching sequence.
+The same exclusions are validated after decode. Unsupported one- or nine-plus-scene requests and
+conflicting counts fail before model contact; digit, word and hyphenated two-through-eight forms
+share the exact schema/post-decode count. Caption-prefix recovery excludes decimal points, short
+abbreviations and non-boundary periods.
+The final focused regression gate passes 87 Python cases and all 193 Node cases. It includes the
+public plan route returning HTTP 422 (without contacting the model) for an invalid count, with no
+generation/session slot left busy. Full-suite and final extracted-package evidence are recorded
+separately against their immutable source identity; a passing source fixture is not package approval.
 The preview/render action area persistently tells the learner to review every scene and the maths
 before rendering because open-ended tutor narration is not formally verified. Typed function ASTs
 and numerical calculus checks remain deterministic; that does not certify model-written analogies.

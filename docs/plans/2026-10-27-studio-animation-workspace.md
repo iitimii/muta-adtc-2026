@@ -185,7 +185,13 @@ remaining suffix is incomplete, then run the same completion validation again. D
 invent text. When the brief explicitly requests two through eight steps, require that exact scene
 count and include a mismatch in the single bounded repair response.
 Exclude thank-you, end-screen, return-to-storyboard and interface/meta filler from the model prompt;
-every accepted state must belong to the requested teaching sequence.
+validate the same exclusions after decode so every accepted state belongs to the requested teaching
+sequence. Treat digit, word and hyphenated step counts consistently; reject unsupported or
+conflicting counts before model contact. Sentence-prefix recovery must distinguish genuine terminal
+boundaries from decimal points and abbreviations.
+Invalid count errors belong to the animation-plan endpoint, not model selection: return HTTP 422
+with an actionable two-to-eight-scene message, and release both generation and session admission.
+Check that signed, zero, and long numeric counts cannot be partially matched as valid small counts.
 Keep a brief persistent notice beside the preview/render actions: learners must review every scene
 and the maths because tutor-written process explanations can be wrong. Do not imply that typed-AST
 numeric validation certifies open-ended model narration.
