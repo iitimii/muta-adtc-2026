@@ -88,40 +88,63 @@ def _expression_typst(
     """Compile the allow-listed typed AST into non-executable MathTypst notation."""
     if budget is None:
         budget = [0]
-    budget[0] += 1
-    if budget[0] > MAX_AST_NODES or depth > MAX_AST_DEPTH or not isinstance(node, dict):
-        raise AnimationRenderError("function expression exceeds the trusted AST budget")
-    kind = node.get("type")
-    if kind == "number" and set(node) == {"type", "value"}:
-        return _finite(node["value"])
-    if kind == "constant" and set(node) == {"type", "name"}:
-        if node["name"] not in {"pi", "e"}:
-            raise AnimationRenderError("unsupported function constant")
-        return str(node["name"])
-    if kind == "variable" and set(node) == {"type", "name"}:
-        if node["name"] != variable:
-            raise AnimationRenderError("function expression uses an undeclared variable")
-        return variable
-    if kind == "unary" and set(node) == {"type", "op", "arg"} and node["op"] == "-":
-        return f"(-{_expression_typst(node['arg'], variable, depth=depth + 1, budget=budget)})"
-    if kind == "binary" and set(node) == {"type", "op", "left", "right"}:
-        operator = node["op"]
-        if operator not in {"+", "-", "*", "/", "^"}:
-            raise AnimationRenderError("unsupported function operator")
-        left = _expression_typst(node["left"], variable, depth=depth + 1, budget=budget)
-        right = _expression_typst(node["right"], variable, depth=depth + 1, budget=budget)
-        return f"(({left}) {operator} ({right}))"
-    if kind == "call" and set(node) == {"type", "name", "args"}:
-        name = node["name"]
-        args = node["args"]
-        expected = 2 if name in _BINARY else 1 if name in _UNARY else 0
-        if not isinstance(args, list) or len(args) != expected:
-            raise AnimationRenderError("unsupported function call")
-        compiled = [
-            _expression_typst(arg, variable, depth=depth + 1, budget=budget) for arg in args
-        ]
-        return f"{name}({', '.join(compiled)})"
-    raise AnimationRenderError("invalid typed function expression")
+
+    def compile_node(value: dict[str, Any], level: int) -> tuple[str, int, str]:
+        budget[0] += 1
+        if budget[0] > MAX_AST_NODES or level > MAX_AST_DEPTH or not isinstance(value, dict):
+            raise AnimationRenderError("function expression exceeds the trusted AST budget")
+        kind = value.get("type")
+        if kind == "number" and set(value) == {"type", "value"}:
+            number = float(value["value"])
+            if not math.isfinite(number) or abs(number) > 1e9:
+                raise AnimationRenderError("animation number is outside the trusted render budget")
+            return (str(int(number)) if number.is_integer() else f"{number:g}", 6, "number")
+        if kind == "constant" and set(value) == {"type", "name"}:
+            if value["name"] not in {"pi", "e"}:
+                raise AnimationRenderError("unsupported function constant")
+            return str(value["name"]), 6, "constant"
+        if kind == "variable" and set(value) == {"type", "name"}:
+            if value["name"] != variable:
+                raise AnimationRenderError("function expression uses an undeclared variable")
+            return variable, 6, "variable"
+        if kind == "unary" and set(value) == {"type", "op", "arg"} and value["op"] == "-":
+            argument, precedence, _argument_kind = compile_node(value["arg"], level + 1)
+            if precedence < 4:
+                argument = f"({argument})"
+            return f"-{argument}", 4, "unary"
+        if kind == "binary" and set(value) == {"type", "op", "left", "right"}:
+            operator = value["op"]
+            if operator not in {"+", "-", "*", "/", "^"}:
+                raise AnimationRenderError("unsupported function operator")
+            left, left_precedence, left_kind = compile_node(value["left"], level + 1)
+            right, right_precedence, right_kind = compile_node(value["right"], level + 1)
+            if operator == "/":
+                return f"frac({left}, {right})", 6, "fraction"
+            precedence = {"+": 1, "-": 1, "*": 2, "^": 5}[operator]
+            if left_precedence < precedence or (operator == "^" and left_kind == "binary-power"):
+                left = f"({left})"
+            right_needs_group = right_precedence < precedence
+            if operator in {"-", "^"} and right_precedence == precedence:
+                right_needs_group = True
+            if operator == "*" and right_kind == "binary-product":
+                right_needs_group = True
+            if right_needs_group:
+                right = f"({right})"
+            symbol = " dot " if operator == "*" else f" {operator} " if operator != "^" else "^"
+            result_kind = "binary-power" if operator == "^" else "binary-product" if operator == "*" else "binary"
+            return f"{left}{symbol}{right}", precedence, result_kind
+        if kind == "call" and set(value) == {"type", "name", "args"}:
+            name = value["name"]
+            args = value["args"]
+            expected = 2 if name in _BINARY else 1 if name in _UNARY else 0
+            if not isinstance(args, list) or len(args) != expected:
+                raise AnimationRenderError("unsupported function call")
+            compiled = [compile_node(argument, level + 1)[0] for argument in args]
+            return f"{name}({', '.join(compiled)})", 6, "call"
+        raise AnimationRenderError("invalid typed function expression")
+
+    result, _precedence, _kind = compile_node(node, depth)
+    return result
 
 
 def _expression_variables(node: dict[str, Any], output: set[str] | None = None) -> set[str]:
@@ -232,8 +255,8 @@ def _scene_prelude(title: str, narration: str) -> list[str]:
         f"        scene_title = Text({_python_text(_wrapped_text(title, width=54))}, font_size=28)",
         "        _fit(scene_title, 12.0, 0.72).next_to(lesson_title, DOWN, buff=0.08)",
         f"        full_narration = {_python_text(narration)}",
-        f"        caption = Text({_python_text(_wrapped_text(narration, width=76, limit=240))}, font_size=22, line_spacing=0.85)",
-        "        _fit(caption, 12.2, 0.82).to_edge(DOWN)",
+        f"        caption = Text({_python_text(_wrapped_text(narration, width=64, limit=150))}, font_size=24, line_spacing=0.85)",
+        "        _fit(caption, 12.2, 0.92).to_edge(DOWN)",
     ]
 
 
@@ -374,7 +397,7 @@ def _function_scene(index: int, scene: AnimationFunctionScene) -> list[str]:
         ]
     formula_typst = f"{data.output} = {expression}"
     lines += [
-        f"        formula = MathTypst({_python_text(formula_typst)}, font_size=30).next_to(axes, UP, buff=0.18)",
+        f"        formula = MathTypst({_python_text(formula_typst)}, font_size=30).next_to(axes, UP, buff=0.18).align_to(axes, LEFT)",
         "        content = VGroup(axes, axis_labels, number_labels, domain_label, curve_segments, formula)",
         "        scene_intro = AnimationGroup(FadeIn(scene_title), FadeIn(caption), Create(axes), FadeIn(axis_labels), FadeIn(number_labels), FadeIn(domain_label), Write(formula), LaggedStart(*[Create(segment) for segment in curve_segments], lag_ratio=0.12))",
     ]
@@ -606,7 +629,7 @@ def _render_manim_video_locked(
         manim_command = [
             capability.executable,
             "--silent",
-            "-ql",
+            "-qm",
             "--format",
             "mp4",
             "--disable_caching",

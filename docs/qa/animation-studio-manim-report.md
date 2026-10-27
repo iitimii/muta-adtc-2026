@@ -11,7 +11,7 @@ Base source: `cc5dde310633b676ed7062e32dc18db30e0ce75a`
 - FFmpeg: `/opt/homebrew/bin/ffmpeg`
 - Gateway configuration: `MUTA_MANIM_RUNTIME_DIR`, `MUTA_MANIM_BIN`, and
   `MUTA_MANIM_FFMPEG_BIN`
-- Fixed Manim arguments: `--silent -ql --format mp4 --disable_caching`, fixed
+- Fixed Manim arguments: `--silent -qm --format mp4 --disable_caching`, fixed
   `MutaLesson` scene, fresh temporary media directory
 - Network mode during real-app QA: `MUTA_OFFLINE=1`, `HF_HUB_OFFLINE=1`, and
   `TRANSFORMERS_OFFLINE=1`
@@ -26,25 +26,26 @@ derivative/tangent, and definite-integral scenes. The browser generated the same
 
 | Artifact | SHA-256 | Evidence |
 |---|---|---|
-| `animation-studio-manim-source.txt` | `6b1672c5081d78da872381c4e1eed597078afa007935ee92508e21c767ae5773` | Exact trusted source |
-| `animation-studio-manim-math.mp4` | `7340d5c993c9483c61e69d9835f28023c02e6dcb2fc848e2c5cb78ee39936250` | Final rendered H.264 video |
-| `animation-studio-manim-contact.png` | `fffde9fd6ec8a87447919eb6737d3a2523782f9f96288fbc3bcf78b4536077ee` | One-second visual sampling across the complete video |
-| `animation-studio-manim-long-copy.png` | `bbbea68ad6cd4cbb757f91147e9f4776d5024d32eb1acc5ff036ee069362f5e7` | Long title/caption and short process-label layout |
+| `animation-studio-manim-source.txt` | `92be2b9c0b4ae000ecb81e49937c0a5c7c9d78382dab626f72eb18f4228fc3fe` | Exact trusted source |
+| `animation-studio-manim-math.mp4` | `e4222e09eefc7d40442d20728e0f5b75c9b75ed1536906c2cd41833f864fc0c7` | Final rendered H.264 video |
+| `animation-studio-manim-contact.png` | `4f99a2df3914c6f4ef47900f6813eaf45ba0c5f4f8fc8c084c904f9799c865db` | One-second visual sampling across the complete video |
+| `animation-studio-manim-long-copy.png` | `6c3443c565ce0d3dd3a4b04294b3c17d7a02e8b5f4b0f6a0cf327e57d6e73d74` | Long title/caption and short process-label layout |
 
 `ffprobe` result for the final MP4:
 
 ```text
 codec_name=h264
-width=854
-height=480
-r_frame_rate=15/1
-duration=9.800000
-size=268956
+width=1280
+height=720
+r_frame_rate=30/1
+duration=9.325977
+size=514455
 ```
 
 Visual inspection confirmed parameter-correct partitioning/shading, progressive dot-array build,
-repeated addition, labelled numeric axes/domain, cubic shape and origin crossing, tangent at input
-two, bounded signed area, readable wrapped titles/captions, and no frame clipping.
+repeated addition, labelled numeric axes/domain, clean `y = x^3` typesetting, cubic shape and origin
+crossing, tangent at input two, bounded signed area, readable wrapped titles/captions, and no frame
+clipping.
 
 ## Safety and failure probes
 

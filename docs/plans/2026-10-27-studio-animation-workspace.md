@@ -101,6 +101,8 @@ Runtime/package contract:
   added to the worker's minimal `PATH`.
 - The gateway passes `--silent`, uses a fixed scene name and argument vector, selects only the final
   `MutaLesson.mp4`, and never accepts a caller-controlled command or output path.
+- Production video uses Manim's fixed medium-quality profile (1280 × 720 at 30 fps); the browser
+  canvas remains the immediate low-cost preview.
 - Formulae use Manim 0.22's offline `MathTypst`; numeric tick labels use inert `Text`, so the runtime
   does not require a LaTeX installation or network font/resource lookup.
 - One render is admitted at a time. Further requests fail immediately rather than forming an

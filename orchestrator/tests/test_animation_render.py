@@ -93,6 +93,7 @@ def test_emitter_covers_parameterised_math_and_process_families() -> None:
     assert "Arrow(" in source and "Apply the rule" in source
     assert source.count("self.play(scene_intro") == len(project.scenes)
     assert "number_labels = VGroup()" in source and "domain: -3 to 3" in source
+    assert "MathTypst('y = x^3'" in source
     assert "LaggedStart(*[Create(cell)" in source
     assert "LaggedStart(*[FadeIn(dot" in source
     assert "scale_to_fit_width" not in source
@@ -241,7 +242,7 @@ def test_bounded_worker_invokes_fixed_cli_and_returns_real_mp4_bytes(
     command = observed["command"]
     assert command[0].endswith("python")
     assert command[1].endswith("animation_worker.py")
-    assert command[2:8] == [str(executable), "--silent", "-ql", "--format", "mp4", "--disable_caching"]
+    assert command[2:8] == [str(executable), "--silent", "-qm", "--format", "mp4", "--disable_caching"]
     assert command[-1] == "MutaLesson"
     assert "http_proxy" not in observed["environment"]
 
@@ -279,6 +280,34 @@ def test_backend_accepts_valid_stationary_derivatives(
         "parameter": parameter,
     }
     assert "tangent" in emit_manim_source(_project([_scene("stationary", "function", data)]))
+
+
+def test_typst_formula_is_educational_copy_not_raw_ast_dump() -> None:
+    data = {
+        "expression_ast": {
+            "type": "binary",
+            "op": "/",
+            "left": {
+                "type": "binary",
+                "op": "+",
+                "left": {"type": "variable", "name": "x"},
+                "right": {"type": "number", "value": 1},
+            },
+            "right": {
+                "type": "binary",
+                "op": "-",
+                "left": {"type": "variable", "name": "x"},
+                "right": {"type": "number", "value": 1},
+            },
+        },
+        "expression_text": "(x+1)/(x-1)",
+        "domain": [-3, 3],
+        "variable": "x",
+        "output": "y",
+        "mode": "curve",
+    }
+    source = emit_manim_source(_project([_scene("fraction-function", "function", data)]))
+    assert "MathTypst('y = frac(x + 1, x - 1)'" in source
 
 
 def test_worker_timeout_is_reported_without_fallback_artifact(monkeypatch, tmp_path: Path) -> None:
