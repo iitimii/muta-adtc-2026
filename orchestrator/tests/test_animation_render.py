@@ -78,6 +78,7 @@ def test_emitter_covers_parameterised_math_and_process_families() -> None:
             _scene("derivative", "function", _function("derivative")),
             _scene("integral", "function", _function("integral")),
             _scene("vector", "vector", {"x": 3, "y": 4, "label": "force"}),
+            _scene("circle", "circle", {"radius": 5.6, "phase": "radius"}),
             _scene(
                 "process",
                 "process",
@@ -91,12 +92,24 @@ def test_emitter_covers_parameterised_math_and_process_families() -> None:
     assert "3/4" in source and "6 times 4 = 24" in source
     assert "curve_segments" in source and "tangent" in source and "area = Polygon" in source
     assert "Arrow(" in source and "Apply the rule" in source
+    assert "Circle(radius=2.2" in source and "MathTypst('r = 5.6'" in source
     assert source.count("self.play(scene_intro") == len(project.scenes)
     assert "number_labels = VGroup()" in source and "domain: -3 to 3" in source
     assert "MathTypst('y = x^3'" in source
     assert "LaggedStart(*[Create(cell)" in source
     assert "LaggedStart(*[FadeIn(dot" in source
     assert "scale_to_fit_width" not in source
+
+
+@pytest.mark.parametrize(
+    ("radius", "label"),
+    [(0.001, "0.001"), (5.123456, "5.123456"), (1000.0, "1000")],
+)
+def test_circle_emitter_preserves_the_bounded_six_decimal_radius(radius, label) -> None:
+    project = _project([_scene("circle", "circle", {"radius": radius, "phase": "radius"})])
+    source = emit_manim_source(project)
+    compile(source, "lesson.py", "exec")
+    assert f"MathTypst('r = {label}'" in source
 
 
 @pytest.mark.parametrize("dividend,divisor", [(12, 3), (14, 4), (0, 5), (144, 12)])
@@ -138,6 +151,14 @@ def test_invalid_equal_sharing_is_rejected(data):
         _scene("array-text", "array", {"rows": 2, "columns": "4", "phase": "build"}),
         _scene("vector-bool", "vector", {"x": True, "y": 2, "label": "force"}),
         _scene("vector-text", "vector", {"x": 1, "y": "2", "label": "force"}),
+        _scene("circle-bool", "circle", {"radius": True, "phase": "radius"}),
+        _scene("circle-text", "circle", {"radius": "5.6", "phase": "radius"}),
+        _scene("circle-zero", "circle", {"radius": 0.0, "phase": "radius"}),
+        _scene("circle-negative", "circle", {"radius": -5.6, "phase": "construct"}),
+        _scene("circle-large", "circle", {"radius": 1000.1, "phase": "construct"}),
+        _scene("circle-small", "circle", {"radius": 0.0009, "phase": "construct"}),
+        _scene("circle-precise", "circle", {"radius": 5.1234567, "phase": "radius"}),
+        _scene("circle-near-grid", "circle", {"radius": 5.6000000001, "phase": "radius"}),
         {**_scene("duration-text", "array", {"rows": 2, "columns": 4, "phase": "build"}), "duration_ms": "900"},
         _scene("domain-text", "function", {**_function(), "domain": ["-3", 3]}),
         _scene(

@@ -11,10 +11,11 @@
   const MAX_SCENE_MS = 10000;
   const MAX_TOTAL_MS = 60000;
   const LEVELS = new Set(["early-primary", "upper-primary", "secondary", "tertiary"]);
-  const SCENE_KINDS = new Set(["fraction", "array", "division", "function", "process", "vector"]);
+  const SCENE_KINDS = new Set(["fraction", "array", "circle", "division", "function", "process", "vector"]);
   const PHASES = Object.freeze({
     fraction: new Set(["partition", "shade", "recap"]),
     array: new Set(["build", "addition", "equation"]),
+    circle: new Set(["construct", "radius"]),
     division: new Set(["count", "share", "recap"]),
   });
   const WORD_NUMBERS = Object.freeze({
@@ -26,6 +27,12 @@
     fourth: 4, fourths: 4, fifth: 5, fifths: 5, sixth: 6, sixths: 6,
     eighth: 8, eighths: 8, tenth: 10, tenths: 10, twelfth: 12, twelfths: 12,
   });
+  const CIRCLE_BRIEF_WORDS = new Set([
+    "a", "about", "an", "and", "animate", "animation", "can", "circle", "construct", "could",
+    "create", "draw", "equal", "equals", "explain", "for", "having", "identify", "in", "is", "its", "label",
+    "lesson", "line", "make", "mark", "me", "of", "one", "please", "radius", "render", "show",
+    "sketch", "the", "this", "to", "unit", "units", "whose", "with", "would", "you",
+  ]);
   const mounted = new Set();
 
   const plainRecord = (value) => value !== null && typeof value === "object" && !Array.isArray(value)
@@ -81,6 +88,10 @@
         || !Number.isInteger(data.divisor) || data.dividend < 0 || data.dividend > 144
         || data.divisor < 1 || data.divisor > 12 || Math.floor(data.dividend / data.divisor) > 12
         || !PHASES.division.has(data.phase)) return "Division scene is invalid.";
+    } else if (scene.kind === "circle") {
+      if (!onlyKeys(data, ["radius", "phase"]) || !finite(data.radius, 0.001, 1000)
+        || Math.abs(data.radius - Math.round(data.radius * 1e6) / 1e6) > 1e-12
+        || !PHASES.circle.has(data.phase)) return "Circle scene is invalid.";
     } else if (scene.kind === "function") {
       if (!onlyKeys(data, ["expression_ast", "expression_text", "domain", "variable", "output", "mode", "parameter", "bounds"])
         || !plainRecord(data.expression_ast) || typeof global.MutaViz?.validateExpressionV2 !== "function"
@@ -151,6 +162,78 @@
     match = value.match(/\b(\d{1,2}|zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+(?:groups?|rows?)\s+of\s+(\d{1,2}|zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b/);
     if (!match) return null;
     return { rows: numberFromToken(match[1]), columns: numberFromToken(match[2]) };
+  }
+
+  function explicitCircleRequest(source) {
+    const value = String(source || "");
+    return /\bcircles?\b/i.test(value)
+      && /\b(?:draw|sketch|construct|show|render|animate|radius|diameter)\b/i.test(value);
+  }
+
+  function parseCircle(source) {
+    const value = String(source || "").replace(/[−–—﹣－]/g, "-");
+    if (!explicitCircleRequest(value)) return null;
+    if (/\b(?:ellipses?|ovals?|squares?|rectangles?|triangles?|polygons?|spheres?|semicircles?|arcs?|sectors?)\b/i.test(value)) {
+      throw new Error("Use one circle only; mixed or different geometry is not discarded silently.");
+    }
+    if (/\bcircles\b/i.test(value)) {
+      throw new Error("This animation accepts one circle at a time, not multiple circles.");
+    }
+    if (/\b(?:cent(?:er|re)(?:ed|d|ing)?|origins?|coordinates?)\b/i.test(value)) {
+      throw new Error("Custom circle centres and coordinates are not supported yet; remove the centre constraint.");
+    }
+    if (/\bdiameters?\b/i.test(value)) {
+      throw new Error("Use a positive radius for this circle animation; diameter input is not converted silently.");
+    }
+    if (/\b(?:millimet(?:er|re)s?|centimet(?:er|re)s?|kilomet(?:er|re)s?|met(?:er|re)s?|inches?|feet|foot|yards?|miles?|mm|cm|km|m|ft)\b/i.test(value)) {
+      throw new Error("Named measurement units are not supported yet; give the radius as a unitless value or generic units.");
+    }
+    const pattern = /\bradius\b\s*(?:=|:|of|is)?\s*([+\-]?(?:\d+(?:\.\d*)?|\.\d+))(?!\w)/gi;
+    const matches = [...value.matchAll(pattern)];
+    if (!matches.length) {
+      throw new Error("Add one explicit positive circle radius, for example: draw a circle with radius 5.6.");
+    }
+    for (const clause of value.split(/\n+/).filter((item) => explicitCircleRequest(item))) {
+      if ((clause.match(/\bcircles?\b/gi) || []).length !== 1) {
+        throw new Error("This animation accepts exactly one circle in each circle instruction.");
+      }
+      const clauseMatches = [...clause.matchAll(pattern)];
+      const clauseRemainder = clauseMatches.reduceRight((textValue, match) => `${textValue.slice(0, match.index)} ${textValue.slice(match.index + match[0].length)}`, clause);
+      const remainingRadii = clauseRemainder.match(/\bradius\b/gi) || [];
+      const allowedRadiusLabel = remainingRadii.length === 1
+        && /(?:\band\b|[.!?])\s*(?:label|show|mark|identify)\s+(?:the|its|a)?\s*radius(?:\s+line)?\s*[.!?]*$/i.test(clauseRemainder);
+      if (remainingRadii.length && !allowedRadiusLabel) {
+        throw new Error("Every radius clause needs one resolved numeric value; only a final instruction to label that radius may omit it.");
+      }
+    }
+    for (const match of matches) {
+      const tail = value.slice(match.index + match[0].length);
+      if (/^\s*(?:[+*/×÷^]|-(?=\s*\d))/.test(tail)) {
+        throw new Error("Use one resolved numeric radius without additional arithmetic.");
+      }
+    }
+    if (matches.some((match) => (match[1].split(".")[1] || "").length > 6)) {
+      throw new Error("Circle radius supports at most six decimal places so its label remains exact.");
+    }
+    const remainder = matches.reduceRight((textValue, match) => `${textValue.slice(0, match.index)} ${textValue.slice(match.index + match[0].length)}`, value);
+    if (/[+\-]?(?:\d+(?:\.\d*)?|\.\d+)/.test(remainder)) {
+      throw new Error("Use one radius without additional numeric constraints or coordinates.");
+    }
+    const unsupportedWords = [...remainder.matchAll(/\p{L}+/gu)]
+      .map((match) => match[0].toLowerCase())
+      .filter((word) => !CIRCLE_BRIEF_WORDS.has(word));
+    const unsupportedSymbols = remainder.replace(/\p{L}+/gu, "").replace(/[\s,:;.!?'"()\-]/g, "");
+    if (unsupportedWords.length || unsupportedSymbols) {
+      throw new Error("Use only one circle and one resolved radius; extra expressions or constraints are not discarded silently.");
+    }
+    const radii = matches.map((match) => Number(match[1]));
+    if (!radii.every((radius) => Number.isFinite(radius) && radius >= 0.001 && radius <= 1000)) {
+      throw new Error("Circle radius must be from 0.001 through 1000.");
+    }
+    if (new Set(radii.map((radius) => radius.toString())).size !== 1) {
+      throw new Error("Use one circle radius; the supplied radius values conflict.");
+    }
+    return { radius: radii[0] };
   }
 
   function parseDivision(source) {
@@ -380,10 +463,19 @@
     return Number(value.toPrecision(5)).toString().replace("-", "−");
   }
 
+  function formatCircleRadius(value) {
+    if (!Number.isFinite(value) || value < 0.001 || value > 1000
+      || Math.abs(value - Math.round(value * 1e6) / 1e6) > 1e-12) return "invalid";
+    return value.toFixed(6).replace(/(?:\.0+|(?:(\.[0-9]*?)0+))$/, "$1");
+  }
+
   function planProject({ topic, level = "secondary", concept = "", requirements = "" }) {
     const cleanTopic = String(topic || concept || "Lesson animation").trim().slice(0, 240);
     const combined = `${topic || ""}\n${concept || ""}\n${requirements || ""}`;
     if (!cleanTopic || !LEVELS.has(level)) throw new Error("Add a topic and choose a learner level.");
+    if (explicitCircleRequest(combined) && explicitFunctionRequest(combined)) {
+      throw new Error("A circle construction and a function graph are different animation families. Request one at a time so neither is discarded.");
+    }
     const mathematicalFunction = parseFunction(combined);
     if (!mathematicalFunction && explicitFunctionRequest(combined)) {
       const error = new Error("Muta could not safely resolve that explicit function into a typed graph. Check the equation and use supported variables, operators, and functions instead of generating an unverified prose storyboard.");
@@ -396,7 +488,8 @@
     if (!mathematicalFunction && (normalizedNumeric.match(/\d+\s*\/\s*\d+/g) || []).length > 1 && /[+−-]/.test(normalizedNumeric.replace(/^\s*[−-]/, ""))) throw new Error("Arithmetic with multiple fractions needs a dedicated equation model. Muta will not discard an operand.");
     const unsupportedPresentation = String(requirements || "").match(/\b(?:red|blue|yellow|purple|orange|pink|colour|color|music|sound|voice[- ]?over|three[- ]dimensional|3d|rotate|rotation|\d+\s*(?:seconds?|minutes?))\b/i);
     if (unsupportedPresentation) throw new Error(`“${unsupportedPresentation[0]}” is not applied silently. Generate the semantic lesson first, then use the scene editor for timing; custom colours, audio, and 3D camera directions are not supported in this workspace yet.`);
-    const division = mathematicalFunction ? null : parseDivision(combined);
+    const circle = parseCircle(combined);
+    const division = mathematicalFunction || circle ? null : parseDivision(combined);
     const fraction = division ? null : parseFraction(combined);
     const array = parseArray(combined);
     const vector = parseVector(combined);
@@ -419,6 +512,13 @@
       } else {
         scenes.push(makeScene("function-read", "function", "Read values and behaviour", `Use the labelled axes, domain, scale, and any visible gaps to connect input ${mathematicalFunction.variable} with output ${mathematicalFunction.output}.`, 3600, curveData));
       }
+    } else if (circle) {
+      const radius = circle.radius; const radiusText = formatCircleRadius(radius);
+      summary = `Construct a circle whose radius is ${radiusText}, then identify the centre-to-circumference radius. ${levelPhrase(level)}`;
+      scenes = [
+        makeScene("circle-construct", "circle", "Construct the circle", `Draw the full set of points that are ${radiusText} units from the centre.`, 3200, { radius, phase: "construct" }),
+        makeScene("circle-radius", "circle", `Mark radius ${radiusText}`, `The segment from the centre to the circumference has length ${radiusText}.`, 3200, { radius, phase: "radius" }),
+      ];
     } else if (division) {
       const { dividend, divisor, example } = division; const quotient = Math.floor(dividend / divisor); const remainder = dividend % divisor;
       const data = { dividend, divisor };
@@ -455,7 +555,7 @@
       summary = `A ${process.length}-stage storyboard based only on the ordered steps you supplied. ${levelPhrase(level)}`;
       scenes = process.map((step, index) => makeScene(`step-${index + 1}`, "process", `Stage ${index + 1}`, step, 2400, { steps: process, active: index }));
     } else {
-      const error = new Error("Muta needs a bounded visual relationship: enter a fraction, multiplication array, typed one-variable function such as y = sin(x) or plot sin(x), 2D vector, or two or more ordered steps joined by arrows or new lines.");
+      const error = new Error("Muta needs a bounded visual relationship: enter a radius-defined circle, fraction, multiplication array, typed one-variable function such as y = sin(x) or plot sin(x), 2D vector, or two or more ordered steps joined by arrows or new lines.");
       error.code = "planner_required"; throw error;
     }
     const now = new Date().toISOString();
@@ -715,6 +815,22 @@
     }
   }
 
+  function drawCircle(ctx, scene, width, height, progress, palette) {
+    const { radius, phase } = scene.data; const cx = width / 2; const cy = height / 2 + 12;
+    const visualRadius = Math.max(24, Math.min(170, (width - 100) / 2, (height - 170) / 2));
+    const shownRadius = phase === "construct" ? visualRadius * progress : visualRadius;
+    ctx.strokeStyle = palette.accent; ctx.lineWidth = 4; ctx.beginPath();
+    ctx.arc(cx, cy, shownRadius, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = palette.ink; ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI * 2); ctx.fill();
+    if (phase === "radius") {
+      const lineEnd = cx + visualRadius * progress;
+      ctx.strokeStyle = palette.danger; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(lineEnd, cy); ctx.stroke();
+      ctx.fillStyle = palette.danger; ctx.beginPath(); ctx.moveTo(lineEnd, cy); ctx.lineTo(lineEnd - 12, cy - 6); ctx.lineTo(lineEnd - 12, cy + 6); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = palette.ink; ctx.textAlign = "center"; ctx.font = "700 22px Onest, sans-serif";
+      ctx.fillText(`r = ${formatCircleRadius(radius)}`, cx + visualRadius / 2, cy - 16);
+    }
+  }
+
   function drawDivision(ctx, scene, width, height, progress, palette) {
     const { dividend, divisor, phase } = scene.data; const quotient = Math.floor(dividend / divisor); const remainder = dividend % divisor;
     const columns = Math.min(4, divisor); const rows = Math.ceil(divisor / columns);
@@ -793,6 +909,7 @@
     const p = Math.max(0, Math.min(1, progress));
     if (scene.kind === "fraction") drawFraction(ctx, scene, width, height, p, palette);
     else if (scene.kind === "array") drawArray(ctx, scene, width, height, p, palette);
+    else if (scene.kind === "circle") drawCircle(ctx, scene, width, height, p, palette);
     else if (scene.kind === "division") drawDivision(ctx, scene, width, height, p, palette);
     else if (scene.kind === "function") drawFunction(ctx, scene, width, height, p, palette);
     else if (scene.kind === "process") drawProcess(ctx, scene, width, height, p, palette);
@@ -1104,7 +1221,7 @@
   }
 
   global.MutaAnimator = Object.freeze({
-    VERSION, KIND, validateProject, planProject, requestAnimationPlan, parseFraction, parseArray, parseDivision, parsePolynomial, parseFunction, formatMathValue,
+    VERSION, KIND, validateProject, planProject, requestAnimationPlan, parseFraction, parseArray, parseCircle, parseDivision, parsePolynomial, parseFunction, formatMathValue, formatCircleRadius,
     parseVector, parseProcess, polynomialValue, expressionValue, numericalDerivative, numericalIntegral, projectDescription, loadProjects, saveProject,
     removeProject, exportProject, exportTranscript, deliverBrowserVideo, exportVideo, videoCapability, requestManimCapability, requestManimSource, requestManimSourceRevision, downloadManimSource, exportManimVideo, drawFrame, drawExportCaption,
     mountPlayer, mountStudio, cleanup,

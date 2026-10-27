@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from contracts.models import AnimationFunctionScene, AnimationPlanProject
+from contracts.models import AnimationCircleScene, AnimationFunctionScene, AnimationPlanProject
 from orchestrator.gateway.visualization_v2 import (
     VisualizationV2Error,
     evaluate_expression_v2,
@@ -80,6 +80,11 @@ def _tick_label(value: float) -> str:
     if abs(value) < 1e-10:
         return "0"
     return f"{value:.3g}"
+
+
+def _circle_radius_label(value: float) -> str:
+    """Mirror the browser's exact, bounded six-decimal circle representation."""
+    return f"{float(value):.6f}".rstrip("0").rstrip(".")
 
 
 def _expression_typst(
@@ -471,6 +476,28 @@ def _vector_scene(index: int, scene) -> list[str]:
     ]
 
 
+def _circle_scene(index: int, scene: AnimationCircleScene) -> list[str]:
+    data = scene.data
+    radius_label = _circle_radius_label(data.radius)
+    lines = _scene_prelude(scene.title, scene.narration) + [
+        "        circle = Circle(radius=2.2, color=TEAL, stroke_width=5)",
+        "        centre = Dot(ORIGIN, radius=0.08, color=WHITE)",
+        "        radius_line = Line(ORIGIN, RIGHT * 2.2, color=YELLOW, stroke_width=5)",
+        f"        radius_label = MathTypst({_python_text(f'r = {radius_label}')}, font_size=34).next_to(radius_line, UP, buff=0.12)",
+    ]
+    if data.phase == "construct":
+        lines += [
+            "        content = VGroup(circle, centre)",
+            "        scene_intro = AnimationGroup(FadeIn(scene_title), FadeIn(caption), Create(circle), FadeIn(centre))",
+        ]
+    else:
+        lines += [
+            "        content = VGroup(circle, centre, radius_line, radius_label)",
+            "        scene_intro = Succession(AnimationGroup(FadeIn(scene_title), FadeIn(caption), Create(circle), FadeIn(centre)), AnimationGroup(Create(radius_line), Write(radius_label)))",
+        ]
+    return lines
+
+
 def _division_scene(index: int, scene) -> list[str]:
     data = scene.data
     quotient, remainder = divmod(data.dividend, data.divisor)
@@ -532,6 +559,8 @@ def emit_manim_source(project: AnimationPlanProject) -> str:
             block = _fraction_scene(index, scene)
         elif scene.kind == "array":
             block = _array_scene(index, scene)
+        elif scene.kind == "circle":
+            block = _circle_scene(index, scene)
         elif scene.kind == "division":
             block = _division_scene(index, scene)
         elif scene.kind == "function":

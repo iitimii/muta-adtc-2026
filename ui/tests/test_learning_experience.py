@@ -208,7 +208,7 @@ def test_animation_studio_is_safe_offline_editable_and_packaged() -> None:
     assert 'global.MutaAnimator?.loadProjects' in platform
     assert 'global.MutaAnimator?.cleanup(view())' in platform
     assert 'const KIND = "lesson-animation"' in animator
-    assert 'const SCENE_KINDS = new Set(["fraction", "array", "division", "function", "process", "vector"])' in animator
+    assert 'const SCENE_KINDS = new Set(["fraction", "array", "circle", "division", "function", "process", "vector"])' in animator
     assert "MediaRecorder.isTypeSupported" in animator
     assert "canvas.captureStream(24)" in animator
     assert "IntersectionObserver" in animator and 'document.addEventListener("visibilitychange"' in animator

@@ -242,6 +242,22 @@ def _is_explicit_function_request(request: AnimationPlanRequest) -> bool:
     )
 
 
+def _is_explicit_circle_request(request: AnimationPlanRequest) -> bool:
+    value = "\n".join(
+        part
+        for part in (request.topic, request.concept or "", request.requirements or "")
+        if part
+    )
+    return bool(
+        re.search(r"\bcircles?\b", value, re.IGNORECASE)
+        and re.search(
+            r"\b(?:draw|sketch|construct|show|render|animate|radius|diameter)\b",
+            value,
+            re.IGNORECASE,
+        )
+    )
+
+
 class _ProposalStep(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -448,10 +464,15 @@ def plan_animation_project(
             and not re.search(r"\b(?:cells?|mitosis|meiosis|fission)\b", brief_text, re.IGNORECASE)
         )
     )
-    if _is_explicit_function_request(request) or mathematical_division:
+    if (
+        _is_explicit_function_request(request)
+        or _is_explicit_circle_request(request)
+        or mathematical_division
+    ):
         # This planner can produce only prose process scenes. An unresolved explicit function must
-        # stay unresolved rather than being converted into an authoritative-looking storyboard.
-        # Equal sharing is also a checked concrete family in Studio, never model-written arithmetic.
+        # or geometry request must stay unresolved rather than being converted into an
+        # authoritative-looking storyboard. Equal sharing is also a checked concrete family in
+        # Studio, never model-written arithmetic.
         return None, False
     requested_step_count, step_count_error = _requested_step_count(request)
     if step_count_error is not None:

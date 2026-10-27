@@ -450,6 +450,21 @@ class AnimationVectorData(BaseModel):
     label: str = Field(min_length=1, max_length=80)
 
 
+class AnimationCircleData(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    radius: AnimationNumber = Field(ge=0.001, le=1000, multiple_of=0.000001)
+    phase: Literal["construct", "radius"]
+
+    @field_validator("radius")
+    @classmethod
+    def radius_has_at_most_six_decimal_places(cls, value: float) -> float:
+        canonical = round(float(value) * 1_000_000) / 1_000_000
+        if abs(float(value) - canonical) > 1e-12:
+            raise ValueError("circle radius must have at most six decimal places")
+        return value
+
+
 class _AnimationSceneBase(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -489,13 +504,19 @@ class AnimationVectorScene(_AnimationSceneBase):
     data: AnimationVectorData
 
 
+class AnimationCircleScene(_AnimationSceneBase):
+    kind: Literal["circle"] = "circle"
+    data: AnimationCircleData
+
+
 AnimationPlanScene = Annotated[
     AnimationProcessScene
     | AnimationFractionScene
     | AnimationArrayScene
     | AnimationDivisionScene
     | AnimationFunctionScene
-    | AnimationVectorScene,
+    | AnimationVectorScene
+    | AnimationCircleScene,
     Field(discriminator="kind"),
 ]
 

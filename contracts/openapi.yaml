@@ -2995,6 +2995,63 @@ components:
       - duration_ms
       - data
       title: AnimationArrayScene
+    AnimationCircleData:
+      properties:
+        radius:
+          type: number
+          multipleOf: 1.0e-06
+          maximum: 1000.0
+          minimum: 0.001
+          title: Radius
+        phase:
+          type: string
+          enum:
+          - construct
+          - radius
+          title: Phase
+      additionalProperties: false
+      type: object
+      required:
+      - radius
+      - phase
+      title: AnimationCircleData
+    AnimationCircleScene:
+      properties:
+        id:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9-]{0,79}$
+          title: Id
+        title:
+          type: string
+          maxLength: 140
+          minLength: 1
+          title: Title
+        narration:
+          type: string
+          maxLength: 700
+          minLength: 1
+          title: Narration
+        duration_ms:
+          type: integer
+          maximum: 10000.0
+          minimum: 900.0
+          title: Duration Ms
+        kind:
+          type: string
+          const: circle
+          title: Kind
+          default: circle
+        data:
+          $ref: '#/components/schemas/AnimationCircleData'
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - title
+      - narration
+      - duration_ms
+      - data
+      title: AnimationCircleScene
     AnimationDivisionData:
       properties:
         dividend:
@@ -3283,10 +3340,12 @@ components:
             - $ref: '#/components/schemas/AnimationDivisionScene'
             - $ref: '#/components/schemas/AnimationFunctionScene'
             - $ref: '#/components/schemas/AnimationVectorScene'
+            - $ref: '#/components/schemas/AnimationCircleScene'
             discriminator:
               propertyName: kind
               mapping:
                 array: '#/components/schemas/AnimationArrayScene'
+                circle: '#/components/schemas/AnimationCircleScene'
                 division: '#/components/schemas/AnimationDivisionScene'
                 fraction: '#/components/schemas/AnimationFractionScene'
                 function: '#/components/schemas/AnimationFunctionScene'

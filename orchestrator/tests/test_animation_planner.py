@@ -129,6 +129,26 @@ def test_explicit_unresolved_function_never_becomes_a_prose_storyboard() -> None
         assert engine.local.calls == []
 
 
+def test_explicit_circle_never_becomes_a_prose_storyboard() -> None:
+    for concept in (
+        "Draw a circle with radius 5.6",
+        "Construct a circle and show its radius",
+        "Animate a circle with diameter 11.2",
+    ):
+        engine = _Engine([_valid()])
+        request = AnimationPlanRequest(
+            student_id="learner",
+            topic="Circle geometry",
+            level="secondary",
+            concept=concept,
+            requirements="Show the requested geometry.",
+        )
+        project, repaired = plan_animation_project(engine, request)
+        assert project is None
+        assert repaired is False
+        assert engine.local.calls == []
+
+
 def test_invalid_proposal_gets_one_structured_repair() -> None:
     invalid = {**_valid(), "steps": [{"title": "Only", "narration": "One state"}]}
     engine = _Engine([invalid, _valid()])

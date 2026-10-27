@@ -42,6 +42,87 @@ test("array parser recognizes groups in words", () => {
   assert.deepEqual(animator.parseArray("Build six groups of four"), { rows: 6, columns: 4 });
 });
 
+test("radius-defined circle preserves 5.6 in project data and draft geometry", () => {
+  const project = plan("draw a circle with radius 5.6");
+  assert.deepEqual(project.scenes.map((scene) => scene.kind), ["circle", "circle"]);
+  assert.deepEqual(project.scenes.map((scene) => scene.data), [
+    { radius: 5.6, phase: "construct" },
+    { radius: 5.6, phase: "radius" },
+  ]);
+  assert.match(project.summary, /radius is 5\.6/);
+  assert.match(project.scenes[1].narration, /length 5\.6/);
+  const arcs = []; const labels = [];
+  const context = new Proxy({
+    measureText: () => ({ width: 20 }),
+    arc: (x, y, radius) => arcs.push({ x, y, radius }),
+    fillText: (value) => labels.push(value),
+  }, { get: (target, key) => target[key] || (() => {}) });
+  const canvas = { style: {}, getContext: () => context };
+  animator.drawFrame(canvas, project, 1, 1, { width: 640, height: 360 });
+  assert.ok(arcs.some((arc) => arc.radius > 50));
+  assert.ok(labels.includes("r = 5.6"));
+});
+
+test("circle radius formatting is exact and bounded across browser planning and draft labels", () => {
+  for (const [radius, label] of [[0.001, "0.001"], [5.123456, "5.123456"], [1000, "1000"]]) {
+    const project = plan(`draw a circle with radius ${radius}`);
+    assert.equal(project.scenes[0].data.radius, radius);
+    assert.match(project.summary, new RegExp(`radius is ${label.replace(".", "\\.")}`));
+    assert.equal(animator.formatCircleRadius(radius), label);
+  }
+  assert.equal(animator.formatCircleRadius(5.1234567), "invalid");
+  const nearGrid = plan("draw a circle with radius 5.6");
+  nearGrid.scenes[0].data.radius = 5.6000000001;
+  assert.equal(animator.validateProject(nearGrid).ok, false);
+});
+
+test("circle requests fail closed instead of becoming prose storyboards", () => {
+  assert.deepEqual(animator.parseCircle("Draw a circle with radius 5.6"), { radius: 5.6 });
+  assert.deepEqual(animator.parseCircle("Draw a circle with radius 5.6."), { radius: 5.6 });
+  for (const prompt of [
+    "Draw a circle",
+    "Draw a circle with radius zero",
+    "Draw a circle with radius 0",
+    "Draw a circle with radius -5.6",
+    "Draw a circle with radius 1000.1",
+    "Draw a circle with radius 0.0009",
+    "Draw a circle with radius 5.1234567",
+    "Draw a circle with radius 2+3",
+    "Draw a circle with radius 5 and radius 6",
+    "Draw a circle with diameter 11.2",
+    "Draw a circle with radius 5.6 cm",
+    "Draw a circle with radius 5.6 metres",
+    "Draw a circle with radius 5.6 centred at (3, 4)",
+    "Draw a circle with radius 5.6 and a square",
+    "Draw an ellipse and a circle with radius 5.6",
+    "Draw two circles with radius 5.6",
+    "Draw a circle with radius 5.6 and mark point 3",
+    "Draw a circle with radius 5.6 minus pi",
+    "Draw a circle with radius 5.6π",
+    "Draw a circle with radius 5.6 squared",
+    "Draw a circle with radius 5.6 and radius nope",
+    "Draw a circle with radius 5.6 percent",
+    "Draw a circle with radius 5.6 and show its area",
+    "Draw a circle with radius 5.6 and a circle",
+    "Draw a circle with radius 5.6 and one circle",
+    "Draw a circle with radius 5.6 and radius",
+    "Draw a circle with radius 5.6 and radius is",
+  ]) assert.throws(() => plan(prompt), undefined, prompt);
+  assert.equal(plan("Draw a circle with radius 5.6 and label its radius").scenes.length, 2);
+  assert.throws(() => animator.planProject({
+    topic: "Draw a circle with radius 5.6; plot y = x^2",
+    concept: "",
+    level: "secondary",
+    requirements: "",
+  }), /different animation families/);
+  assert.throws(() => animator.planProject({
+    topic: "Draw a circle with radius 5.6",
+    concept: "",
+    level: "secondary",
+    requirements: "Plot y = x^2",
+  }), /different animation families/);
+});
+
 test("division derives every count and remainder, without generic process filler", () => {
   for (const [prompt, dividend, divisor] of [
     ["Explain division", 12, 3], ["Explain 12 ÷ 3", 12, 3],
