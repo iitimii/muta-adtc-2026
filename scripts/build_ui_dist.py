@@ -23,6 +23,7 @@ TLS_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 UI_FILES = (
     "VISUALIZATION-LICENSES.txt",
     "access-bootstrap.js",
+    "animation-studio.js",
     "africa-languages.js",
     "app.js",
     "audio.js",

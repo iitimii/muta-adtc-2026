@@ -7,6 +7,11 @@ never hand-edit the YAML. See ROADMAP.md (Thu 16 Jul — "Freeze the API contrac
 """
 
 from contracts.models import (
+    AnimationPlanRequest,
+    AnimationPlanResponse,
+    AnimationRenderCapability,
+    AnimationSourceRequest,
+    AnimationSourceResponse,
     ChatRequest,
     ChatResponse,
     DiagnoseRequest,
@@ -30,6 +35,11 @@ from contracts.models import (
 )
 
 __all__ = [
+    "AnimationPlanRequest",
+    "AnimationPlanResponse",
+    "AnimationRenderCapability",
+    "AnimationSourceRequest",
+    "AnimationSourceResponse",
     "ChatRequest",
     "ChatResponse",
     "DiagnoseRequest",

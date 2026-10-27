@@ -499,8 +499,18 @@
   }
 
   function buildStudioArtifact(kind) {
-    const course = studioCourse(); const output = $("#studio-output");
-    if (!course || !output) return;
+    const output = $("#studio-output");
+    if (!output) return;
+    if (kind === "animation") {
+      global.MutaAnimator?.cleanup(output);
+      global.MutaAnimator?.mountStudio(output, {
+        onProject: (project) => recordEvent("animation_project", { animation_id: project.id, level: project.level }),
+      });
+      output.scrollIntoView?.({ behavior: global.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+      return;
+    }
+    const course = studioCourse();
+    if (!course) return;
     state.currentCourse = course;
     if (kind === "lesson") { openCourse(course); return; }
     if (kind === "quiz") {
@@ -534,6 +544,7 @@
       ["flashcards", learningText("flashcards"), learningText("flashcardsModeHelp")],
       ["diagram", learningText("diagram"), learningText("diagramHelp")],
       ["infographic", learningText("infographic"), learningText("infographicHelp")],
+      ["animation", learningText("lessonAnimation"), learningText("lessonAnimationHelp")],
     ];
     modes.forEach(([id, title, copy]) => {
       const card = button("", "studio-mode-card", () => buildStudioArtifact(id)); card.dataset.mode = id;
@@ -609,7 +620,39 @@
       card.append(h4, p, button(learningText("openExperiment"), "course-open", () => openPlayground(course, playground))); grid.append(card);
     }
     root.append(grid);
+    const animations = global.MutaAnimator?.loadProjects?.() || [];
+    const animationHeading = heading(learningText("savedAnimationsTitle"), learningText("savedAnimationsHelp"));
+    animationHeading.classList.add("playground-animation-heading"); root.append(animationHeading);
+    const animationGrid = document.createElement("div"); animationGrid.className = "playground-grid animation-library-grid";
+    if (!animations.length) {
+      const empty = document.createElement("article"); empty.className = "playground-card animation-library-empty";
+      const h4 = document.createElement("h4"); h4.textContent = learningText("noSavedAnimations");
+      const p = document.createElement("p"); p.textContent = learningText("noSavedAnimationsHelp");
+      const create = button(learningText("createAnimation"), "course-open", () => { setTab("studio"); buildStudioArtifact("animation"); });
+      empty.append(h4, p, create); animationGrid.append(empty);
+    }
+    animations.forEach((project) => {
+      const card = document.createElement("article"); card.className = "playground-card animation-library-card";
+      const meta = document.createElement("span"); meta.className = "course-subject"; meta.textContent = learningText("animationSceneCount", { count: project.scenes.length });
+      const h4 = document.createElement("h4"); h4.textContent = project.title;
+      const p = document.createElement("p"); p.textContent = project.summary;
+      const actions = document.createElement("div"); actions.className = "animation-library-actions";
+      const open = button(learningText("openAnimation"), "course-open", () => openSavedAnimation(project));
+      const exportButton = button(learningText("animationExport"), "course-export", () => global.MutaAnimator.exportProject(project));
+      const remove = button(learningText("remove"), "course-remove", () => { if (!global.confirm(learningText("removeAnimationConfirm", { title: project.title }))) return; global.MutaAnimator.removeProject(project.id); renderPlayground(); });
+      actions.append(open, exportButton, remove); card.append(meta, h4, p, actions); animationGrid.append(card);
+    });
+    root.append(animationGrid);
     resetViewScroll();
+  }
+  function openSavedAnimation(project) {
+    const root = view(); global.MutaAnimator?.cleanup(root); root.replaceChildren();
+    const toolbar = document.createElement("div"); toolbar.className = "reader-toolbar";
+    const h = document.createElement("div"); const small = document.createElement("small"); small.textContent = learningText("lessonAnimation"); const strong = document.createElement("strong"); strong.textContent = project.title; h.append(small, strong);
+    toolbar.append(h, button(learningText("allExperiments"), "reader-secondary", renderPlayground));
+    const workspace = document.createElement("section"); workspace.className = "saved-animation-workspace";
+    global.MutaAnimator?.mountStudio(workspace, { project, onProject: (updated) => recordEvent("animation_project", { animation_id: updated.id, level: updated.level }) });
+    root.append(toolbar, workspace); resetViewScroll();
   }
   function openPlayground(course, playground) {
     state.currentCourse = course;
@@ -703,6 +746,7 @@
   }
 
   function setTab(tab) {
+    global.MutaAnimator?.cleanup(view());
     state.tab = tab;
     document.querySelectorAll("[data-learning-tab]").forEach((node) => node.setAttribute("aria-current", node.dataset.learningTab === tab ? "page" : "false"));
     $(".learning-actions").hidden = tab !== "library";
@@ -744,6 +788,7 @@
       loadCourses().then(() => setTab(initialTab)).catch((error) => status(error.message)); $("#learning-close")?.focus();
     } else {
       global.MutaViz?.cleanup(view());
+      global.MutaAnimator?.cleanup(view());
       const target = learningOpener?.isConnected && learningOpener.getClientRects().length
         && !learningOpener.closest("[inert]") ? learningOpener : $("#unit-open");
       learningOpener = null;

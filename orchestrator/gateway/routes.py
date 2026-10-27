@@ -31,6 +31,11 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import Response, StreamingResponse
 
 from contracts.models import (
+    AnimationPlanRequest,
+    AnimationPlanResponse,
+    AnimationRenderCapability,
+    AnimationSourceRequest,
+    AnimationSourceResponse,
     AnswerCheckRequest,
     AnswerCheckResponse,
     AttachmentRef,
@@ -88,6 +93,15 @@ from contracts.models import (
     VisionReply,
 )
 from orchestrator import bench_metrics
+from orchestrator.gateway.animation_planner import plan_animation_project
+from orchestrator.gateway.animation_render import (
+    AnimationRenderBusyError,
+    AnimationRenderError,
+    emit_manim_source,
+    manim_capability,
+    render_manim_video,
+    source_filename,
+)
 from orchestrator.gateway.auth import (
     caller_from_token,
     is_operator_request,
@@ -839,6 +853,163 @@ def select_model(
     _apply_model_capacity(status, manager)
     status["selection_enabled"] = True
     return ModelSelectResponse.model_validate(status)
+
+
+@router.post(
+    "/animation/plan",
+    response_model=AnimationPlanResponse,
+    tags=["tutor"],
+)
+async def animation_plan(
+    request: Request,
+    req: AnimationPlanRequest,
+    engine: ChatEngine = Depends(get_engine),
+    sessions: SessionManager = Depends(get_sessions),
+    ladder: DegradationLadder = Depends(get_ladder),
+    generations: GenerationManager = Depends(get_generation_manager),
+    caller: str = Depends(require_caller),
+) -> AnimationPlanResponse:
+    """Plan a novel storyboard with the installed model under a closed JSON grammar."""
+    if caller != req.student_id:
+        raise HTTPException(status_code=403, detail="you can only plan your own lesson")
+    await run_in_threadpool(_await_local_tutor)
+    cancel_event = threading.Event()
+    client_request_id = f"animation-plan:{uuid.uuid4().hex}"
+    admission_id = f"generation:animation:{uuid.uuid4().hex}"
+
+    def _claim_session() -> bool:
+        decision = sessions.acquire(admission_id)
+        if decision.admission is Admission.REFUSED:
+            raise HTTPException(
+                status_code=503,
+                detail=decision.message or ladder.busy_message(),
+            )
+        return decision.admitted
+
+    def _run_admitted_plan():
+        try:
+            return plan_animation_project(engine, req, cancel_event=cancel_event)
+        finally:
+            sessions.release(admission_id)
+
+    def _stop_matching_job() -> None:
+        for snapshot in generations.matching(caller, client_request_id):
+            job = generations.get(snapshot.job_id, student_id=caller)
+            if job is not None and snapshot.state in {"queued", "running"}:
+                job.request_stop()
+
+    try:
+        execution = asyncio.create_task(
+            run_in_threadpool(
+                lambda: generations.execute(
+                    student_id=caller,
+                    allow_parallel=False,
+                    client_request_id=client_request_id,
+                    queued_cleanup=lambda: sessions.release(admission_id),
+                    before_start=_claim_session,
+                    cancel_event=cancel_event,
+                    operation=_run_admitted_plan,
+                )
+            )
+        )
+        disconnected = False
+        while not execution.done():
+            await asyncio.sleep(0.05)
+            if not disconnected and await request.is_disconnected():
+                disconnected = True
+                cancel_event.set()
+            if disconnected:
+                _stop_matching_job()
+        packed, _was_queued, _queue_position = await execution
+        project, repaired = packed
+    except asyncio.CancelledError:
+        cancel_event.set()
+        raise
+    except GenerationCapacityError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    if project is None:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "The local tutor could not produce a valid animation plan. "
+                "Edit the brief and try again."
+            ),
+        )
+    return AnimationPlanResponse(project=project, repaired=repaired)
+
+
+@router.post(
+    "/animation/source",
+    response_model=AnimationSourceResponse,
+    tags=["tutor"],
+)
+def animation_source(
+    req: AnimationSourceRequest,
+    caller: str = Depends(require_caller),
+) -> AnimationSourceResponse:
+    """Return inspectable server-owned Manim code for one validated project."""
+    del caller  # Authentication is required; projects do not contain learner-private storage ids.
+    try:
+        source = emit_manim_source(req.project)
+    except AnimationRenderError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return AnimationSourceResponse(source=source, filename=source_filename(req.project))
+
+
+@router.get(
+    "/animation/render-capability",
+    response_model=AnimationRenderCapability,
+    tags=["tutor"],
+)
+def animation_render_capability(
+    caller: str = Depends(require_caller),
+) -> AnimationRenderCapability:
+    """Report whether this offline build includes the bounded Manim worker."""
+    del caller
+    capability = manim_capability()
+    return AnimationRenderCapability(
+        available=capability.available,
+        detail=capability.detail,
+    )
+
+
+@router.post(
+    "/animation/render",
+    responses={200: {"content": {"video/mp4": {}}, "description": "Rendered lesson video"}},
+    tags=["tutor"],
+)
+async def animation_render(
+    req: AnimationSourceRequest,
+    request: Request,
+    caller: str = Depends(require_caller),
+) -> Response:
+    """Render only trusted emitted source with the bounded local Manim worker."""
+    del caller
+    cancel_event = threading.Event()
+    execution = asyncio.create_task(
+        run_in_threadpool(lambda: render_manim_video(req.project, cancel_event=cancel_event))
+    )
+    try:
+        while not execution.done():
+            await asyncio.sleep(0.05)
+            if await request.is_disconnected():
+                cancel_event.set()
+        video = await execution
+    except asyncio.CancelledError:
+        cancel_event.set()
+        raise
+    except AnimationRenderBusyError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except AnimationRenderError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return Response(
+        video,
+        media_type="video/mp4",
+        headers={
+            "Content-Disposition": f'attachment; filename="{req.project.id}-manim.mp4"',
+            "Cache-Control": "no-store",
+        },
+    )
 
 
 def _url_up(url: str) -> bool:

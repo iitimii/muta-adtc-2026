@@ -560,6 +560,61 @@
     return visit(root);
   }
 
+  function normalizeExpressionV2(source) {
+    let value = String(source || "").trim();
+    if (!value || value.length > 500 || [...value].some((character) => character.charCodeAt(0) < 32)) {
+      throw new Error("expression is empty, too long, or contains control characters");
+    }
+    value = value.replace(/\$\$/g, "").replace(/\\\[|\\\]/g, "")
+      .replace(/[−–]/g, "-").replace(/[×·]/g, "*").replace(/²/g, "^2").replace(/³/g, "^3").replace(/π/g, "pi")
+      .replace(/\\(?:left|right|,|!|;|:|quad|qquad)/g, "").replace(/\\(?:cdot|times)/g, "*")
+      .replace(/\\operatorname\s*\{\s*(atan2|exp|ln|log)\s*\}/g, "$1").replace(/\\arctan2\b/g, "atan2");
+    const expandFraction = (input) => {
+      let output = ""; let cursor = 0;
+      const group = (start) => { if (input[start] !== "{") throw new Error("fraction arguments must be braced"); let depth = 0; for (let index = start; index < input.length; index += 1) { if (input[index] === "{") depth += 1; else if (input[index] === "}") { depth -= 1; if (depth === 0) return [input.slice(start + 1, index), index + 1]; } if (depth > 24) throw new Error("expression nesting exceeds the budget"); } throw new Error("unclosed fraction argument"); };
+      while (cursor < input.length) { if (input.startsWith("\\frac", cursor)) { const [left, afterLeft] = group(cursor + 5); const [right, afterRight] = group(afterLeft); output += `((${expandFraction(left)})/(${expandFraction(right)}))`; cursor = afterRight; } else { output += input[cursor]; cursor += 1; } }
+      return output;
+    };
+    value = expandFraction(value);
+    for (const name of [...SURFACE_FUNCTIONS, "atan2", "min", "max"].sort((a, b) => b.length - a.length)) value = value.replace(new RegExp(`\\\\${name}\\b`, "g"), name);
+    if (value.includes("\\")) throw new Error("unsupported LaTeX command");
+    value = value.replace(/\^\s*\{/g, "^(").replace(/[{}]/g, (character) => character === "{" ? "(" : ")").replace(/[\[\]]/g, "").replace(/\s+/g, "").replace(/[;,.:]+$/, "");
+    if (!value || value.length > 500) throw new Error("expression is empty or too long");
+    return value;
+  }
+
+  function parseExpressionV2(source) {
+    const value = normalizeExpressionV2(source); const functions = new Set([...SURFACE_FUNCTIONS, "atan2", "min", "max"]); const constants = new Set(["e", "pi"]); const variables = new Set(["x", "y", "z", "u", "v", "t"]); const raw = []; let cursor = 0;
+    while (cursor < value.length) {
+      const number = value.slice(cursor).match(/^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?/);
+      if (number) { raw.push({ kind: "number", value: number[0] }); cursor += number[0].length; continue; }
+      const name = value.slice(cursor).match(/^[A-Za-z][A-Za-z0-9]*/);
+      if (name) {
+        const identifier = name[0].toLowerCase();
+        if (!functions.has(identifier) && !constants.has(identifier) && identifier.length > 1) {
+          const parts = []; let rest = identifier;
+          while (rest) { if (rest.startsWith("pi")) { parts.push("pi"); rest = rest.slice(2); } else if (variables.has(rest[0]) || rest[0] === "e") { parts.push(rest[0]); rest = rest.slice(1); } else { parts.length = 0; break; } }
+          if (parts.length) parts.forEach((part) => raw.push({ kind: "name", value: part })); else raw.push({ kind: "name", value: identifier });
+        } else raw.push({ kind: "name", value: identifier });
+        cursor += name[0].length; continue;
+      }
+      const character = value[cursor]; if (!"+-*/^(),".includes(character)) throw new Error(`unsupported expression character at ${cursor}`); raw.push({ kind: character, value: character }); cursor += 1;
+    }
+    if (raw.length > 240) throw new Error("expression has too many tokens");
+    const tokens = [];
+    for (const token of raw) { if (tokens.length) { const previous = tokens.at(-1); const endsValue = ["number", "name", ")"].includes(previous.kind); const startsValue = ["number", "name", "("].includes(token.kind); const functionCall = previous.kind === "name" && functions.has(previous.value) && token.kind === "("; if (endsValue && startsValue && !functionCall) tokens.push({ kind: "*", value: "*" }); } tokens.push(token); }
+    tokens.push({ kind: "end", value: "" }); let index = 0; let nodes = 0; let depth = 0;
+    const current = () => tokens[index]; const take = (kind) => { if (current().kind !== kind) return null; const token = current(); index += 1; return token; }; const need = (kind) => { const token = take(kind); if (!token) throw new Error(`expected ${kind}`); return token; }; const node = (item) => { nodes += 1; if (nodes > 160) throw new Error("expression has too many operations"); return item; };
+    let additive; let multiplicative; let unary; let power; let primary;
+    const grouped = () => { depth += 1; if (depth > 24) throw new Error("expression nesting exceeds the budget"); try { return additive(); } finally { depth -= 1; } };
+    primary = () => { const number = take("number"); if (number) { const numeric = Number(number.value); if (!Number.isFinite(numeric) || Math.abs(numeric) > 1e9) throw new Error("numeric literal is outside the budget"); return node({ type: "number", value: numeric }); } const name = take("name"); if (name) { if (variables.has(name.value)) return node({ type: "variable", name: name.value }); if (constants.has(name.value)) return node({ type: "constant", name: name.value }); if (!functions.has(name.value)) throw new Error(`unsupported name: ${name.value}`); need("("); const args = [grouped()]; while (take(",")) args.push(grouped()); need(")"); const expected = ["atan2", "min", "max"].includes(name.value) ? 2 : 1; if (args.length !== expected) throw new Error(`${name.value} expects ${expected} arguments`); return node({ type: "call", name: name.value, args }); } if (take("(")) { const result = grouped(); need(")"); return result; } throw new Error("expected a number, variable, function, or group"); };
+    power = () => { let result = primary(); if (take("^")) result = node({ type: "binary", op: "^", left: result, right: unary() }); return result; };
+    unary = () => { if (take("+")) return unary(); if (take("-")) return node({ type: "unary", op: "-", arg: unary() }); return power(); };
+    multiplicative = () => { let result = unary(); while (["*", "/"].includes(current().kind)) { const op = current().value; index += 1; result = node({ type: "binary", op, left: result, right: unary() }); } return result; };
+    additive = () => { let result = multiplicative(); while (["+", "-"].includes(current().kind)) { const op = current().value; index += 1; result = node({ type: "binary", op, left: result, right: multiplicative() }); } return result; };
+    const result = additive(); need("end"); const validationError = validateV2Expression(result); if (validationError) throw new Error(validationError); return result;
+  }
+
   function validateV2Spec(candidate, encoded) {
     const exactKeys = (value, allowed) => value && typeof value === "object" && !Array.isArray(value)
       && Object.keys(value).every((key) => allowed.has(key) && !FORBIDDEN_KEYS.has(key));
@@ -1102,6 +1157,9 @@
     extract,
     evaluateSurfaceExpression,
     evaluateExpressionV2,
+    normalizeExpressionV2,
+    parseExpressionV2,
+    validateExpressionV2: validateV2Expression,
     frameUrl,
     renderAll,
     validateSpec,

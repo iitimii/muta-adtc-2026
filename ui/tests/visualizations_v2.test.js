@@ -203,6 +203,23 @@ test("evaluates the typed V2 AST without dynamic source execution", () => {
   assert.equal(viz.evaluateExpressionV2(angle, { x: 0, y: 1 }), Math.PI / 2);
 });
 
+test("browser typed-expression parser matches the trusted V2 evaluator", () => {
+  const cases = [
+    ["x^3", 2, 8],
+    ["sin(x)", Math.PI / 2, 1],
+    ["exp(-x^2)", 0, 1],
+    ["2x + 3", 4, 11],
+    ["\\frac{1}{1+x^2}", 1, 0.5],
+  ];
+  for (const [source, x, expected] of cases) {
+    const ast = viz.parseExpressionV2(source);
+    assert.equal(viz.validateExpressionV2(ast), "");
+    assert.ok(Math.abs(viz.evaluateExpressionV2(ast, { x }) - expected) < 1e-9);
+  }
+  assert.throws(() => viz.parseExpressionV2("globalThis.alert(1)"));
+  assert.throws(() => viz.parseExpressionV2("x;fetch('/x')"));
+});
+
 test("validates bounded sampled particles, vector fields and scalar heatmaps", () => {
   const spec = svgSpec();
   spec.renderer = "canvas"; spec.kind = "simulation2d"; spec.family = "dense_fields";

@@ -83,6 +83,172 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /v1/animation/plan:
+    post:
+      tags:
+      - tutor
+      summary: Animation Plan
+      description: Plan a novel storyboard with the installed model under a closed JSON grammar.
+      operationId: animation_plan_v1_animation_plan_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      - name: muta_share_session
+        in: cookie
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Muta Share Session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnimationPlanRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnimationPlanResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/animation/source:
+    post:
+      tags:
+      - tutor
+      summary: Animation Source
+      description: Return inspectable server-owned Manim code for one validated project.
+      operationId: animation_source_v1_animation_source_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      - name: muta_share_session
+        in: cookie
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Muta Share Session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnimationSourceRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnimationSourceResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/animation/render-capability:
+    get:
+      tags:
+      - tutor
+      summary: Animation Render Capability
+      description: Report whether this offline build includes the bounded Manim worker.
+      operationId: animation_render_capability_v1_animation_render_capability_get
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      - name: muta_share_session
+        in: cookie
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Muta Share Session
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnimationRenderCapability'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/animation/render:
+    post:
+      tags:
+      - tutor
+      summary: Animation Render
+      description: Render only trusted emitted source with the bounded local Manim worker.
+      operationId: animation_render_v1_animation_render_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      - name: muta_share_session
+        in: cookie
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Muta Share Session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnimationSourceRequest'
+      responses:
+        '200':
+          description: Rendered lesson video
+          content:
+            application/json:
+              schema: {}
+            video/mp4: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /v1/resources:
     get:
       tags:
@@ -2766,6 +2932,532 @@ paths:
                 $ref: '#/components/schemas/HTTPValidationError'
 components:
   schemas:
+    AnimationArrayData:
+      properties:
+        rows:
+          type: integer
+          maximum: 12.0
+          minimum: 1.0
+          title: Rows
+        columns:
+          type: integer
+          maximum: 12.0
+          minimum: 1.0
+          title: Columns
+        phase:
+          type: string
+          enum:
+          - build
+          - addition
+          - equation
+          title: Phase
+      additionalProperties: false
+      type: object
+      required:
+      - rows
+      - columns
+      - phase
+      title: AnimationArrayData
+    AnimationArrayScene:
+      properties:
+        id:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9-]{0,79}$
+          title: Id
+        title:
+          type: string
+          maxLength: 140
+          minLength: 1
+          title: Title
+        narration:
+          type: string
+          maxLength: 700
+          minLength: 1
+          title: Narration
+        duration_ms:
+          type: integer
+          maximum: 10000.0
+          minimum: 900.0
+          title: Duration Ms
+        kind:
+          type: string
+          const: array
+          title: Kind
+          default: array
+        data:
+          $ref: '#/components/schemas/AnimationArrayData'
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - title
+      - narration
+      - duration_ms
+      - data
+      title: AnimationArrayScene
+    AnimationFractionData:
+      properties:
+        numerator:
+          type: integer
+          maximum: 48.0
+          minimum: 0.0
+          title: Numerator
+        denominator:
+          type: integer
+          maximum: 12.0
+          minimum: 2.0
+          title: Denominator
+        phase:
+          type: string
+          enum:
+          - partition
+          - shade
+          - recap
+          title: Phase
+      additionalProperties: false
+      type: object
+      required:
+      - numerator
+      - denominator
+      - phase
+      title: AnimationFractionData
+    AnimationFractionScene:
+      properties:
+        id:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9-]{0,79}$
+          title: Id
+        title:
+          type: string
+          maxLength: 140
+          minLength: 1
+          title: Title
+        narration:
+          type: string
+          maxLength: 700
+          minLength: 1
+          title: Narration
+        duration_ms:
+          type: integer
+          maximum: 10000.0
+          minimum: 900.0
+          title: Duration Ms
+        kind:
+          type: string
+          const: fraction
+          title: Kind
+          default: fraction
+        data:
+          $ref: '#/components/schemas/AnimationFractionData'
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - title
+      - narration
+      - duration_ms
+      - data
+      title: AnimationFractionScene
+    AnimationFunctionData:
+      properties:
+        expression_ast:
+          additionalProperties: true
+          type: object
+          title: Expression Ast
+        expression_text:
+          type: string
+          maxLength: 180
+          minLength: 1
+          title: Expression Text
+        domain:
+          prefixItems:
+          - type: number
+          - type: number
+          type: array
+          maxItems: 2
+          minItems: 2
+          title: Domain
+        variable:
+          type: string
+          enum:
+          - x
+          - t
+          title: Variable
+        output:
+          type: string
+          enum:
+          - y
+          - z
+          - s
+          - v
+          title: Output
+        mode:
+          type: string
+          enum:
+          - curve
+          - derivative
+          - integral
+          title: Mode
+        parameter:
+          anyOf:
+          - type: number
+            maximum: 1000.0
+            minimum: -1000.0
+          - type: 'null'
+          title: Parameter
+        bounds:
+          anyOf:
+          - prefixItems:
+            - type: number
+            - type: number
+            type: array
+            maxItems: 2
+            minItems: 2
+          - type: 'null'
+          title: Bounds
+      additionalProperties: false
+      type: object
+      required:
+      - expression_ast
+      - expression_text
+      - domain
+      - variable
+      - output
+      - mode
+      title: AnimationFunctionData
+    AnimationFunctionScene:
+      properties:
+        id:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9-]{0,79}$
+          title: Id
+        title:
+          type: string
+          maxLength: 140
+          minLength: 1
+          title: Title
+        narration:
+          type: string
+          maxLength: 700
+          minLength: 1
+          title: Narration
+        duration_ms:
+          type: integer
+          maximum: 10000.0
+          minimum: 900.0
+          title: Duration Ms
+        kind:
+          type: string
+          const: function
+          title: Kind
+          default: function
+        data:
+          $ref: '#/components/schemas/AnimationFunctionData'
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - title
+      - narration
+      - duration_ms
+      - data
+      title: AnimationFunctionScene
+    AnimationPlanProject:
+      properties:
+        version:
+          type: integer
+          const: 1
+          title: Version
+          default: 1
+        kind:
+          type: string
+          const: lesson-animation
+          title: Kind
+          default: lesson-animation
+        id:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9-]{0,79}$
+          title: Id
+        title:
+          type: string
+          maxLength: 180
+          minLength: 1
+          title: Title
+        topic:
+          type: string
+          maxLength: 240
+          minLength: 1
+          title: Topic
+        level:
+          type: string
+          enum:
+          - early-primary
+          - upper-primary
+          - secondary
+          - tertiary
+          title: Level
+        summary:
+          type: string
+          maxLength: 700
+          minLength: 1
+          title: Summary
+        created_at:
+          type: string
+          maxLength: 40
+          minLength: 1
+          title: Created At
+        updated_at:
+          type: string
+          maxLength: 40
+          minLength: 1
+          title: Updated At
+        scenes:
+          items:
+            oneOf:
+            - $ref: '#/components/schemas/AnimationProcessScene'
+            - $ref: '#/components/schemas/AnimationFractionScene'
+            - $ref: '#/components/schemas/AnimationArrayScene'
+            - $ref: '#/components/schemas/AnimationFunctionScene'
+            - $ref: '#/components/schemas/AnimationVectorScene'
+            discriminator:
+              propertyName: kind
+              mapping:
+                array: '#/components/schemas/AnimationArrayScene'
+                fraction: '#/components/schemas/AnimationFractionScene'
+                function: '#/components/schemas/AnimationFunctionScene'
+                process: '#/components/schemas/AnimationProcessScene'
+                vector: '#/components/schemas/AnimationVectorScene'
+          type: array
+          maxItems: 10
+          minItems: 1
+          title: Scenes
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - title
+      - topic
+      - level
+      - summary
+      - created_at
+      - updated_at
+      - scenes
+      title: AnimationPlanProject
+    AnimationPlanRequest:
+      properties:
+        student_id:
+          type: string
+          maxLength: 128
+          title: Student Id
+        topic:
+          type: string
+          maxLength: 240
+          minLength: 1
+          title: Topic
+        level:
+          type: string
+          enum:
+          - early-primary
+          - upper-primary
+          - secondary
+          - tertiary
+          title: Level
+        concept:
+          type: string
+          maxLength: 240
+          title: Concept
+          default: ''
+        requirements:
+          type: string
+          maxLength: 1000
+          title: Requirements
+          default: ''
+      additionalProperties: false
+      type: object
+      required:
+      - student_id
+      - topic
+      - level
+      title: AnimationPlanRequest
+      description: A bounded lesson brief for the installed local model.
+    AnimationPlanResponse:
+      properties:
+        project:
+          $ref: '#/components/schemas/AnimationPlanProject'
+        repaired:
+          type: boolean
+          title: Repaired
+          default: false
+      additionalProperties: false
+      type: object
+      required:
+      - project
+      title: AnimationPlanResponse
+    AnimationProcessData:
+      properties:
+        steps:
+          items:
+            type: string
+          type: array
+          maxItems: 8
+          minItems: 2
+          title: Steps
+        active:
+          type: integer
+          maximum: 7.0
+          minimum: 0.0
+          title: Active
+      additionalProperties: false
+      type: object
+      required:
+      - steps
+      - active
+      title: AnimationProcessData
+    AnimationProcessScene:
+      properties:
+        id:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9-]{0,79}$
+          title: Id
+        title:
+          type: string
+          maxLength: 140
+          minLength: 1
+          title: Title
+        narration:
+          type: string
+          maxLength: 700
+          minLength: 1
+          title: Narration
+        duration_ms:
+          type: integer
+          maximum: 10000.0
+          minimum: 900.0
+          title: Duration Ms
+        kind:
+          type: string
+          const: process
+          title: Kind
+          default: process
+        data:
+          $ref: '#/components/schemas/AnimationProcessData'
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - title
+      - narration
+      - duration_ms
+      - data
+      title: AnimationProcessScene
+    AnimationRenderCapability:
+      properties:
+        available:
+          type: boolean
+          title: Available
+        renderer:
+          type: string
+          const: manim
+          title: Renderer
+          default: manim
+        detail:
+          type: string
+          title: Detail
+      additionalProperties: false
+      type: object
+      required:
+      - available
+      - detail
+      title: AnimationRenderCapability
+    AnimationSourceRequest:
+      properties:
+        project:
+          $ref: '#/components/schemas/AnimationPlanProject'
+      additionalProperties: false
+      type: object
+      required:
+      - project
+      title: AnimationSourceRequest
+    AnimationSourceResponse:
+      properties:
+        source:
+          type: string
+          title: Source
+        filename:
+          type: string
+          title: Filename
+        renderer:
+          type: string
+          const: manim
+          title: Renderer
+          default: manim
+      additionalProperties: false
+      type: object
+      required:
+      - source
+      - filename
+      title: AnimationSourceResponse
+    AnimationVectorData:
+      properties:
+        x:
+          type: number
+          maximum: 1000.0
+          minimum: -1000.0
+          title: X
+        y:
+          type: number
+          maximum: 1000.0
+          minimum: -1000.0
+          title: Y
+        label:
+          type: string
+          maxLength: 80
+          minLength: 1
+          title: Label
+      additionalProperties: false
+      type: object
+      required:
+      - x
+      - y
+      - label
+      title: AnimationVectorData
+    AnimationVectorScene:
+      properties:
+        id:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9-]{0,79}$
+          title: Id
+        title:
+          type: string
+          maxLength: 140
+          minLength: 1
+          title: Title
+        narration:
+          type: string
+          maxLength: 700
+          minLength: 1
+          title: Narration
+        duration_ms:
+          type: integer
+          maximum: 10000.0
+          minimum: 900.0
+          title: Duration Ms
+        kind:
+          type: string
+          const: vector
+          title: Kind
+          default: vector
+        data:
+          $ref: '#/components/schemas/AnimationVectorData'
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - title
+      - narration
+      - duration_ms
+      - data
+      title: AnimationVectorScene
     AnswerCheckRequest:
       properties:
         candidate:

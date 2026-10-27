@@ -4327,6 +4327,7 @@ inputEl.addEventListener("pointerdown", (event) => {
 // Exposed for audio.js (the voice loop reuses the transcript rendering).
 window.MutaChat = {
   get studentId() { return studentId; },
+  authHeaders: () => ({ ...authHeaders() }),
   getConversationId: () => conversationId,
   setConversationId: (cid) => {
     conversationId = cid;

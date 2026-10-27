@@ -8,9 +8,16 @@ Math *and* Scientific Reasoning), so downstream consumers never have to retrofit
 from __future__ import annotations
 
 from enum import Enum
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, Field, StringConstraints
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    field_validator,
+    model_validator,
+)
 
 ResourceId = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{32}$")]
 CourseId = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{32}$")]
@@ -278,6 +285,208 @@ class ChatResponse(BaseModel):
             "strongest passages it was grounded on (sources consulted), not inline citations."
         ),
     )
+
+
+# --- /animation/plan -------------------------------------------------------------------
+
+
+class AnimationPlanRequest(BaseModel):
+    """A bounded lesson brief for the installed local model."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    student_id: str = Field(max_length=128)
+    topic: str = Field(min_length=1, max_length=240)
+    level: Literal["early-primary", "upper-primary", "secondary", "tertiary"]
+    concept: str = Field(default="", max_length=240)
+    requirements: str = Field(default="", max_length=1000)
+
+    @field_validator("topic")
+    @classmethod
+    def topic_must_have_visible_text(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("topic must contain visible text")
+        return value
+
+
+class AnimationProcessData(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    steps: list[str] = Field(min_length=2, max_length=8)
+    active: int = Field(ge=0, le=7)
+
+    @model_validator(mode="after")
+    def active_step_exists(self) -> AnimationProcessData:
+        if self.active >= len(self.steps):
+            raise ValueError("active process step must exist")
+        return self
+
+
+class AnimationFractionData(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    numerator: int = Field(ge=0, le=48)
+    denominator: int = Field(ge=2, le=12)
+    phase: Literal["partition", "shade", "recap"]
+
+    @field_validator("denominator")
+    @classmethod
+    def numerator_fits_four_bars(cls, value: int, info) -> int:
+        numerator = info.data.get("numerator")
+        if numerator is not None and numerator > value * 4:
+            raise ValueError("fraction may use at most four whole bars")
+        return value
+
+
+class AnimationArrayData(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    rows: int = Field(ge=1, le=12)
+    columns: int = Field(ge=1, le=12)
+    phase: Literal["build", "addition", "equation"]
+
+
+class AnimationFunctionData(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    expression_ast: dict[str, Any]
+    expression_text: str = Field(min_length=1, max_length=180)
+    domain: tuple[float, float]
+    variable: Literal["x", "t"]
+    output: Literal["y", "z", "s", "v"]
+    mode: Literal["curve", "derivative", "integral"]
+    parameter: float | None = Field(default=None, ge=-1000, le=1000)
+    bounds: tuple[float, float] | None = None
+
+    @field_validator("domain")
+    @classmethod
+    def domain_is_bounded_and_ordered(cls, value: tuple[float, float]) -> tuple[float, float]:
+        if not all(-1000 <= item <= 1000 for item in value) or value[0] >= value[1]:
+            raise ValueError("function domain must be a bounded increasing pair")
+        return value
+
+    @model_validator(mode="after")
+    def mode_fields_are_consistent(self) -> AnimationFunctionData:
+        if self.mode == "derivative":
+            if self.parameter is None or not self.domain[0] <= self.parameter <= self.domain[1]:
+                raise ValueError("derivative parameter must lie inside the function domain")
+            if self.bounds is not None:
+                raise ValueError("derivative scenes do not accept integral bounds")
+        elif self.mode == "integral":
+            if self.bounds is None or self.bounds[0] == self.bounds[1] or not all(
+                self.domain[0] <= value <= self.domain[1] for value in self.bounds
+            ):
+                raise ValueError("integral bounds must be distinct points inside the domain")
+            if self.parameter is not None:
+                raise ValueError("integral scenes do not accept a derivative parameter")
+        elif self.parameter is not None or self.bounds is not None:
+            raise ValueError("curve scenes do not accept calculus probe fields")
+        return self
+
+
+class AnimationVectorData(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    x: float = Field(ge=-1000, le=1000)
+    y: float = Field(ge=-1000, le=1000)
+    label: str = Field(min_length=1, max_length=80)
+
+
+class _AnimationSceneBase(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{0,79}$")
+    title: str = Field(min_length=1, max_length=140)
+    narration: str = Field(min_length=1, max_length=700)
+    duration_ms: int = Field(ge=900, le=10000)
+
+
+class AnimationProcessScene(_AnimationSceneBase):
+    kind: Literal["process"] = "process"
+    data: AnimationProcessData
+
+
+class AnimationFractionScene(_AnimationSceneBase):
+    kind: Literal["fraction"] = "fraction"
+    data: AnimationFractionData
+
+
+class AnimationArrayScene(_AnimationSceneBase):
+    kind: Literal["array"] = "array"
+    data: AnimationArrayData
+
+
+class AnimationFunctionScene(_AnimationSceneBase):
+    kind: Literal["function"] = "function"
+    data: AnimationFunctionData
+
+
+class AnimationVectorScene(_AnimationSceneBase):
+    kind: Literal["vector"] = "vector"
+    data: AnimationVectorData
+
+
+AnimationPlanScene = Annotated[
+    AnimationProcessScene
+    | AnimationFractionScene
+    | AnimationArrayScene
+    | AnimationFunctionScene
+    | AnimationVectorScene,
+    Field(discriminator="kind"),
+]
+
+
+class AnimationPlanProject(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    version: Literal[1] = 1
+    kind: Literal["lesson-animation"] = "lesson-animation"
+    id: str = Field(pattern=r"^[a-z0-9][a-z0-9-]{0,79}$")
+    title: str = Field(min_length=1, max_length=180)
+    topic: str = Field(min_length=1, max_length=240)
+    level: Literal["early-primary", "upper-primary", "secondary", "tertiary"]
+    summary: str = Field(min_length=1, max_length=700)
+    created_at: str = Field(min_length=1, max_length=40)
+    updated_at: str = Field(min_length=1, max_length=40)
+    scenes: list[AnimationPlanScene] = Field(min_length=1, max_length=10)
+
+    @model_validator(mode="after")
+    def scene_budget_is_bounded(self) -> AnimationPlanProject:
+        if len({scene.id for scene in self.scenes}) != len(self.scenes):
+            raise ValueError("scene identifiers must be unique")
+        if sum(scene.duration_ms for scene in self.scenes) > 60000:
+            raise ValueError("animation duration exceeds one minute")
+        return self
+
+
+class AnimationSourceRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    project: AnimationPlanProject
+
+
+class AnimationSourceResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    source: str
+    filename: str
+    renderer: Literal["manim"] = "manim"
+
+
+class AnimationRenderCapability(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    available: bool
+    renderer: Literal["manim"] = "manim"
+    detail: str
+
+
+class AnimationPlanResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    project: AnimationPlanProject
+    repaired: bool = False
 
 
 class GenerationStarted(BaseModel):

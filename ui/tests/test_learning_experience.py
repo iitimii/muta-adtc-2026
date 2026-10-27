@@ -154,6 +154,7 @@ def test_portable_learning_platform_ships_five_valid_source_backed_courses() -> 
     assert 'id="file-course"' in html and ".muta" in html
     assert '"learning-platform.css"' in builder
     assert '"learning-platform.js"' in builder
+    assert '"animation-studio.js"' in builder
     assert '"course-schema-v2.json"' in builder
     assert 'UI_DIRECTORIES = ("brand", "fonts", "units", "courses")' in builder
     assert "MAX_FILE_BYTES = 2 * 1024 * 1024" in platform
@@ -192,6 +193,33 @@ for (const name of fs.readdirSync('./ui/courses').filter((name)=>name.endsWith('
 }
 """
     subprocess.run(["node", "-e", script], cwd=ROOT, check=True)
+
+
+def test_animation_studio_is_safe_offline_editable_and_packaged() -> None:
+    html = (UI / "index.html").read_text()
+    platform = (UI / "learning-platform.js").read_text()
+    animator = (UI / "animation-studio.js").read_text()
+    css = (UI / "learning-platform.css").read_text()
+    i18n = (UI / "i18n.js").read_text()
+
+    assert 'animation-studio.js?v=20261027-animation-studio-1' in html
+    assert html.index("animation-studio.js") < html.index("learning-platform.js")
+    assert 'global.MutaAnimator?.mountStudio' in platform
+    assert 'global.MutaAnimator?.loadProjects' in platform
+    assert 'global.MutaAnimator?.cleanup(view())' in platform
+    assert 'const KIND = "lesson-animation"' in animator
+    assert 'const SCENE_KINDS = new Set(["fraction", "array", "function", "process", "vector"])' in animator
+    assert "MediaRecorder.isTypeSupported" in animator
+    assert "canvas.captureStream(24)" in animator
+    assert "IntersectionObserver" in animator and 'document.addEventListener("visibilitychange"' in animator
+    assert ".innerHTML =" not in animator
+    assert "new Function(" not in animator
+    assert "eval(" not in animator
+    assert "http://" not in animator and "https://" not in animator
+    assert "min-height: 44px" in css
+    assert ".animation-authoring-layout" in css
+    assert "@media (prefers-reduced-motion: reduce)" in css
+    assert '"learning.animationVideoUnavailable"' in i18n
 
 
 def test_first_run_tour_is_once_only_replayable_and_uses_real_targets() -> None:

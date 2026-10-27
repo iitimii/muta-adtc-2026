@@ -8,6 +8,7 @@
     ],
     "javascript": [
       "ui/access-bootstrap.js",
+      "ui/animation-studio.js",
       "ui/app.js",
       "ui/audio.js",
       "ui/citations.js",
@@ -35,7 +36,7 @@
     ]
   },
   "catalog": {
-    "english_key_count": 630,
+    "english_key_count": 709,
     "english_keys": [
       "access.awaitApproval",
       "access.choosePassword",
@@ -232,6 +233,76 @@
       "host.waiting",
       "learning.allExperiments",
       "learning.allSubjects",
+      "learning.animationApplyScene",
+      "learning.animationBriefHelp",
+      "learning.animationBriefTitle",
+      "learning.animationCancelGeneration",
+      "learning.animationConcept",
+      "learning.animationConceptPlaceholder",
+      "learning.animationDownloadManimSource",
+      "learning.animationDownloadVideo",
+      "learning.animationEditScenes",
+      "learning.animationEmptyHelp",
+      "learning.animationEmptyTitle",
+      "learning.animationEncodingProgress",
+      "learning.animationEncodingVideo",
+      "learning.animationExampleArray",
+      "learning.animationExampleCalculus",
+      "learning.animationExampleFraction",
+      "learning.animationExampleGraph",
+      "learning.animationExport",
+      "learning.animationGenerate",
+      "learning.animationGenerationCancelled",
+      "learning.animationImport",
+      "learning.animationImportFailed",
+      "learning.animationImportTooLarge",
+      "learning.animationImported",
+      "learning.animationLevel",
+      "learning.animationLevelEarly",
+      "learning.animationLevelSecondary",
+      "learning.animationLevelTertiary",
+      "learning.animationLevelUpper",
+      "learning.animationManimSource",
+      "learning.animationManimSourceLoading",
+      "learning.animationManimSourceReady",
+      "learning.animationManimSourceUnavailable",
+      "learning.animationManimVideoReady",
+      "learning.animationMoveDown",
+      "learning.animationMoveUp",
+      "learning.animationNext",
+      "learning.animationPause",
+      "learning.animationPlay",
+      "learning.animationPreview",
+      "learning.animationPreviewTitle",
+      "learning.animationPrevious",
+      "learning.animationProgressCompose",
+      "learning.animationProgressLocalTutor",
+      "learning.animationProgressReady",
+      "learning.animationProgressUnderstand",
+      "learning.animationProgressValidate",
+      "learning.animationProjectSource",
+      "learning.animationPromptShow",
+      "learning.animationRenderManimVideo",
+      "learning.animationRenderingManimVideo",
+      "learning.animationRequirements",
+      "learning.animationRequirementsPlaceholder",
+      "learning.animationRestart",
+      "learning.animationSave",
+      "learning.animationSaved",
+      "learning.animationSceneCount",
+      "learning.animationSceneDuration",
+      "learning.animationSceneLabel",
+      "learning.animationSceneNarration",
+      "learning.animationSceneTitle",
+      "learning.animationSeek",
+      "learning.animationSpeed",
+      "learning.animationTopic",
+      "learning.animationTopicPlaceholder",
+      "learning.animationTranscript",
+      "learning.animationTranscriptDownload",
+      "learning.animationTryLesson",
+      "learning.animationVideoReady",
+      "learning.animationVideoUnavailable",
       "learning.atGlance",
       "learning.atGlanceHelp",
       "learning.backGames",
@@ -254,6 +325,7 @@
       "learning.coursePractice",
       "learning.coursePracticeHelp",
       "learning.coursePracticeTitle",
+      "learning.createAnimation",
       "learning.createWithTutor",
       "learning.crossChecked",
       "learning.crossCheckedHelp",
@@ -289,6 +361,8 @@
       "learning.invalidBundled",
       "learning.invalidFile",
       "learning.kicker",
+      "learning.lessonAnimation",
+      "learning.lessonAnimationHelp",
       "learning.libraryHelp",
       "learning.libraryTitle",
       "learning.minutes",
@@ -299,9 +373,12 @@
       "learning.nextRound",
       "learning.noCourses",
       "learning.noEvidence",
+      "learning.noSavedAnimations",
+      "learning.noSavedAnimationsHelp",
       "learning.noTimeline",
       "learning.notYet",
       "learning.numericAnswer",
+      "learning.openAnimation",
       "learning.openCourse",
       "learning.openExperiment",
       "learning.play",
@@ -315,8 +392,11 @@
       "learning.readerChapter",
       "learning.readerEmpty",
       "learning.remove",
+      "learning.removeAnimationConfirm",
       "learning.removeConfirm",
       "learning.reviewConcept",
+      "learning.savedAnimationsHelp",
+      "learning.savedAnimationsTitle",
       "learning.sections",
       "learning.seeResult",
       "learning.show",
@@ -1278,6 +1358,84 @@
       "learning.diagramHelp": [],
       "learning.infographic": [],
       "learning.infographicHelp": [],
+      "learning.lessonAnimation": [],
+      "learning.lessonAnimationHelp": [],
+      "learning.animationTryLesson": [],
+      "learning.animationExampleFraction": [],
+      "learning.animationExampleArray": [],
+      "learning.animationExampleGraph": [],
+      "learning.animationExampleCalculus": [],
+      "learning.animationBriefTitle": [],
+      "learning.animationBriefHelp": [],
+      "learning.animationTopic": [],
+      "learning.animationTopicPlaceholder": [],
+      "learning.animationLevel": [],
+      "learning.animationLevelEarly": [],
+      "learning.animationLevelUpper": [],
+      "learning.animationLevelSecondary": [],
+      "learning.animationLevelTertiary": [],
+      "learning.animationConcept": [],
+      "learning.animationConceptPlaceholder": [],
+      "learning.animationRequirements": [],
+      "learning.animationRequirementsPlaceholder": [],
+      "learning.animationPromptShow": [],
+      "learning.animationGenerate": [],
+      "learning.animationCancelGeneration": [],
+      "learning.animationGenerationCancelled": [],
+      "learning.animationImport": [],
+      "learning.animationProgressUnderstand": [],
+      "learning.animationProgressCompose": [],
+      "learning.animationProgressLocalTutor": [],
+      "learning.animationProgressValidate": [],
+      "learning.animationProgressReady": [],
+      "learning.animationPreviewTitle": [],
+      "learning.animationEmptyTitle": [],
+      "learning.animationEmptyHelp": [],
+      "learning.animationPreview": [],
+      "learning.animationSceneCount": [
+        "{count}"
+      ],
+      "learning.animationPlay": [],
+      "learning.animationPause": [],
+      "learning.animationRestart": [],
+      "learning.animationPrevious": [],
+      "learning.animationNext": [],
+      "learning.animationSeek": [],
+      "learning.animationSpeed": [],
+      "learning.animationTranscript": [],
+      "learning.animationSave": [],
+      "learning.animationSaved": [],
+      "learning.animationExport": [],
+      "learning.animationTranscriptDownload": [],
+      "learning.animationProjectSource": [],
+      "learning.animationManimSource": [],
+      "learning.animationManimSourceLoading": [],
+      "learning.animationManimSourceUnavailable": [],
+      "learning.animationDownloadManimSource": [],
+      "learning.animationManimSourceReady": [],
+      "learning.animationRenderManimVideo": [],
+      "learning.animationRenderingManimVideo": [],
+      "learning.animationManimVideoReady": [],
+      "learning.animationDownloadVideo": [],
+      "learning.animationEncodingVideo": [],
+      "learning.animationEncodingProgress": [
+        "{percent}"
+      ],
+      "learning.animationVideoReady": [],
+      "learning.animationVideoUnavailable": [],
+      "learning.animationEditScenes": [],
+      "learning.animationSceneLabel": [
+        "{number}"
+      ],
+      "learning.animationSceneTitle": [],
+      "learning.animationSceneNarration": [],
+      "learning.animationSceneDuration": [],
+      "learning.animationMoveUp": [],
+      "learning.animationMoveDown": [],
+      "learning.animationApplyScene": [],
+      "learning.animationImportTooLarge": [],
+      "learning.animationImported": [],
+      "learning.animationImportFailed": [],
       "learning.createWithTutor": [],
       "learning.studioEvidence": [],
       "learning.studioPromptLesson": [],
@@ -1307,6 +1465,15 @@
       "learning.nextRound": [],
       "learning.playgroundTitle": [],
       "learning.playgroundHelp": [],
+      "learning.savedAnimationsTitle": [],
+      "learning.savedAnimationsHelp": [],
+      "learning.noSavedAnimations": [],
+      "learning.noSavedAnimationsHelp": [],
+      "learning.createAnimation": [],
+      "learning.openAnimation": [],
+      "learning.removeAnimationConfirm": [
+        "{title}"
+      ],
       "learning.openExperiment": [],
       "learning.allExperiments": [],
       "learning.trackerTitle": [],
@@ -1580,6 +1747,432 @@
     ]
   },
   "key_references": [
+    {
+      "file": "ui/animation-studio.js",
+      "line": 610,
+      "kind": "js:text",
+      "key": "animationPreview"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 612,
+      "kind": "js:text",
+      "key": "animationSceneCount"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 618,
+      "kind": "js:text",
+      "key": "animationRestart"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 619,
+      "kind": "js:text",
+      "key": "animationPrevious"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 620,
+      "kind": "js:text",
+      "key": "animationPlay"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 621,
+      "kind": "js:text",
+      "key": "animationNext"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 622,
+      "kind": "js:text",
+      "key": "animationSeek"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 623,
+      "kind": "js:text",
+      "key": "animationSpeed"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 626,
+      "kind": "js:text",
+      "key": "animationTranscript"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 643,
+      "kind": "js:text",
+      "key": "animationPause"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 644,
+      "kind": "js:text",
+      "key": "animationPlay"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 686,
+      "kind": "js:text",
+      "key": "animationTryLesson"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 688,
+      "kind": "js:text",
+      "key": "animationExampleFraction"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 689,
+      "kind": "js:text",
+      "key": "animationExampleArray"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 690,
+      "kind": "js:text",
+      "key": "animationExampleGraph"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 691,
+      "kind": "js:text",
+      "key": "animationExampleCalculus"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 696,
+      "kind": "js:text",
+      "key": "animationBriefTitle"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 697,
+      "kind": "js:text",
+      "key": "animationBriefHelp"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 698,
+      "kind": "js:text",
+      "key": "animationTopicPlaceholder"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 700,
+      "kind": "js:text",
+      "key": "animationLevelEarly"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 700,
+      "kind": "js:text",
+      "key": "animationLevelSecondary"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 700,
+      "kind": "js:text",
+      "key": "animationLevelTertiary"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 700,
+      "kind": "js:text",
+      "key": "animationLevelUpper"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 701,
+      "kind": "js:text",
+      "key": "animationConceptPlaceholder"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 702,
+      "kind": "js:text",
+      "key": "animationRequirementsPlaceholder"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 703,
+      "kind": "js:text",
+      "key": "animationPromptShow"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 704,
+      "kind": "js:text",
+      "key": "animationGenerate"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 705,
+      "kind": "js:text",
+      "key": "animationCancelGeneration"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 705,
+      "kind": "js:text",
+      "key": "animationGenerationCancelled"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 706,
+      "kind": "js:text",
+      "key": "animationImport"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 712,
+      "kind": "js:text",
+      "key": "animationConcept"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 712,
+      "kind": "js:text",
+      "key": "animationLevel"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 712,
+      "kind": "js:text",
+      "key": "animationRequirements"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 712,
+      "kind": "js:text",
+      "key": "animationTopic"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 715,
+      "kind": "js:text",
+      "key": "animationPreviewTitle"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 717,
+      "kind": "js:text",
+      "key": "animationEmptyHelp"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 717,
+      "kind": "js:text",
+      "key": "animationEmptyTitle"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 719,
+      "kind": "js:text",
+      "key": "animationEditScenes"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 731,
+      "kind": "js:text",
+      "key": "animationProgressUnderstand"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 736,
+      "kind": "js:text",
+      "key": "animationProgressCompose"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 741,
+      "kind": "js:text",
+      "key": "animationProgressLocalTutor"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 745,
+      "kind": "js:text",
+      "key": "animationProgressValidate"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 746,
+      "kind": "js:text",
+      "key": "animationProgressReady"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 761,
+      "kind": "js:text",
+      "key": "animationSave"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 761,
+      "kind": "js:text",
+      "key": "animationSaved"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 762,
+      "kind": "js:text",
+      "key": "animationExport"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 763,
+      "kind": "js:text",
+      "key": "animationTranscriptDownload"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 765,
+      "kind": "js:text",
+      "key": "animationProjectSource"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 766,
+      "kind": "js:text",
+      "key": "animationManimSource"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 766,
+      "kind": "js:text",
+      "key": "animationManimSourceLoading"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 768,
+      "kind": "js:text",
+      "key": "animationManimSourceUnavailable"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 769,
+      "kind": "js:text",
+      "key": "animationDownloadManimSource"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 769,
+      "kind": "js:text",
+      "key": "animationManimSourceReady"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 770,
+      "kind": "js:text",
+      "key": "animationManimVideoReady"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 770,
+      "kind": "js:text",
+      "key": "animationRenderManimVideo"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 770,
+      "kind": "js:text",
+      "key": "animationRenderingManimVideo"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 772,
+      "kind": "js:text",
+      "key": "animationDownloadVideo"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 772,
+      "kind": "js:text",
+      "key": "animationEncodingProgress"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 772,
+      "kind": "js:text",
+      "key": "animationEncodingVideo"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 772,
+      "kind": "js:text",
+      "key": "animationVideoReady"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 773,
+      "kind": "js:text",
+      "key": "animationVideoUnavailable"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 777,
+      "kind": "js:text",
+      "key": "animationSceneLabel"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 780,
+      "kind": "js:text",
+      "key": "animationMoveDown"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 780,
+      "kind": "js:text",
+      "key": "animationMoveUp"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 781,
+      "kind": "js:text",
+      "key": "animationApplyScene"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 783,
+      "kind": "js:text",
+      "key": "animationSceneDuration"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 783,
+      "kind": "js:text",
+      "key": "animationSceneNarration"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 783,
+      "kind": "js:text",
+      "key": "animationSceneTitle"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 789,
+      "kind": "js:text",
+      "key": "animationImportTooLarge"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 791,
+      "kind": "js:text",
+      "key": "animationImportFailed"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 791,
+      "kind": "js:text",
+      "key": "animationImported"
+    },
     {
       "file": "ui/app.js",
       "line": 1050,
@@ -2332,607 +2925,607 @@
     },
     {
       "file": "ui/app.js",
-      "line": 4421,
+      "line": 4422,
       "kind": "js:featureT",
       "key": "rag.pickerClosed"
     },
     {
       "file": "ui/app.js",
-      "line": 4442,
+      "line": 4443,
       "kind": "js:featureT",
       "key": "rag.maxFiles"
     },
     {
       "file": "ui/app.js",
-      "line": 4462,
+      "line": 4463,
       "kind": "js:featureT",
       "key": "rag.maxFiles"
     },
     {
       "file": "ui/app.js",
-      "line": 4543,
+      "line": 4544,
       "kind": "js:featureT",
       "key": "rag.pickerResults"
     },
     {
       "file": "ui/app.js",
-      "line": 4591,
+      "line": 4592,
       "kind": "js:featureT",
       "key": "resources.retry"
     },
     {
       "file": "ui/app.js",
-      "line": 4598,
+      "line": 4599,
       "kind": "js:featureT",
       "key": "resources.delete"
     },
     {
       "file": "ui/app.js",
-      "line": 4653,
+      "line": 4654,
       "kind": "js:featureT",
       "key": "resources.loadFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 4683,
+      "line": 4684,
       "kind": "js:featureT",
       "key": "reader.loading"
     },
     {
       "file": "ui/app.js",
-      "line": 4717,
+      "line": 4718,
       "kind": "js:featureT",
       "key": "reader.failed"
     },
     {
       "file": "ui/app.js",
-      "line": 4767,
+      "line": 4768,
       "kind": "js:featureT",
       "key": "resources.uploading"
     },
     {
       "file": "ui/app.js",
-      "line": 4784,
+      "line": 4785,
       "kind": "js:featureT",
       "key": "resources.uploaded"
     },
     {
       "file": "ui/app.js",
-      "line": 4788,
+      "line": 4789,
       "kind": "js:featureT",
       "key": "resources.uploadFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 4797,
+      "line": 4798,
       "kind": "js:featureT",
       "key": "resources.uploadFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 4806,
+      "line": 4807,
       "kind": "js:featureT",
       "key": "resources.deleteFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 4854,
+      "line": 4855,
       "kind": "js:featureT",
       "key": "course.noCourse"
     },
     {
       "file": "ui/app.js",
-      "line": 4869,
+      "line": 4870,
       "kind": "js:featureT",
       "key": "course.setByTeacher"
     },
     {
       "file": "ui/app.js",
-      "line": 4871,
+      "line": 4872,
       "kind": "js:featureT",
       "key": "course.withholding"
     },
     {
       "file": "ui/app.js",
-      "line": 4885,
+      "line": 4886,
       "kind": "js:featureT",
       "key": "host.courseEmpty"
     },
     {
       "file": "ui/app.js",
-      "line": 4898,
+      "line": 4899,
       "kind": "js:featureT",
       "key": "host.courseLock"
     },
     {
       "file": "ui/app.js",
-      "line": 4899,
+      "line": 4900,
       "kind": "js:featureT",
       "key": "host.courseWithhold"
     },
     {
       "file": "ui/app.js",
-      "line": 4906,
+      "line": 4907,
       "kind": "js:featureT",
       "key": "host.courseEdit"
     },
     {
       "file": "ui/app.js",
-      "line": 4911,
+      "line": 4912,
       "kind": "js:featureT",
       "key": "host.courseDelete"
     },
     {
       "file": "ui/app.js",
-      "line": 4927,
+      "line": 4928,
       "kind": "js:featureT",
       "key": "course.loadFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 4937,
+      "line": 4938,
       "kind": "js:featureT",
       "key": "course.loadFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 4939,
+      "line": 4940,
       "kind": "js:featureT",
       "key": "host.courseLoadFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 4941,
+      "line": 4942,
       "kind": "js:featureT",
       "key": "course.loadFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 4948,
+      "line": 4949,
       "kind": "js:featureT",
       "key": "host.courseNoteHelp"
     },
     {
       "file": "ui/app.js",
-      "line": 4971,
+      "line": 4972,
       "kind": "js:featureT",
       "key": "host.courseDeleteConfirm"
     },
     {
       "file": "ui/app.js",
-      "line": 4979,
+      "line": 4980,
       "kind": "js:featureT",
       "key": "host.courseDeleteFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 4983,
+      "line": 4984,
       "kind": "js:featureT",
       "key": "host.courseDeleteFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 5034,
+      "line": 5035,
       "kind": "js:featureT",
       "key": "class.empty"
     },
     {
       "file": "ui/app.js",
-      "line": 5055,
+      "line": 5056,
       "kind": "js:featureT",
       "key": "class.by"
     },
     {
       "file": "ui/app.js",
-      "line": 5060,
+      "line": 5061,
       "kind": "js:featureT",
       "key": "class.addressedTeacher"
     },
     {
       "file": "ui/app.js",
-      "line": 5066,
+      "line": 5067,
       "kind": "js:featureT",
       "key": "class.teacherVerified"
     },
     {
       "file": "ui/app.js",
-      "line": 5078,
+      "line": 5079,
       "kind": "js:featureT",
       "key": "class.loading"
     },
     {
       "file": "ui/app.js",
-      "line": 5086,
+      "line": 5087,
       "kind": "js:featureT",
       "key": "class.loadFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 5090,
+      "line": 5091,
       "kind": "js:featureT",
       "key": "class.loadFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 5114,
+      "line": 5115,
       "kind": "js:featureT",
       "key": "class.addressedTeacher"
     },
     {
       "file": "ui/app.js",
-      "line": 5130,
+      "line": 5131,
       "kind": "js:featureT",
       "key": "class.teacherVerified"
     },
     {
       "file": "ui/app.js",
-      "line": 5159,
+      "line": 5160,
       "kind": "js:featureT",
       "key": "class.loading"
     },
     {
       "file": "ui/app.js",
-      "line": 5166,
+      "line": 5167,
       "kind": "js:featureT",
       "key": "class.loadFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 5179,
+      "line": 5180,
       "kind": "js:featureT",
       "key": "class.loadFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 5196,
+      "line": 5197,
       "kind": "js:featureT",
       "key": "class.verifyFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 5201,
+      "line": 5202,
       "kind": "js:featureT",
       "key": "class.verifyFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 5237,
+      "line": 5238,
       "kind": "js:featureT",
       "key": "host.courseSaveFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 5241,
+      "line": 5242,
       "kind": "js:featureT",
       "key": "host.courseSaveFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 5265,
+      "line": 5266,
       "kind": "js:featureT",
       "key": "class.posting"
     },
     {
       "file": "ui/app.js",
-      "line": 5276,
+      "line": 5277,
       "kind": "js:featureT",
       "key": "class.writeFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 5279,
+      "line": 5280,
       "kind": "js:featureT",
       "key": "class.posted"
     },
     {
       "file": "ui/app.js",
-      "line": 5283,
+      "line": 5284,
       "kind": "js:featureT",
       "key": "class.writeFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 5294,
+      "line": 5295,
       "kind": "js:featureT",
       "key": "class.sendingReply"
     },
     {
       "file": "ui/app.js",
-      "line": 5305,
+      "line": 5306,
       "kind": "js:featureT",
       "key": "class.writeFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 5307,
+      "line": 5308,
       "kind": "js:featureT",
       "key": "class.replied"
     },
     {
       "file": "ui/app.js",
-      "line": 5310,
+      "line": 5311,
       "kind": "js:featureT",
       "key": "class.writeFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 5320,
+      "line": 5321,
       "kind": "js:featureT",
       "key": "class.deleteConfirm"
     },
     {
       "file": "ui/app.js",
-      "line": 5330,
+      "line": 5331,
       "kind": "js:featureT",
       "key": "class.deleteFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 5338,
+      "line": 5339,
       "kind": "js:featureT",
       "key": "class.deleteFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 5371,
+      "line": 5372,
       "kind": "js:t",
       "key": "settings.studyCountryNone"
     },
     {
       "file": "ui/app.js",
-      "line": 5426,
+      "line": 5427,
       "kind": "js:releaseT",
       "key": "host.waiting"
     },
     {
       "file": "ui/app.js",
-      "line": 5427,
+      "line": 5428,
       "kind": "js:releaseT",
       "key": "host.removing"
     },
     {
       "file": "ui/app.js",
-      "line": 5428,
+      "line": 5429,
       "kind": "js:releaseT",
       "key": "host.approved"
     },
     {
       "file": "ui/app.js",
-      "line": 5428,
+      "line": 5429,
       "kind": "js:releaseT",
       "key": "host.approvedSignedIn"
     },
     {
       "file": "ui/app.js",
-      "line": 5445,
+      "line": 5446,
       "kind": "js:releaseT",
       "key": "host.remove"
     },
     {
       "file": "ui/app.js",
-      "line": 5470,
+      "line": 5471,
       "kind": "js:releaseT",
       "key": "host.noFingerprint"
     },
     {
       "file": "ui/app.js",
-      "line": 5477,
+      "line": 5478,
       "kind": "js:releaseT",
       "key": "host.simultaneousChats"
     },
     {
       "file": "ui/app.js",
-      "line": 5478,
+      "line": 5479,
       "kind": "js:releaseT",
       "key": "host.tokensPerChat"
     },
     {
       "file": "ui/app.js",
-      "line": 5479,
+      "line": 5480,
       "kind": "js:releaseT",
       "key": "host.ramCeiling"
     },
     {
       "file": "ui/app.js",
-      "line": 5503,
+      "line": 5504,
       "kind": "js:releaseT",
       "key": "host.empty"
     },
     {
       "file": "ui/app.js",
-      "line": 5512,
+      "line": 5513,
       "kind": "js:releaseT",
       "key": "host.readFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 5525,
+      "line": 5526,
       "kind": "js:releaseT",
       "key": "host.readFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 5541,
+      "line": 5542,
       "kind": "js:releaseT",
       "key": "host.apply"
     },
     {
       "file": "ui/app.js",
-      "line": 5549,
+      "line": 5550,
       "kind": "js:releaseT",
       "key": "host.updateFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 5556,
+      "line": 5557,
       "kind": "js:releaseT",
       "key": "host.updateFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 5577,
+      "line": 5578,
       "kind": "js:releaseT",
       "key": "host.removePending"
     },
     {
       "file": "ui/app.js",
-      "line": 5601,
+      "line": 5602,
       "kind": "js:releaseT",
       "key": "host.approveFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 5602,
+      "line": 5603,
       "kind": "js:releaseT",
       "key": "host.rejectFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 5603,
+      "line": 5604,
       "kind": "js:releaseT",
       "key": "host.removeFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 5650,
+      "line": 5651,
       "kind": "js:releaseT",
       "key": "host.removeConfirm"
     },
     {
       "file": "ui/app.js",
-      "line": 5672,
+      "line": 5673,
       "kind": "js:releaseT",
       "key": "host.copied"
     },
     {
       "file": "ui/app.js",
-      "line": 5675,
+      "line": 5676,
       "kind": "js:releaseT",
       "key": "host.copyFallback"
     },
     {
       "file": "ui/app.js",
-      "line": 5731,
+      "line": 5732,
       "kind": "js:t",
       "key": "settings.saveFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 5754,
+      "line": 5755,
       "kind": "js:t",
       "key": "settings.saveFailed"
-    },
-    {
-      "file": "ui/app.js",
-      "line": 5783,
-      "kind": "js:powerText",
-      "key": "power.critical"
     },
     {
       "file": "ui/app.js",
       "line": 5784,
       "kind": "js:powerText",
+      "key": "power.critical"
+    },
+    {
+      "file": "ui/app.js",
+      "line": 5785,
+      "kind": "js:powerText",
       "key": "power.sensorGrace"
     },
     {
       "file": "ui/app.js",
-      "line": 5790,
+      "line": 5791,
       "kind": "js:powerText",
       "key": "power.actions"
     },
     {
       "file": "ui/app.js",
-      "line": 5794,
+      "line": 5795,
       "kind": "js:powerText",
       "key": "power.critical"
     },
     {
       "file": "ui/app.js",
-      "line": 5798,
+      "line": 5799,
       "kind": "js:powerText",
       "key": "power.critical"
     },
     {
       "file": "ui/app.js",
-      "line": 5798,
+      "line": 5799,
       "kind": "js:powerText",
       "key": "power.openSettings"
     },
     {
       "file": "ui/app.js",
-      "line": 5798,
+      "line": 5799,
       "kind": "js:powerText",
       "key": "power.sensorGrace"
-    },
-    {
-      "file": "ui/app.js",
-      "line": 5802,
-      "kind": "js:powerText",
-      "key": "power.unavailable"
     },
     {
       "file": "ui/app.js",
       "line": 5803,
       "kind": "js:powerText",
+      "key": "power.unavailable"
+    },
+    {
+      "file": "ui/app.js",
+      "line": 5804,
+      "kind": "js:powerText",
       "key": "power.unavailableHelp"
     },
     {
       "file": "ui/app.js",
-      "line": 5813,
+      "line": 5814,
       "kind": "js:powerText",
       "key": "power.connectedDraining"
     },
     {
       "file": "ui/app.js",
-      "line": 5815,
+      "line": 5816,
       "kind": "js:powerText",
       "key": "power.plugged"
     },
     {
       "file": "ui/app.js",
-      "line": 5818,
+      "line": 5819,
       "kind": "js:powerText",
       "key": "power.battery"
     },
     {
       "file": "ui/app.js",
-      "line": 5822,
+      "line": 5823,
       "kind": "js:powerText",
       "key": "power.remaining"
     },
     {
       "file": "ui/app.js",
-      "line": 5825,
+      "line": 5826,
       "kind": "js:powerText",
       "key": "power.rate"
     },
     {
       "file": "ui/app.js",
-      "line": 5827,
+      "line": 5828,
       "kind": "js:powerText",
       "key": "power.checkingHelp"
     },
     {
       "file": "ui/app.js",
-      "line": 5834,
+      "line": 5835,
       "kind": "js:powerText",
       "key": "power.actions"
     },
     {
       "file": "ui/app.js",
-      "line": 5852,
+      "line": 5853,
       "kind": "js:powerText",
       "key": "power.battery"
     },
     {
       "file": "ui/app.js",
-      "line": 5853,
+      "line": 5854,
       "kind": "js:powerText",
       "key": "power.openSettings"
     },
     {
       "file": "ui/app.js",
-      "line": 5889,
+      "line": 5890,
       "kind": "js:t",
       "key": "settings.saveFailed"
     },
@@ -2944,181 +3537,181 @@
     },
     {
       "file": "ui/app.js",
-      "line": 6108,
+      "line": 6109,
       "kind": "js:t",
       "key": "reason.changed"
     },
     {
       "file": "ui/app.js",
-      "line": 6207,
+      "line": 6208,
       "kind": "js:t",
       "key": "model.recommended"
     },
     {
       "file": "ui/app.js",
-      "line": 6213,
+      "line": 6214,
       "kind": "js:t",
       "key": "model.imageInput"
     },
     {
       "file": "ui/app.js",
-      "line": 6221,
+      "line": 6222,
       "kind": "js:t",
       "key": "model.unavailable"
     },
     {
       "file": "ui/app.js",
-      "line": 6222,
+      "line": 6223,
       "kind": "js:t",
       "key": "model.localTutor"
     },
     {
       "file": "ui/app.js",
-      "line": 6241,
+      "line": 6242,
       "kind": "js:t",
       "key": "model.switching"
     },
     {
       "file": "ui/app.js",
-      "line": 6242,
+      "line": 6243,
       "kind": "js:t",
       "key": "model.choose"
     },
     {
       "file": "ui/app.js",
-      "line": 6242,
+      "line": 6243,
       "kind": "js:t",
       "key": "model.currentLocal"
     },
     {
       "file": "ui/app.js",
-      "line": 6243,
+      "line": 6244,
       "kind": "js:t",
       "key": "model.chooseLocal"
     },
     {
       "file": "ui/app.js",
-      "line": 6245,
+      "line": 6246,
       "kind": "js:t",
       "key": "model.operatorOnly"
     },
     {
       "file": "ui/app.js",
-      "line": 6249,
+      "line": 6250,
       "kind": "js:t",
       "key": "model.outsideRegistry"
     },
     {
       "file": "ui/app.js",
-      "line": 6250,
+      "line": 6251,
       "kind": "js:t",
       "key": "model.noneInstalled"
     },
     {
       "file": "ui/app.js",
-      "line": 6287,
+      "line": 6288,
       "kind": "js:t",
       "key": "model.checking"
     },
     {
       "file": "ui/app.js",
-      "line": 6288,
+      "line": 6289,
       "kind": "js:t",
       "key": "model.switchUncertain"
-    },
-    {
-      "file": "ui/app.js",
-      "line": 6293,
-      "kind": "js:t",
-      "key": "model.localTutor"
     },
     {
       "file": "ui/app.js",
       "line": 6294,
       "kind": "js:t",
+      "key": "model.localTutor"
+    },
+    {
+      "file": "ui/app.js",
+      "line": 6295,
+      "kind": "js:t",
       "key": "model.registryFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 6308,
+      "line": 6309,
       "kind": "js:t",
       "key": "model.stopBeforeChange"
     },
     {
       "file": "ui/app.js",
-      "line": 6316,
+      "line": 6317,
       "kind": "js:t",
       "key": "model.loadingNamed"
     },
     {
       "file": "ui/app.js",
-      "line": 6318,
+      "line": 6319,
       "kind": "js:t",
       "key": "model.loadingNote"
     },
     {
       "file": "ui/app.js",
-      "line": 6319,
+      "line": 6320,
       "kind": "js:t",
       "key": "model.switchingNamed"
     },
     {
       "file": "ui/app.js",
-      "line": 6336,
+      "line": 6337,
       "kind": "js:t",
       "key": "model.readyNew"
     },
     {
       "file": "ui/app.js",
-      "line": 6337,
+      "line": 6338,
       "kind": "js:t",
       "key": "model.ready"
     },
     {
       "file": "ui/app.js",
-      "line": 6341,
-      "kind": "js:t",
-      "key": "model.checking"
-    },
-    {
-      "file": "ui/app.js",
       "line": 6342,
       "kind": "js:t",
-      "key": "model.switchUncertain"
+      "key": "model.checking"
     },
     {
       "file": "ui/app.js",
       "line": 6343,
       "kind": "js:t",
+      "key": "model.switchUncertain"
+    },
+    {
+      "file": "ui/app.js",
+      "line": 6344,
+      "kind": "js:t",
       "key": "model.connectionDropped"
     },
     {
       "file": "ui/app.js",
-      "line": 6349,
+      "line": 6350,
       "kind": "js:t",
       "key": "model.switchFailed"
     },
     {
       "file": "ui/app.js",
-      "line": 6410,
+      "line": 6411,
       "kind": "js:t",
       "key": "model.checking"
     },
     {
       "file": "ui/app.js",
-      "line": 6411,
+      "line": 6412,
       "kind": "js:t",
       "key": "model.localTutor"
     },
     {
       "file": "ui/app.js",
-      "line": 6423,
+      "line": 6424,
       "kind": "js:t",
       "key": "model.switchUncertain"
     },
     {
       "file": "ui/app.js",
-      "line": 6440,
+      "line": 6441,
       "kind": "js:releaseT",
       "key": "host.readFailed"
     },
@@ -4738,385 +5331,469 @@
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 509,
+      "line": 519,
       "kind": "js:learningText",
       "key": "learning.coursePracticeHelp"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 509,
+      "line": 519,
       "kind": "js:learningText",
       "key": "learning.coursePracticeTitle"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 523,
+      "line": 533,
       "kind": "js:learningText",
       "key": "learning.studioHelp"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 523,
+      "line": 533,
       "kind": "js:learningText",
       "key": "learning.studioTitle"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 525,
+      "line": 535,
       "kind": "js:learningText",
       "key": "learning.newTopic"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 526,
+      "line": 536,
       "kind": "js:learningText",
       "key": "learning.topicPlaceholder"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 527,
+      "line": 537,
       "kind": "js:learningText",
       "key": "learning.installedCourse"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 532,
+      "line": 542,
       "kind": "js:learningText",
       "key": "learning.guidedLesson"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 532,
+      "line": 542,
       "kind": "js:learningText",
       "key": "learning.guidedLessonHelp"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 533,
+      "line": 543,
       "kind": "js:learningText",
       "key": "learning.practiceQuiz"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 533,
+      "line": 543,
       "kind": "js:learningText",
       "key": "learning.practiceQuizHelp"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 534,
+      "line": 544,
       "kind": "js:learningText",
       "key": "learning.flashcards"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 534,
+      "line": 544,
       "kind": "js:learningText",
       "key": "learning.flashcardsModeHelp"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 535,
+      "line": 545,
       "kind": "js:learningText",
       "key": "learning.diagram"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 535,
+      "line": 545,
       "kind": "js:learningText",
       "key": "learning.diagramHelp"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 536,
+      "line": 546,
       "kind": "js:learningText",
       "key": "learning.infographic"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 536,
+      "line": 546,
       "kind": "js:learningText",
       "key": "learning.infographicHelp"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 543,
+      "line": 547,
+      "kind": "js:learningText",
+      "key": "learning.lessonAnimation"
+    },
+    {
+      "file": "ui/learning-platform.js",
+      "line": 547,
+      "kind": "js:learningText",
+      "key": "learning.lessonAnimationHelp"
+    },
+    {
+      "file": "ui/learning-platform.js",
+      "line": 554,
       "kind": "js:learningText",
       "key": "learning.createWithTutor"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 544,
+      "line": 555,
       "kind": "js:learningText",
       "key": "learning.studioEvidence"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 553,
+      "line": 564,
       "kind": "js:learningText",
       "key": "learning.gamesHelp"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 553,
+      "line": 564,
       "kind": "js:learningText",
       "key": "learning.gamesTitle"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 559,
+      "line": 570,
       "kind": "js:learningText",
       "key": "learning.play"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 573,
+      "line": 584,
       "kind": "js:learningText",
       "key": "learning.gameComplete"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 573,
+      "line": 584,
       "kind": "js:learningText",
       "key": "learning.gameResult"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 574,
+      "line": 585,
       "kind": "js:learningText",
       "key": "learning.backGames"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 581,
+      "line": 592,
       "kind": "js:learningText",
       "key": "learning.gameScore"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 603,
+      "line": 614,
       "kind": "js:learningText",
       "key": "learning.playgroundHelp"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 603,
+      "line": 614,
       "kind": "js:learningText",
       "key": "learning.playgroundTitle"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 609,
+      "line": 620,
       "kind": "js:learningText",
       "key": "learning.openExperiment"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 619,
+      "line": 624,
+      "kind": "js:learningText",
+      "key": "learning.savedAnimationsHelp"
+    },
+    {
+      "file": "ui/learning-platform.js",
+      "line": 624,
+      "kind": "js:learningText",
+      "key": "learning.savedAnimationsTitle"
+    },
+    {
+      "file": "ui/learning-platform.js",
+      "line": 629,
+      "kind": "js:learningText",
+      "key": "learning.noSavedAnimations"
+    },
+    {
+      "file": "ui/learning-platform.js",
+      "line": 630,
+      "kind": "js:learningText",
+      "key": "learning.noSavedAnimationsHelp"
+    },
+    {
+      "file": "ui/learning-platform.js",
+      "line": 631,
+      "kind": "js:learningText",
+      "key": "learning.createAnimation"
+    },
+    {
+      "file": "ui/learning-platform.js",
+      "line": 636,
+      "kind": "js:learningText",
+      "key": "learning.animationSceneCount"
+    },
+    {
+      "file": "ui/learning-platform.js",
+      "line": 640,
+      "kind": "js:learningText",
+      "key": "learning.openAnimation"
+    },
+    {
+      "file": "ui/learning-platform.js",
+      "line": 641,
+      "kind": "js:learningText",
+      "key": "learning.animationExport"
+    },
+    {
+      "file": "ui/learning-platform.js",
+      "line": 642,
+      "kind": "js:learningText",
+      "key": "learning.remove"
+    },
+    {
+      "file": "ui/learning-platform.js",
+      "line": 642,
+      "kind": "js:learningText",
+      "key": "learning.removeAnimationConfirm"
+    },
+    {
+      "file": "ui/learning-platform.js",
+      "line": 651,
+      "kind": "js:learningText",
+      "key": "learning.lessonAnimation"
+    },
+    {
+      "file": "ui/learning-platform.js",
+      "line": 652,
       "kind": "js:learningText",
       "key": "learning.allExperiments"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 631,
+      "line": 662,
+      "kind": "js:learningText",
+      "key": "learning.allExperiments"
+    },
+    {
+      "file": "ui/learning-platform.js",
+      "line": 674,
       "kind": "js:learningText",
       "key": "learning.trackerHelp"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 631,
+      "line": 674,
       "kind": "js:learningText",
       "key": "learning.trackerTitle"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 639,
+      "line": 682,
       "kind": "js:learningText",
       "key": "learning.checkedAttempts"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 639,
+      "line": 682,
       "kind": "js:learningText",
       "key": "learning.evidenceAccuracy"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 639,
+      "line": 682,
       "kind": "js:learningText",
       "key": "learning.minutes"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 639,
+      "line": 682,
       "kind": "js:learningText",
       "key": "learning.noEvidence"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 639,
+      "line": 682,
       "kind": "js:learningText",
       "key": "learning.timeToday"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 639,
+      "line": 682,
       "kind": "js:learningText",
       "key": "learning.topicsToday"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 643,
+      "line": 686,
       "kind": "js:learningText",
       "key": "learning.graphHelp"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 643,
+      "line": 686,
       "kind": "js:learningText",
       "key": "learning.graphTitle"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 645,
+      "line": 688,
       "kind": "js:learningText",
       "key": "learning.todayHelp"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 645,
+      "line": 688,
       "kind": "js:learningText",
       "key": "learning.todayTitle"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 656,
+      "line": 699,
       "kind": "js:learningText",
       "key": "learning.noTimeline"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 662,
+      "line": 705,
       "kind": "js:learningText",
       "key": "learning.graphLabel"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 679,
+      "line": 722,
       "kind": "js:learningText",
       "key": "learning.correctnessHelp"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 679,
+      "line": 722,
       "kind": "js:learningText",
       "key": "learning.correctnessTitle"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 682,
+      "line": 725,
       "kind": "js:learningText",
       "key": "learning.computed"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 682,
+      "line": 725,
       "kind": "js:learningText",
       "key": "learning.computedHelp"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 683,
+      "line": 726,
       "kind": "js:learningText",
       "key": "learning.sourceBacked"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 683,
+      "line": 726,
       "kind": "js:learningText",
       "key": "learning.sourceBackedHelp"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 684,
+      "line": 727,
       "kind": "js:learningText",
       "key": "learning.crossChecked"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 684,
+      "line": 727,
       "kind": "js:learningText",
       "key": "learning.crossCheckedHelp"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 685,
+      "line": 728,
       "kind": "js:learningText",
       "key": "learning.needsReview"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 685,
+      "line": 728,
       "kind": "js:learningText",
       "key": "learning.needsReviewHelp"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 693,
+      "line": 736,
       "kind": "js:learningText",
       "key": "learning.correctnessBoundaryTitle"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 694,
+      "line": 737,
       "kind": "js:learningText",
       "key": "learning.correctnessBoundary"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 696,
+      "line": 739,
       "kind": "js:learningText",
       "key": "learning.sourcesHelp"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 696,
+      "line": 739,
       "kind": "js:learningText",
       "key": "learning.sourcesTitle"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 720,
+      "line": 764,
       "kind": "js:learningText",
       "key": "learning.fileTooLarge"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 723,
+      "line": 767,
       "kind": "js:learningText",
       "key": "learning.invalidFile"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 724,
+      "line": 768,
       "kind": "js:learningText",
       "key": "learning.invalidFile"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 725,
+      "line": 769,
       "kind": "js:learningText",
       "key": "learning.coreConflict"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 727,
+      "line": 771,
       "kind": "js:learningText",
       "key": "learning.importedStatus"
     },
     {
       "file": "ui/learning-platform.js",
-      "line": 765,
+      "line": 810,
       "kind": "js:text",
       "key": "tour.step"
     },
