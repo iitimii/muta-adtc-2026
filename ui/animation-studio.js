@@ -155,20 +155,55 @@
   }
 
   function parseScalarExpression(source) {
-    try { const ast = global.MutaViz.parseExpressionV2(source); if (expressionVariables(ast).size) return null; return global.MutaViz.evaluateExpressionV2(ast, {}); } catch { return null; }
+    try { const ast = global.MutaViz.parseExpressionV2(normalizeFunctionInput(source)); if (expressionVariables(ast).size) return null; return global.MutaViz.evaluateExpressionV2(ast, {}); } catch { return null; }
+  }
+
+  function normalizeFunctionInput(source) {
+    const superscript = { "⁻": "-", "⁺": "+", "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4", "⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9" };
+    return String(source || "").replace(/[−–—﹣－]/g, "-").replace(/π/g, "pi")
+      .replace(/[⁻⁺⁰¹²³⁴⁵⁶⁷⁸⁹]+/g, (run) => {
+        const characters = [...run]; const sign = ["⁻", "⁺"].includes(characters[0]) ? characters.shift() : "";
+        if (!characters.length || characters.some((character) => character === "⁻" || character === "⁺")) return "�";
+        return `^${sign ? superscript[sign] : ""}${characters.map((character) => superscript[character]).join("")}`;
+      });
+  }
+
+  function scalarPattern() {
+    const decimal = "(?:\\d+(?:\\.\\d*)?|\\.\\d+)";
+    return `[+\\-]?(?:(?:${decimal}\\s*\\*?\\s*)?pi(?:\\s*\\/\\s*${decimal})?|${decimal}(?:\\s*\\/\\s*${decimal})?)(?![A-Za-z0-9_.])`;
+  }
+
+  function scalarRange(source) {
+    const scalar = scalarPattern();
+    const patterns = [
+      new RegExp(`\\bfrom\\s*(${scalar})\\s*(?:to|through|until)\\s*(${scalar})`, "i"),
+      new RegExp(`\\bbetween\\s*(${scalar})\\s*(?:and|to)\\s*(${scalar})`, "i"),
+      new RegExp(`\\b(?:on|over|for)\\s+(?:(?:the\\s+)?(?:domain|range|interval)\\s*)?(?:[xt]\\s*(?:=|in|∈)\\s*)?[\\[(]?\\s*(${scalar})\\s*(?:,|to)\\s*(${scalar})\\s*[\\])]?`, "i"),
+      new RegExp(`(?:\\bfor\\s+)?(${scalar})\\s*(?:<=|≤)\\s*[xt]\\s*(?:<=|≤)\\s*(${scalar})`, "i"),
+    ];
+    const matches = patterns.map((pattern) => source.match(pattern)).filter(Boolean).sort((left, right) => left.index - right.index);
+    if (!matches.length) return null;
+    const match = matches[0]; const start = parseScalarExpression(match[1]); const end = parseScalarExpression(match[2]);
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start === end) return null;
+    return { start, end, index: match.index, length: match[0].length };
+  }
+
+  function explicitFunctionRequest(source) {
+    const value = normalizeFunctionInput(source).toLowerCase();
+    if (/\b[yzsv]\s*=/.test(value)) return true;
+    return /\b(?:plot|graph|trace)\b[^\n;]{0,180}\b(?:[a-z][a-z0-9]*\s*\(|[xt]\s*\^|[xt](?:\s*[+*/-]|\s*$))/.test(value);
   }
 
   function parseFunction(source) {
-    const raw = String(source || "").replace(/[−–]/g, "-").replace(/⁰/g, "^0").replace(/¹/g, "^1").replace(/²/g, "^2").replace(/³/g, "^3").replace(/⁴/g, "^4").replace(/⁵/g, "^5");
+    const raw = normalizeFunctionInput(source);
     if (!global.MutaViz?.parseExpressionV2) return null;
-    const scalar = "[+\\-]?(?:(?:\\d+(?:\\.\\d+)?(?:\\s*\\/\\s*\\d+(?:\\.\\d+)?)?)|(?:pi(?:\\s*\\/\\s*\\d+(?:\\.\\d+)?)?))";
-    const rangePattern = new RegExp(`(?:from|between)\\s*(${scalar})\\s*(?:to|and)\\s*(${scalar})`, "i"); const rangeMatch = raw.match(rangePattern);
-    let requestedRange = null;
-    if (rangeMatch) { const start = parseScalarExpression(rangeMatch[1]); const end = parseScalarExpression(rangeMatch[2]); if (Number.isFinite(start) && Number.isFinite(end) && start !== end) requestedRange = [start, end]; }
-    const equation = raw.match(/\b([yzsv])\s*=\s*([^\n;]+)/i); const naked = raw.match(/\b(?:plot|graph|trace)\s+(?:the\s+)?(?:function\s+)?([^\n;]+)/i);
+    const scalar = scalarPattern();
+    const rangeMatch = scalarRange(raw); const requestedRange = rangeMatch ? [rangeMatch.start, rangeMatch.end] : null;
+    const withoutRange = rangeMatch ? `${raw.slice(0, rangeMatch.index)}${raw.slice(rangeMatch.index + rangeMatch.length)}` : raw;
+    const equation = withoutRange.match(/\b([yzsv])\s*=\s*([^\n;]+)/i); const naked = withoutRange.match(/\b(?:plot|graph|trace)\s+(?:the\s+)?(?:function\s+)?([^\n;]+)/i);
     if (!equation && !naked) return null;
     const output = equation ? equation[1].toLowerCase() : "y"; let expressionText = (equation ? equation[2] : naked[1]).trim();
-    expressionText = expressionText.replace(rangePattern, "").replace(/\s+(?:at|when)\s+[xt]\s*=\s*[+\-]?(?:\d+(?:\.\d+)?|pi(?:\s*\/\s*\d+(?:\.\d+)?)?)\b.*$/i, "")
+    expressionText = expressionText.replace(/\s+(?:at|when)\s+[xt]\s*=\s*[+\-]?(?:\d+(?:\.\d+)?|pi(?:\s*\/\s*\d+(?:\.\d+)?)?)\b.*$/i, "")
       .replace(/\s+(?:with|and)\s+(?:show\s+)?(?:a\s+|the\s+)?(?:tangent|derivative|definite\s+integral|integral|area)\b.*$/i, "").trim();
     let expressionAst;
     try { expressionAst = global.MutaViz.parseExpressionV2(expressionText); } catch { return null; }
@@ -239,16 +274,20 @@
     const cleanTopic = String(topic || concept || "Lesson animation").trim().slice(0, 240);
     const combined = `${topic || ""}\n${concept || ""}\n${requirements || ""}`;
     if (!cleanTopic || !LEVELS.has(level)) throw new Error("Add a topic and choose a learner level.");
+    const mathematicalFunction = parseFunction(combined);
+    if (!mathematicalFunction && explicitFunctionRequest(combined)) {
+      const error = new Error("Muta could not safely resolve that explicit function into a typed graph. Check the equation and use supported variables, operators, and functions instead of generating an unverified prose storyboard.");
+      error.code = "function_parse_failed"; throw error;
+    }
     const normalizedNumeric = combined.replace(/[−–]/g, "-");
-    if (/(?:^|[^\w])-\d{1,2}(?:\.\d+)?\s*(?:\/|x|×|groups?\s+of)\s*\d{1,2}(?:\.\d+)?/i.test(normalizedNumeric)
-      || /\b(?:minus|negative)\s+(?:\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+(?:halves?|thirds?|quarters?|fourths?|fifths?|sixths?|eighths?|tenths?|twelfths?|groups?|rows?)/i.test(combined)) throw new Error("Signed fractions and signed array dimensions are not yet supported. Muta will not drop the negative sign; use a number-line or function lesson instead.");
-    if (/\d+\.\d+\s*(?:\/|x|×)\s*\d+(?:\.\d+)?|\d+(?:\.\d+)?\s*(?:\/|x|×)\s*\d+\.\d+/i.test(normalizedNumeric)) throw new Error("Decimal fractions and decimal array dimensions are not supported by these concrete models. Muta will not truncate a decimal; use a typed function lesson instead.");
-    if ((normalizedNumeric.match(/\d+\s*\/\s*\d+/g) || []).length > 1 && /[+−-]/.test(normalizedNumeric.replace(/^\s*[−-]/, ""))) throw new Error("Arithmetic with multiple fractions needs a dedicated equation model. Muta will not discard an operand.");
+    if (!mathematicalFunction && (/(?:^|[^\w])-\d{1,2}(?:\.\d+)?\s*(?:\/|x|×|groups?\s+of)\s*\d{1,2}(?:\.\d+)?/i.test(normalizedNumeric)
+      || /\b(?:minus|negative)\s+(?:\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+(?:halves?|thirds?|quarters?|fourths?|fifths?|sixths?|eighths?|tenths?|twelfths?|groups?|rows?)/i.test(combined))) throw new Error("Signed fractions and signed array dimensions are not yet supported. Muta will not drop the negative sign; use a number-line or function lesson instead.");
+    if (!mathematicalFunction && /\d+\.\d+\s*(?:\/|x|×)\s*\d+(?:\.\d+)?|\d+(?:\.\d+)?\s*(?:\/|x|×)\s*\d+\.\d+/i.test(normalizedNumeric)) throw new Error("Decimal fractions and decimal array dimensions are not supported by these concrete models. Muta will not truncate a decimal; use a typed function lesson instead.");
+    if (!mathematicalFunction && (normalizedNumeric.match(/\d+\s*\/\s*\d+/g) || []).length > 1 && /[+−-]/.test(normalizedNumeric.replace(/^\s*[−-]/, ""))) throw new Error("Arithmetic with multiple fractions needs a dedicated equation model. Muta will not discard an operand.");
     const unsupportedPresentation = String(requirements || "").match(/\b(?:red|blue|yellow|purple|orange|pink|colour|color|music|sound|voice[- ]?over|three[- ]dimensional|3d|rotate|rotation|\d+\s*(?:seconds?|minutes?))\b/i);
     if (unsupportedPresentation) throw new Error(`“${unsupportedPresentation[0]}” is not applied silently. Generate the semantic lesson first, then use the scene editor for timing; custom colours, audio, and 3D camera directions are not supported in this workspace yet.`);
     const fraction = parseFraction(combined);
     const array = parseArray(combined);
-    const mathematicalFunction = parseFunction(combined);
     const vector = parseVector(combined);
     const process = parseProcess(requirements);
     let scenes; let summary;

@@ -72,6 +72,56 @@ test("typed expression bridge supports trigonometric exponential and rational cu
   assert.ok(Math.abs(bounded.scenes[0].data.domain[1] - Math.PI) < 1e-10);
 });
 
+test("Unicode pi and common scalar range forms stay on the typed function path", () => {
+  const exact = animator.planProject({
+    topic: "A sine wave",
+    concept: "Plot y = sin(x) from -π to π",
+    level: "secondary",
+    requirements: "Draw labelled axes and trace the sine curve.",
+  });
+  assert.deepEqual(exact.scenes.map((scene) => scene.kind), ["function", "function"]);
+  assert.deepEqual(exact.scenes[0].data.domain, [-Math.PI, Math.PI]);
+  assert.equal(exact.scenes[0].data.expression_text, "sin(x)");
+
+  const cases = [
+    ["Plot y = sin(x) from −π through π", [-Math.PI, Math.PI]],
+    ["Plot y = sin(x) between −π and π", [-Math.PI, Math.PI]],
+    ["Plot y = sin(x) from −2π to 2π", [-2 * Math.PI, 2 * Math.PI]],
+    ["Plot y = sin(x) from -2pi to 2pi", [-2 * Math.PI, 2 * Math.PI]],
+    ["Plot y = sin(x) on the interval [−2π, 2π]", [-2 * Math.PI, 2 * Math.PI]],
+    ["Plot y = cos(x) for x ∈ [−π/2, π/2]", [-Math.PI / 2, Math.PI / 2]],
+    ["Plot y = sin(x) for −π ≤ x ≤ π", [-Math.PI, Math.PI]],
+  ];
+  for (const [prompt, domain] of cases) {
+    const parsed = animator.parseFunction(prompt);
+    assert.ok(parsed, prompt);
+    assert.ok(Math.abs(parsed.domain[0] - domain[0]) < 1e-10, prompt);
+    assert.ok(Math.abs(parsed.domain[1] - domain[1]) < 1e-10, prompt);
+    assert.ok(["sin(x)", "cos(x)"].includes(parsed.expression_text), prompt);
+    assert.ok(Math.abs(animator.expressionValue(parsed.expression_ast, "x", Math.PI / 2)) <= 1, prompt);
+  }
+
+  const rationalDomain = plan("Plot y = 1.5*x from -1/2 to 1/2");
+  assert.deepEqual(rationalDomain.scenes[0].data.domain, [-0.5, 0.5]);
+  assert.equal(rationalDomain.scenes[0].data.expression_text, "1.5*x");
+  assert.equal(animator.expressionValue(rationalDomain.scenes[0].data.expression_ast, "x", 0.5), 0.75);
+
+  const negativeFraction = plan("Plot y = -1/2*x");
+  assert.equal(animator.expressionValue(negativeFraction.scenes[0].data.expression_ast, "x", 4), -2);
+  const decimalCoefficient = plan("Plot y = 0.5*x");
+  assert.equal(animator.expressionValue(decimalCoefficient.scenes[0].data.expression_ast, "x", 4), 2);
+});
+
+test("Unicode exponent runs preserve one exponent instead of chaining powers", () => {
+  const multiDigit = animator.parseFunction("Plot y = x²³");
+  assert.equal(multiDigit.expression_text, "x^23");
+  assert.equal(animator.expressionValue(multiDigit.expression_ast, "x", 2), 8388608);
+  const negative = animator.parseFunction("Plot y = x⁻²");
+  assert.equal(negative.expression_text, "x^-2");
+  assert.equal(animator.expressionValue(negative.expression_ast, "x", 2), 0.25);
+  assert.equal(animator.parseFunction("Plot y = x²⁻³"), null);
+});
+
 test("tertiary derivative and definite-integral workflows compute real quantities", () => {
   const derivative = plan("plot y = x^3 and show the tangent at x = 2", "tertiary");
   assert.equal(derivative.scenes[1].data.mode, "derivative");
@@ -112,6 +162,11 @@ test("ambiguous prompts fail honestly instead of selecting an unrelated visual",
   assert.throws(() => plan("Explain 1.5/2", "upper-primary"), /will not truncate a decimal/);
   assert.throws(() => plan("Build 1.5 x 4", "upper-primary"), /will not truncate a decimal/);
   assert.throws(() => plan("Explain 3/4 + 1/4", "upper-primary"), /will not discard an operand/);
+  assert.throws(
+    () => animator.planProject({ topic: "Unresolved graph", concept: "Plot y = mystery(x) from −π to π", level: "secondary", requirements: "start -> peak -> finish" }),
+    /could not safely resolve that explicit function/,
+  );
+  assert.throws(() => plan("Plot y = ∫x dx from −π to π"), /could not safely resolve that explicit function/);
 });
 
 test("calculus parsing preserves requested points orientation and rational bounds", () => {

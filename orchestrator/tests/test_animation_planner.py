@@ -91,6 +91,21 @@ def test_valid_plan_builds_only_typed_process_scenes() -> None:
     assert params["temperature"] == 0.0
 
 
+def test_explicit_unresolved_function_never_becomes_a_prose_storyboard() -> None:
+    engine = _Engine([_valid()])
+    request = AnimationPlanRequest(
+        student_id="learner",
+        topic="A sine wave",
+        level="secondary",
+        concept="Plot y = mystery(x) from −π to π",
+        requirements="Draw labelled axes and trace the curve.",
+    )
+    project, repaired = plan_animation_project(engine, request)
+    assert project is None
+    assert repaired is False
+    assert engine.local.calls == []
+
+
 def test_invalid_proposal_gets_one_structured_repair() -> None:
     invalid = {**_valid(), "steps": [{"title": "Only", "narration": "One state"}]}
     engine = _Engine([invalid, _valid()])

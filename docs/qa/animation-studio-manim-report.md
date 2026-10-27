@@ -47,6 +47,33 @@ Final automated gates after the review fixes:
   video` was disabled, exposed the reason as help text, and had a visibly disabled state. The
   capture is `animation-studio-manim-unavailable.png`.
 
+## Unicode scalar/range acceptance regression
+
+The exact packaged-app brief was re-run in the real Muta Study Studio:
+
+- title: `A sine wave`
+- concept: `Plot y = sin(x) from -π to π`
+- requirements: `Draw labelled axes and trace the sine curve.`
+- learner level: Secondary
+
+It completed immediately as two typed `function` scenes. The visible validated-project disclosure
+contained `expression_text: "sin(x)"`, a `call: sin` typed AST, and the exact numeric domain
+`[-3.141592653589793, 3.141592653589793]`. The canvas showed labelled axes and a full sine cycle;
+its accessible description and narration both used −π to π. The HTTP log contained only the
+deterministic source and capability requests after generation, with no `/v1/animation/plan` model
+request.
+
+Regression coverage also checks Unicode minus variants, `between`, bracketed intervals, two-sided
+inequalities, π/2 and ±2π/2pi bounds, rational bounds, negative fractional and decimal function
+coefficients, and complete Unicode exponent runs such as `x²³` and `x⁻²`. Full scalar boundaries
+prevent a numeric prefix such as the `2` in `2π` from being consumed while leaving `π` inside the
+function expression. Explicit function requests that do not parse into the allow-listed typed AST
+now fail closed in both browser and model-planner boundaries, so they cannot become prose-only
+process storyboards. Non-mathematical novel process planning remains available.
+
+Post-regression automated gates: 2,395 selected Python tests, 191/191 Node tests, focused Animation
+Studio 33/33, focused planner 10/10, Ruff, whitespace, source-inventory, and built-asset parity.
+
 ## Artifacts and hashes
 
 | Artifact | SHA-256 | Evidence |

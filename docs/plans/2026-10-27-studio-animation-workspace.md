@@ -125,6 +125,35 @@ Runtime/package contract:
   host `PATH`; the Studio checks the capability endpoint, disables only trusted MP4 rendering, and
   keeps canvas preview and trusted source available.
 
+## Unicode scalar and range regression milestone
+
+The packaged-app acceptance prompt `Plot y = sin(x) from −π to π` exposed a boundary mismatch:
+the shared typed-expression parser accepts Unicode π, but the Studio's range extractor recognized
+only the ASCII spelling `pi`. When extraction failed, the otherwise valid range words remained in
+the expression and incorrectly forced the slower local planner.
+
+Implementation and QA plan:
+
+1. Normalize common Unicode minus characters and π at the Studio's function-input boundary before
+   both scalar-range extraction and typed-expression parsing. Keep this as data normalization only;
+   the existing typed AST remains the sole executable mathematical representation.
+2. Replace the single range regex with a small bounded set of grammatical range forms: `from … to`,
+   `between … and`, interval notation after `on`/`over`/`for`, and a two-sided scalar inequality.
+   Support ordinary π multiples and fractions without accepting arbitrary source text.
+3. Remove only the recognized range span before parsing the equation, preserving the original
+   expression semantics and deterministic fast path.
+4. Treat an explicit unresolved equation/function request as a typed-function error, not as a
+   generic process-storyboard opportunity. Enforce the same narrow rule at the local model planner
+   boundary so a direct request cannot turn unresolved mathematics into plausible but unverified
+   prose scenes.
+5. Add regressions for the exact packaged-app brief, ASCII compatibility, Unicode minus/π,
+   `between`, bracketed intervals, π multiples/fractions, and two-sided inequalities. Confirm an
+   actual two-variable or unsupported explicit function fails closed without entering the prose
+   planner, while genuinely novel non-mathematical compositions retain the bounded planner path.
+6. Run focused Animation Studio tests, the complete Node and Python suites, lint/diff checks, and a
+   real-browser generation of the exact brief. Freeze a clean commit and require a fresh independent
+   adversarial review before handing the SHA back for packaging integration.
+
 ## Acceptance criteria
 
 ### Semantic and authoring correctness

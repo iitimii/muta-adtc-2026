@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import threading
 import uuid
 from datetime import UTC, datetime
@@ -28,6 +29,22 @@ from runtime.chat import ChatEngine
 log = logging.getLogger("muta.gateway.animation_planner")
 
 MAX_ANIMATION_PLAN_ATTEMPTS = 2
+
+
+def _is_explicit_function_request(request: AnimationPlanRequest) -> bool:
+    value = "\n".join(
+        part for part in (request.topic, request.concept or "", request.requirements or "") if part
+    ).replace("π", "pi")
+    if re.search(r"\b[yzsv]\s*=", value, re.IGNORECASE):
+        return True
+    return bool(
+        re.search(
+            r"\b(?:plot|graph|trace)\b[^\n;]{0,180}"
+            r"(?:\b[a-z][a-z0-9]*\s*\(|\b[xt]\s*\^|\b[xt](?:\s*[+*/-]|\s*$))",
+            value,
+            re.IGNORECASE,
+        )
+    )
 
 
 class _ProposalStep(BaseModel):
@@ -174,6 +191,10 @@ def plan_animation_project(
     cancel_event: threading.Event | None = None,
 ) -> tuple[AnimationPlanProject | None, bool]:
     """Ask the installed local model for a safe ordered composition, repairing once."""
+    if _is_explicit_function_request(request):
+        # This planner can produce only prose process scenes. An unresolved explicit function must
+        # stay unresolved rather than being converted into an authoritative-looking storyboard.
+        return None, False
     system = (
         "Create one concise educational animation plan as JSON only. Follow the closed schema. "
         "Choose two to eight distinct visual teaching states in causal order. The renderer is "
