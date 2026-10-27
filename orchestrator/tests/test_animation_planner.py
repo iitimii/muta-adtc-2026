@@ -132,6 +132,37 @@ def test_whitespace_text_is_repaired_instead_of_becoming_a_server_error() -> Non
     assert "blank_text" in engine.local.calls[1][0][1]["content"]
 
 
+def test_truncated_generated_narration_gets_one_complete_sentence_repair() -> None:
+    truncated = {**_valid()}
+    truncated["steps"] = [dict(step) for step in _valid()["steps"]]
+    truncated["steps"][0]["narration"] = "x" * 116 + " the"
+    assert len(truncated["steps"][0]["narration"]) == 120
+    engine = _Engine([truncated, _valid()])
+
+    project, repaired = plan_animation_project(engine, _request())
+
+    assert project is not None and repaired is True
+    assert len(engine.local.calls) == 2
+    first_system_prompt = engine.local.calls[0][0][0]["content"]
+    assert "one complete age-appropriate sentence of 60 to 90 characters" in first_system_prompt
+    assert "well before the 120-character schema limit" in first_system_prompt
+    repair_prompt = engine.local.calls[1][0][1]["content"]
+    assert "incomplete_sentence" in repair_prompt
+    assert "rewrite rather than truncating" in repair_prompt
+
+
+def test_generated_narration_with_trailing_article_is_not_made_valid_by_punctuation() -> None:
+    incomplete = {**_valid()}
+    incomplete["steps"] = [dict(step) for step in _valid()["steps"]]
+    incomplete["steps"][1]["narration"] = "The balance remains the."
+    engine = _Engine([incomplete])
+
+    project, repaired = plan_animation_project(engine, _request())
+
+    assert project is None and repaired is True
+    assert len(engine.local.calls) == MAX_ANIMATION_PLAN_ATTEMPTS
+
+
 def test_whitespace_topic_fails_request_validation() -> None:
     with pytest.raises(ValidationError, match="visible text"):
         AnimationPlanRequest(student_id="learner", topic="  ", level="secondary")

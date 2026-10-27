@@ -155,11 +155,20 @@ test("all explicit function relations in a brief must agree", () => {
     level: "secondary",
   });
   assert.equal(identical.scenes[0].data.expression_text, "sin(x)");
+  const identicalSemicolon = animator.planProject({
+    topic: "Plot y=sin(x); Plot y=sin(x)",
+    level: "secondary",
+  });
+  assert.equal(identicalSemicolon.scenes[0].data.expression_text, "sin(x)");
   const conflicts = [
     { topic: "Plot y=sin(x)", concept: "Plot y=cos(x)" },
     { topic: "Plot y=x²", concept: "y=x^2", requirements: "y=x^3" },
     { topic: "Plot y=x^2", concept: "Plot z=x^2" },
     { topic: "Plot y=x^2", concept: "Plot y=t^2" },
+    { topic: "Plot y=sin(x); Plot y=cos(x)" },
+    { topic: "Plot y=x^2; Plot z=x^2" },
+    { topic: "Plot y=x^2; Plot y=t^2" },
+    { topic: "Plot y=x^2; Plot y=mystery(x)" },
   ];
   for (const brief of conflicts) {
     assert.throws(
@@ -167,6 +176,28 @@ test("all explicit function relations in a brief must agree", () => {
       /could not safely resolve that explicit function/,
     );
   }
+});
+
+test("separate probe and domain requirement clauses preserve the typed function", () => {
+  const tangent = animator.planProject({
+    topic: "Tangent lesson",
+    concept: "Plot y=x^2",
+    requirements: "Show the tangent at x=2",
+    level: "tertiary",
+  });
+  assert.equal(tangent.scenes[1].data.mode, "derivative");
+  assert.equal(tangent.scenes[1].data.parameter, 2);
+
+  const domain = animator.planProject({
+    topic: "Sine graph",
+    concept: "Plot y=sin(x)",
+    requirements: "Use domain x in [-pi, pi]",
+    level: "secondary",
+  });
+  assert.deepEqual(domain.scenes[0].data.domain, [-Math.PI, Math.PI]);
+
+  assert.equal(animator.parseFunction("Derivative y=x^2 at x=2; at x=3"), null);
+  assert.equal(animator.parseFunction("Integral y=x^2 from 0 to 1; from 2 to 3"), null);
 });
 
 test("tertiary derivative and definite-integral workflows compute real quantities", () => {

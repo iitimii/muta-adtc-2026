@@ -181,6 +181,7 @@
     const scalar = scalarPattern();
     const rangeEnd = scalarTerminatorPattern();
     const patterns = [
+      { pattern: new RegExp("\\b(?:domain|range|interval)\\s+(?:for\\s+)?(?:([xt])\\s*(?:=|in|∈)\\s*)?[\\[(]\\s*(" + scalar + ")\\s*(?:,|to)\\s*(" + scalar + ")\\s*[\\])]" + rangeEnd, "i"), variable: 1, start: 2, end: 3 },
       { pattern: new RegExp(`\\bfrom\\s*(${scalar})\\s*(?:to|through|until)\\s*(${scalar})${rangeEnd}`, "i"), start: 1, end: 2 },
       { pattern: new RegExp(`\\bbetween\\s*(${scalar})\\s*(?:and|to)\\s*(${scalar})${rangeEnd}`, "i"), start: 1, end: 2 },
       { pattern: new RegExp(`\\b(?:on|over|for)\\s+(?:(?:the\\s+)?(?:domain|range|interval)\\s*)?(?:([xt])\\s*(?:=|in|∈)\\s*)?[\\[(]?\\s*(${scalar})\\s*(?:,|to)\\s*(${scalar})\\s*[\\])]?(?:${rangeEnd})`, "i"), variable: 1, start: 2, end: 3 },
@@ -203,6 +204,7 @@
   function explicitScalarRangeRequest(source) {
     return /\bfrom\b[^\n;]{0,80}\b(?:to|through|until)\b/i.test(source)
       || /\bbetween\b[^\n;]{0,80}\b(?:and|to)\b/i.test(source)
+      || /\b(?:domain|range|interval)\s+(?:for\s+)?(?:[xt]\s*(?:=|in|∈)\s*)?[\[(]/i.test(source)
       || /\b(?:on|over|for)\s+(?:(?:the\s+)?(?:domain|range|interval)\b|[xt]\s*(?:=|in|∈)\s*[\[(])/i.test(source)
       || /(?:<=|≤|<)\s*[xt]\s*(?:<=|≤|<)/i.test(source);
   }
@@ -214,6 +216,9 @@
 
   function explicitFunctionRequest(source) {
     const value = normalizeFunctionInput(source).toLowerCase();
+    if (!/\b[yzsv]\s*=/.test(value)
+      && !/\b(?:plot|graph|trace)\b/.test(value)
+      && /\b(?:at|when)\s+[xt]\s*=/.test(value)) return false;
     if (/(?:^|[^\w])(?:[a-z]|[a-z][a-z0-9]*\s*\(\s*[a-z]\s*\))\s*=/.test(value)) return true;
     return /\b(?:plot|graph|trace)\b[^\n;]{0,180}\b(?:[a-z][a-z0-9]*\s*\(|[xt]\s*(?:\^|[+*/-]|(?:from|between|on|over|for)\b|$))/.test(value);
   }
@@ -225,20 +230,32 @@
     const derivativeIntent = /\b(?:derivative|differentiat(?:e|ed|es|ing|ion)?|tangent|gradient|rate\s+of\s+change)\b/i.test(lower);
     const integralIntent = /\b(?:definite\s+integral|integral|area\s+under)\b/i.test(lower);
     const scalar = scalarPattern();
-    const rangeLines = raw.split("\n").filter((line) => explicitScalarRangeRequest(line) || (integralIntent && explicitIntegralBoundsRequest(line)));
+    const briefFields = raw.split("\n").map((field) => field.split(";").map((clause) => clause.trim()).filter(Boolean));
+    const briefClauses = briefFields.flat();
+    if (briefFields.some((clauses) => clauses.slice(1).some((clause) => /^[+*/×÷^)]/.test(clause)))) return null;
+    const rangeFields = briefFields.map((clauses) => clauses.filter((clause) => explicitScalarRangeRequest(clause) || (integralIntent && explicitIntegralBoundsRequest(clause))));
+    if (rangeFields.some((clauses) => clauses.length > 1)) return null;
+    const rangeLines = rangeFields.flat();
     const parsedRanges = rangeLines.map((line) => scalarRange(line));
     if (parsedRanges.some((range) => !range)) return null;
     const rangeSignatures = new Set(parsedRanges.map((range) => `${range.start}:${range.end}:${range.variable || ""}`));
     if (rangeSignatures.size > 1) return null;
-    const rangeMatch = scalarRange(raw); const requestedRange = rangeMatch ? [rangeMatch.start, rangeMatch.end] : null;
-    if (rangeLines.length && !rangeMatch) return null;
+    let rangeMatch = null;
+    if (parsedRanges.length) {
+      const selected = parsedRanges[0]; const clauseIndex = raw.indexOf(rangeLines[0]);
+      if (clauseIndex < 0) return null;
+      rangeMatch = { ...selected, index: clauseIndex + selected.index };
+    }
+    const requestedRange = rangeMatch ? [rangeMatch.start, rangeMatch.end] : null;
     const withoutRange = rangeMatch ? `${raw.slice(0, rangeMatch.index)}${raw.slice(rangeMatch.index + rangeMatch.length)}` : raw;
     const equation = withoutRange.match(/\b([yzsv])\s*=\s*([^\n;]+)/i); const naked = withoutRange.match(/\b(?:plot|graph|trace)\s+(?:the\s+)?(?:function\s+)?([^\n;]+)/i);
     if (!equation && !naked) return null;
     const output = equation ? equation[1].toLowerCase() : "y"; let expressionText = (equation ? equation[2] : naked[1]).trim();
     const probePattern = new RegExp(`\\s+(?:at|when)\\s+([xt])\\s*=\\s*(${scalar})\\s*[,.;:]?$`, "i");
     const probeLinePattern = `(?:at|when)\\s+([xt])\\s*=\\s*(${scalar})(?=\\s*(?:$|[,.;:]\\s*$|\\b(?:and|with)\\b))`;
-    const probeLines = derivativeIntent ? raw.split("\n").filter((line) => /\b(?:at|when)\b/i.test(line)) : [];
+    const probeFields = derivativeIntent ? briefFields.map((clauses) => clauses.filter((clause) => /\b(?:at|when)\b/i.test(clause))) : [];
+    if (probeFields.some((clauses) => clauses.length > 1)) return null;
+    const probeLines = probeFields.flat();
     const parsedProbes = [];
     for (const line of probeLines) {
       const matches = [...line.matchAll(new RegExp(probeLinePattern, "gi"))];
@@ -260,8 +277,8 @@
     const variables = [...expressionVariables(expressionAst)].filter((name) => ["x", "t"].includes(name));
     if (variables.length !== 1 || expressionVariables(expressionAst).size !== 1) return null;
     const variable = variables[0];
-    if (raw.includes("\n")) {
-      const relationLines = raw.split("\n").filter((line) => /\b[yzsv]\s*=/i.test(line) || explicitFunctionRequest(line));
+    if (/[\n;]/.test(raw)) {
+      const relationLines = briefClauses.filter((line) => /\b[yzsv]\s*=/i.test(line) || explicitFunctionRequest(line));
       const lineRelations = relationLines.map((line) => parseFunction(line));
       if (lineRelations.some((relation) => !relation)) return null;
       const relationSignatures = new Set(lineRelations.map((relation) => JSON.stringify({ output: relation.output, variable: relation.variable, expression_ast: relation.expression_ast })));

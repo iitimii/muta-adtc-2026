@@ -29,6 +29,11 @@ from runtime.chat import ChatEngine
 log = logging.getLogger("muta.gateway.animation_planner")
 
 MAX_ANIMATION_PLAN_ATTEMPTS = 2
+_INCOMPLETE_SENTENCE_ENDING = re.compile(
+    r"\b(?:a|an|the|and|or|but|because|to|of|with|by|for|from|as|at|in|on|into|"
+    r"than|that|which|who|whose|your|their|its|this|these|those)[.!?…]?$",
+    re.IGNORECASE,
+)
 
 _INTENT_SUPERSCRIPT = str.maketrans(
     {"⁻": "-", "⁺": "+", "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4", "⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9"}
@@ -170,6 +175,23 @@ def _proposal_errors(candidate: object) -> tuple[_AnimationProposal | None, list
                 "detail": "Visible text is required at: " + ", ".join(blank_fields),
             }
         ]
+    incomplete_fields = []
+    for index, step in enumerate(proposal.steps):
+        narration = step.narration.strip()
+        if not re.search(r"[.!?…][\"'’”)]?$", narration) or _INCOMPLETE_SENTENCE_ENDING.search(
+            narration
+        ):
+            incomplete_fields.append(f"steps.{index}.narration")
+    if incomplete_fields:
+        return None, [
+            {
+                "code": "incomplete_sentence",
+                "detail": (
+                    "Each generated narration must be one complete sentence ending in punctuation; "
+                    "rewrite rather than truncating: " + ", ".join(incomplete_fields)
+                ),
+            }
+        ]
     normalized = [step.narration.strip().casefold() for step in proposal.steps]
     if len(set(normalized)) != len(normalized):
         return None, [
@@ -223,6 +245,8 @@ def plan_animation_project(
         "Create one concise educational animation plan as JSON only. Follow the closed schema. "
         "Choose two to eight distinct visual teaching states in causal order. The renderer is "
         "a deterministic local process storyboard, so describe only what each state should teach. "
+        "Write each narration as one complete age-appropriate sentence of 60 to 90 characters, "
+        "ending with punctuation. Finish the sentence well before the 120-character schema limit. "
         "Do not emit code, HTML, JavaScript, Python, Manim, URLs, styles, colours, assets, renderer "
         "commands, or executable expressions. All strings are inert learner-facing text."
     )

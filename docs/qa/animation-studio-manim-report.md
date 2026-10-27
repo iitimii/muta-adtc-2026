@@ -85,12 +85,26 @@ Every title, concept and requirement line is checked; identical repeated context
 conflicting or malformed range/probe clauses in any later field invalidate the complete request.
 The same rule covers explicit function relations: repeated typed AST context is allowed, while
 conflicting equations, outputs, or independent variables cannot be silently ignored.
+Brief clauses are checked across both newlines and semicolons. Probe-only requirements such as
+“Show the tangent at x=2” are not misclassified as new equations, while standalone domain clauses
+such as “Use domain x in [-pi, pi]” are parsed into the function's typed range. Multiple probes or
+ranges in one semicolon-delimited field and dangling arithmetic tails fail closed.
 Explicit function requests that do not parse into the allow-listed typed AST now fail closed in both
 browser and model-planner boundaries, so they cannot become prose-only process storyboards.
 Non-mathematical novel process planning remains available.
 
+Generated process narrations are also checked for completion before project construction. The
+planner requests one concise 60–90-character sentence per step, ending well before the existing
+120-character schema limit. Missing punctuation and obvious incomplete endings trigger the single
+bounded structured repair with “incomplete_sentence”; Muta does not conceal truncation by appending
+punctuation to cut-off model text. User-authored process labels remain unchanged.
+
 Post-regression automated gates: 2,395 selected Python tests, 191/191 Node tests, focused Animation
 Studio 33/33, focused planner 10/10, Ruff, whitespace, source-inventory, and built-asset parity.
+
+Final whole-brief/caption gate: 2,320 Python tests passed, 77 skipped and one deselected; 193/193
+Node tests passed; focused Animation Studio 35/35 and planner 12/12 passed. Touched-file Ruff,
+whitespace, generated localisation inventory, and source/built-asset parity also passed.
 
 ## Artifacts and hashes
 
