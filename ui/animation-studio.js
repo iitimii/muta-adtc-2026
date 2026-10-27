@@ -193,6 +193,13 @@
     return { start, end, index: match.index, length: match[0].length };
   }
 
+  function explicitScalarRangeRequest(source) {
+    return /\bfrom\b[^\n;]{0,80}\b(?:to|through|until)\b/i.test(source)
+      || /\bbetween\b[^\n;]{0,80}\b(?:and|to)\b/i.test(source)
+      || /\b(?:on|over|for)\s+(?:(?:the\s+)?(?:domain|range|interval)\b|[xt]\s*(?:=|in|∈)\s*[\[(])/i.test(source)
+      || /(?:<=|≤|<)\s*[xt]\s*(?:<=|≤|<)/i.test(source);
+  }
+
   function explicitFunctionRequest(source) {
     const value = normalizeFunctionInput(source).toLowerCase();
     if (/(?:^|[^\w])(?:[a-z]|[a-z][a-z0-9]*\s*\(\s*[a-z]\s*\))\s*=/.test(value)) return true;
@@ -204,12 +211,14 @@
     if (!global.MutaViz?.parseExpressionV2) return null;
     const scalar = scalarPattern();
     const rangeMatch = scalarRange(raw); const requestedRange = rangeMatch ? [rangeMatch.start, rangeMatch.end] : null;
+    if (explicitScalarRangeRequest(raw) && !rangeMatch) return null;
     const withoutRange = rangeMatch ? `${raw.slice(0, rangeMatch.index)}${raw.slice(rangeMatch.index + rangeMatch.length)}` : raw;
     const equation = withoutRange.match(/\b([yzsv])\s*=\s*([^\n;]+)/i); const naked = withoutRange.match(/\b(?:plot|graph|trace)\s+(?:the\s+)?(?:function\s+)?([^\n;]+)/i);
     if (!equation && !naked) return null;
     const output = equation ? equation[1].toLowerCase() : "y"; let expressionText = (equation ? equation[2] : naked[1]).trim();
     const probeEnd = scalarTerminatorPattern("and|with");
     const probePattern = new RegExp(`\\s+(?:at|when)\\s+[xt]\\s*=\\s*(${scalar})${probeEnd}.*$`, "i");
+    const explicitProbe = /(?:at|when)\s+[xt]\s*=/i.test(raw);
     expressionText = expressionText.replace(probePattern, "")
       .replace(/\s+(?:with|and)\s+(?:show\s+)?(?:a\s+|the\s+)?(?:tangent|derivative|definite\s+integral|integral|area)\b.*$/i, "")
       .replace(/[,;:]+$/, "").trim();
@@ -223,7 +232,9 @@
         : /\^[3-9]/.test(expressionText) ? [-3, 3] : [-6, 6]);
     let mode = "curve"; let parameter; let bounds;
     if (/\b(?:derivative|differentiat(?:e|ed|es|ing|ion)?|tangent|gradient|rate\s+of\s+change)\b/i.test(lower)) {
-      mode = "derivative"; const probe = lower.match(new RegExp(`(?:at|when)\\s+[xt]\\s*=\\s*(${scalar})${probeEnd}`, "i")); parameter = probe ? parseScalarExpression(probe[1]) : 0;
+      mode = "derivative"; const probe = lower.match(new RegExp(`(?:at|when)\\s+[xt]\\s*=\\s*(${scalar})${probeEnd}`, "i"));
+      if (explicitProbe && !probe) return null;
+      parameter = probe ? parseScalarExpression(probe[1]) : 0;
       if (!Number.isFinite(parameter)) return null;
       const span = domain[1] - domain[0];
       if (parameter <= domain[0]) domain = [parameter - Math.max(1, span * .2), domain[1]];

@@ -154,7 +154,9 @@ Implementation and QA plan:
    cannot be split between a domain and a changed function. Cover strict inequalities, full
    superscript runs, rational coefficients/domains, and derivative probes such as `2π` and `.5`.
    Apply concrete-fraction guards only after the typed-function path has had the opportunity to
-   validate the complete expression.
+   validate the complete expression. Treat explicit scalar intent separately from a successful
+   parse: default calculus probes/bounds are allowed only when no explicit `at`/`when` or range
+   clause was supplied.
 6. Run focused Animation Studio tests, the complete Node and Python suites, lint/diff checks, and a
    real-browser generation of the exact brief. Freeze a clean commit and require a fresh independent
    adversarial review before handing the SHA back for packaging integration.

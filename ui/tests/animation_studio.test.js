@@ -167,8 +167,31 @@ test("tertiary derivative and definite-integral workflows compute real quantitie
   const decimalDerivative = plan("Derivative y = x^2 at x = .5", "tertiary");
   assert.equal(decimalDerivative.scenes[0].data.expression_text, "x^2");
   assert.equal(decimalDerivative.scenes[1].data.parameter, 0.5);
+  const defaultDerivative = plan("Derivative y = x^2", "tertiary");
+  assert.equal(defaultDerivative.scenes[1].data.parameter, 0);
+  const invalidExplicitProbes = [
+    "Plot y=x^2 and show the tangent at x=2π+1",
+    "Plot y=x^2 with tangent at x=foo",
+    "Plot y=x^2 and show the derivative when x=.5+1",
+  ];
+  for (const prompt of invalidExplicitProbes) {
+    assert.equal(animator.parseFunction(prompt), null, prompt);
+    assert.throws(() => plan(prompt, "tertiary"), /could not safely resolve that explicit function/, prompt);
+  }
   const naturalIntegral = plan("Integral y = x^2 from 0 to 1", "tertiary");
   assert.deepEqual(naturalIntegral.scenes[1].data.bounds, [0, 1]);
+  const defaultIntegral = plan("Integral y = x^2", "tertiary");
+  assert.deepEqual(defaultIntegral.scenes[1].data.bounds, [0, 1]);
+  const invalidExplicitBounds = [
+    "Plot y=x^2 with integral from 0 to foo",
+    "Plot y=x^2 and show integral from 0 to pi+1",
+    "Integral y=x^2 between 0 and mystery",
+    "Plot y=x^2 with area for x ∈ [0, pi+1]",
+  ];
+  for (const prompt of invalidExplicitBounds) {
+    assert.equal(animator.parseFunction(prompt), null, prompt);
+    assert.throws(() => plan(prompt, "tertiary"), /could not safely resolve that explicit function/, prompt);
+  }
 });
 
 test("tertiary vector scenes preserve components and magnitude", () => {
