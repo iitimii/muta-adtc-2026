@@ -74,6 +74,8 @@ Valid typed functions containing values that resemble concrete fraction lessons,
 Derivative probes retain `2π` and leading-decimal points without contaminating the expression AST.
 An explicitly requested but invalid probe such as `x = 2π+1` or `x = foo` fails closed; the
 default probe at zero is used only when the learner did not specify an `at`/`when` point.
+The probe variable must also match the typed function's independent variable, so a function of `t`
+cannot silently reinterpret a requested `x` probe (or vice versa).
 Likewise, malformed explicit integral bounds such as `from 0 to foo` or `from 0 to π+1` cannot
 fall back to [0, 1]; that default is reserved for requests which state no bounds.
 Explicit function requests that do not parse into the allow-listed typed AST now fail closed in both

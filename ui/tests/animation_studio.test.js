@@ -173,11 +173,16 @@ test("tertiary derivative and definite-integral workflows compute real quantitie
     "Plot y=x^2 and show the tangent at x=2π+1",
     "Plot y=x^2 with tangent at x=foo",
     "Plot y=x^2 and show the derivative when x=.5+1",
+    "Derivative y=t^2 at x=2",
+    "Plot y=x^2 and show the tangent when t=2",
   ];
   for (const prompt of invalidExplicitProbes) {
     assert.equal(animator.parseFunction(prompt), null, prompt);
     assert.throws(() => plan(prompt, "tertiary"), /could not safely resolve that explicit function/, prompt);
   }
+  const matchingProbeVariable = plan("Derivative y=t^2 when t=2", "tertiary");
+  assert.equal(matchingProbeVariable.scenes[1].data.variable, "t");
+  assert.equal(matchingProbeVariable.scenes[1].data.parameter, 2);
   const naturalIntegral = plan("Integral y = x^2 from 0 to 1", "tertiary");
   assert.deepEqual(naturalIntegral.scenes[1].data.bounds, [0, 1]);
   const defaultIntegral = plan("Integral y = x^2", "tertiary");

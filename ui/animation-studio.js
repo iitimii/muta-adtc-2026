@@ -232,9 +232,10 @@
         : /\^[3-9]/.test(expressionText) ? [-3, 3] : [-6, 6]);
     let mode = "curve"; let parameter; let bounds;
     if (/\b(?:derivative|differentiat(?:e|ed|es|ing|ion)?|tangent|gradient|rate\s+of\s+change)\b/i.test(lower)) {
-      mode = "derivative"; const probe = lower.match(new RegExp(`(?:at|when)\\s+[xt]\\s*=\\s*(${scalar})${probeEnd}`, "i"));
+      mode = "derivative"; const probe = lower.match(new RegExp(`(?:at|when)\\s+([xt])\\s*=\\s*(${scalar})${probeEnd}`, "i"));
       if (explicitProbe && !probe) return null;
-      parameter = probe ? parseScalarExpression(probe[1]) : 0;
+      if (probe && probe[1] !== variable) return null;
+      parameter = probe ? parseScalarExpression(probe[2]) : 0;
       if (!Number.isFinite(parameter)) return null;
       const span = domain[1] - domain[0];
       if (parameter <= domain[0]) domain = [parameter - Math.max(1, span * .2), domain[1]];
