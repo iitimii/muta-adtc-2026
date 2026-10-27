@@ -37,6 +37,7 @@
   const boundedVisibleText = (value, max) => boundedText(value, max)
     && !/[\p{Cc}\p{Cf}]/u.test(value) && /[\p{L}\p{N}\p{P}\p{S}]/u.test(value);
   const finite = (value, min, max) => typeof value === "number" && Number.isFinite(value) && value >= min && value <= max;
+  const owns = (record, key) => Object.prototype.hasOwnProperty.call(record, key);
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const safeId = (value) => typeof value === "string" && /^[a-z0-9][a-z0-9-]{0,79}$/.test(value);
   const sumDuration = (scenes) => scenes.reduce((sum, scene) => sum + scene.duration_ms, 0);
@@ -131,7 +132,7 @@
 
   function numberFromToken(token) {
     const value = String(token || "").toLowerCase();
-    return Object.hasOwn(WORD_NUMBERS, value) ? WORD_NUMBERS[value] : Number.parseInt(value, 10);
+    return owns(WORD_NUMBERS, value) ? WORD_NUMBERS[value] : Number.parseInt(value, 10);
   }
 
   function parseFraction(source) {
@@ -159,8 +160,8 @@
     if (!intent) return null;
     if (/\b(?:polynomial|algebraic|long\s+division|synthetic\s+division|decimal|fractional)\b/.test(value)) throw new Error("This equal-sharing model uses whole objects. Use a concrete division such as 12 ÷ 3; algebraic or long-division procedures need a different visual model.");
     const token = "(?:[+-]?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:e[+-]?\\d+)?|zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)";
-    const operation = new RegExp(`(?:^|[^\\w.+/-])(${token})\\s*(?:÷|divided\\s+by|/|by)\\s*(${token})(?![\\w/+-]|\\.\\d)`, "g");
-    const sharing = new RegExp(`(?:^|[^\\w.+/-])(${token})\\s+(?:blocks?|objects?|items?|apples?|counters?|sweets?)\\s+(?:equally\\s+)?(?:among|between|into)\\s+(${token})(?![\\w/+-]|\\.\\d)`, "g");
+    const operation = new RegExp(`(^|[^\\w.+/-])(${token})\\s*(?:÷|divided\\s+by|/|by)\\s*(${token})(?![\\w/+-]|\\.\\d)`, "g");
+    const sharing = new RegExp(`(^|[^\\w.+/-])(${token})\\s+(?:blocks?|objects?|items?|apples?|counters?|sweets?)\\s+(?:equally\\s+)?(?:among|between|into)\\s+(${token})(?![\\w/+-]|\\.\\d)`, "g");
     const operations = [...value.matchAll(operation)]; const matches = [...operations, ...value.matchAll(sharing)];
     if ((value.match(/÷|divided\s+by/g) || []).length !== operations.filter((match) => /÷|divided\s+by/.test(match[0])).length) throw new Error("Muta could not read the complete division. Use one whole-number relationship such as 12 ÷ 3, without an extra arithmetic tail.");
     if (!matches.length) {
@@ -168,9 +169,9 @@
       return { dividend: 12, divisor: 3, example: true };
     }
     let remainderText = value;
-    for (const match of [...matches].sort((a, b) => b.index - a.index)) remainderText = remainderText.slice(0, match.index) + " " + remainderText.slice(match.index + match[0].length);
+    for (const match of [...matches].sort((a, b) => b.index - a.index)) remainderText = remainderText.slice(0, match.index) + match[1] + " " + remainderText.slice(match.index + match[0].length);
     if (/[\d+×*/÷=^]|(?:^|\s)-(?=\s|\d)|\b(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|billion|trillion|dozen|negative|minus|plus|times|multiplied)\b/.test(remainderText)) throw new Error("Use one complete whole-number division without additional arithmetic or unresolved quantities. Muta will not discard part of your request.");
-    const quantities = matches.map((match) => ({ dividend: Object.hasOwn(WORD_NUMBERS, match[1]) ? WORD_NUMBERS[match[1]] : Number(match[1]), divisor: Object.hasOwn(WORD_NUMBERS, match[2]) ? WORD_NUMBERS[match[2]] : Number(match[2]) }));
+    const quantities = matches.map((match) => ({ dividend: owns(WORD_NUMBERS, match[2]) ? WORD_NUMBERS[match[2]] : Number(match[2]), divisor: owns(WORD_NUMBERS, match[3]) ? WORD_NUMBERS[match[3]] : Number(match[3]) }));
     const result = quantities[0];
     if (quantities.some((item) => item.dividend !== result.dividend || item.divisor !== result.divisor)) throw new Error("Use one division relationship per lesson; the supplied quantities conflict.");
     if (!Number.isInteger(result.dividend) || !Number.isInteger(result.divisor) || result.dividend < 0 || result.dividend > 144 || result.divisor < 1 || result.divisor > 12 || Math.floor(result.dividend / result.divisor) > 12) throw new Error("Use 0–144 whole objects, 1–12 groups, and at most 12 objects per group. Division by zero and fractional sharing are not supported by this concrete model.");

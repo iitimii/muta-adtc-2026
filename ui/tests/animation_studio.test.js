@@ -58,10 +58,20 @@ test("division derives every count and remainder, without generic process filler
     assert.doesNotMatch(JSON.stringify(project), /wave|left\? That/);
   }
   assert.match(plan("Explain division").scenes[0].title, /^Example:/);
+  for (const prompt of ["Explain division x×12 / 3", "Explain division n *12 / 3"]) assert.throws(() => plan(prompt));
   assert.equal(animator.parseDivision("Explain cell division"), null);
   for (const prompt of ["Explain 12 ÷ 0", "Explain 12.5 ÷ 3", "Explain 12 ÷ -3", "Explain 12 ÷ 3+2", "Explain 12 ÷ 3 + 2", "Explain 12 ÷ 3 × 2", "Show the division 12 / 3 / 2", "twelve divided by three hundred", "twenty one divided by three", "Share one hundred and twelve objects among 3 groups", "Share 12 apples plus 6 pears among 3 friends", "Share 12 objects minus 3 among 3 friends", "Explain division of a dozen sweets", "Explain 12 ÷ 3 and 5 ÷ nope", "Explain 12 ÷ 3 and 14 ÷ 2", "Explain division of 20 objects", "Explain division of thirteen objects", "Explain polynomial division"]) {
     assert.throws(() => plan(prompt), undefined, prompt);
   }
+});
+
+test("equal sharing works when the older WebKit has no Object.hasOwn", () => {
+  const original = Object.hasOwn;
+  try {
+    Object.hasOwn = undefined;
+    assert.deepEqual(plan("14 ÷ 4").scenes[0].data, { dividend: 14, divisor: 4, phase: "count" });
+    assert.deepEqual(plan("Share twelve blocks among three friends").scenes[0].data, { dividend: 12, divisor: 3, phase: "count" });
+  } finally { Object.hasOwn = original; }
 });
 
 test("all shared objects remain inside their group boundaries on a narrow draft", () => {
