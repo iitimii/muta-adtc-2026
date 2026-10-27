@@ -278,6 +278,16 @@ def test_explicit_requested_step_count_is_enforced_during_bounded_repair() -> No
         "Explain in ten steps.",
         "Explain in 12 scenes.",
         "Explain in -3 steps.",
+        "Explain in −3 steps.",
+        "Explain in 2.5 steps.",
+        "Explain in .5 steps.",
+        "Explain in 2/3 steps.",
+        "Explain in 2e3 steps.",
+        "Explain in twenty-three steps.",
+        "Explain in twenty three steps.",
+        "Explain in one hundred and three steps.",
+        "Explain in minus three steps.",
+        "Explain in −three steps.",
         "Explain in 0 steps.",
         "Explain in 1000 steps.",
         "Explain in three steps and then in two stages.",
@@ -299,13 +309,14 @@ def test_unsupported_or_conflicting_step_counts_fail_before_model_contact(
     assert engine.local.calls == []
 
 
-def test_hyphenated_requested_step_count_reaches_schema_and_postdecode_validation() -> None:
+@pytest.mark.parametrize("count", ["3", "three", "+3", "＋3"])
+def test_hyphenated_requested_step_count_reaches_schema_and_postdecode_validation(count) -> None:
     engine = _Engine([_valid()])
     request = AnimationPlanRequest(
         student_id="learner",
         topic="A bounded process",
         level="secondary",
-        requirements="Create a 3-step explanation.",
+        requirements=f"Create a {count}-step explanation.",
     )
 
     project, repaired = plan_animation_project(engine, request)
@@ -353,7 +364,13 @@ def test_prefix_recovery_preserves_decimal_value_in_an_already_complete_sentence
     assert project.scenes[0].narration == "The measured mass is 2.5 kg."
 
 
-def test_invalid_count_route_returns_422_and_releases_generation_admission(monkeypatch) -> None:
+@pytest.mark.parametrize(
+    "requirements",
+    ["Use nine steps.", "Use −3 steps.", "Use 2.5 steps.", "Use twenty-three steps."],
+)
+def test_invalid_count_route_returns_422_and_releases_generation_admission(
+    monkeypatch, requirements,
+) -> None:
     class _ConnectedRequest:
         @staticmethod
         async def is_disconnected() -> bool:
@@ -363,7 +380,7 @@ def test_invalid_count_route_returns_422_and_releases_generation_admission(monke
     engine = _Engine([_valid()])
     generations = GenerationManager(max_active=1)
     sessions = SessionManager(slots_count=1)
-    request = _request().model_copy(update={"requirements": "Use nine steps."})
+    request = _request().model_copy(update={"requirements": requirements})
 
     with pytest.raises(HTTPException) as raised:
         asyncio.run(

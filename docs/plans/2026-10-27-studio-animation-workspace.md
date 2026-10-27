@@ -192,6 +192,10 @@ boundaries from decimal points and abbreviations.
 Invalid count errors belong to the animation-plan endpoint, not model selection: return HTTP 422
 with an actionable two-to-eight-scene message, and release both generation and session admission.
 Check that signed, zero, and long numeric counts cannot be partially matched as valid small counts.
+Normalize Unicode signs and consume decimal, fractional, scientific, and compound English count
+tokens atomically. Unsupported counts such as `−3`, `2.5`, and `twenty-three` must return 422
+before inference, never match their trailing supported digit or word. This is a bounded count
+grammar, not a claim to understand arbitrary natural-language constraints.
 Keep a brief persistent notice beside the preview/render actions: learners must review every scene
 and the maths because tutor-written process explanations can be wrong. Do not imply that typed-AST
 numeric validation certifies open-ended model narration.
