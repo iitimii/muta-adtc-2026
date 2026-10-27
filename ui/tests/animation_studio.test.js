@@ -79,6 +79,8 @@ test("circle radius formatting is exact and bounded across browser planning and 
 test("circle requests fail closed instead of becoming prose storyboards", () => {
   assert.deepEqual(animator.parseCircle("Draw a circle with radius 5.6"), { radius: 5.6 });
   assert.deepEqual(animator.parseCircle("Draw a circle with radius 5.6."), { radius: 5.6 });
+  assert.deepEqual(animator.parseCircle("Draw a circle whose radius equals 5.6"), { radius: 5.6 });
+  assert.deepEqual(animator.parseCircle("Draw a circle that has a radius of 5.6"), { radius: 5.6 });
   for (const prompt of [
     "Draw a circle",
     "Draw a circle with radius zero",
@@ -107,8 +109,21 @@ test("circle requests fail closed instead of becoming prose storyboards", () => 
     "Draw a circle with radius 5.6 and one circle",
     "Draw a circle with radius 5.6 and radius",
     "Draw a circle with radius 5.6 and radius is",
+    "Draw a circle with radius 5.6 and draw a line",
+    "Draw a circle with radius 5.6 in",
+    "Draw a circle with radius 5.6\"",
+    "Draw a circle with radius 5.6'",
   ]) assert.throws(() => plan(prompt), undefined, prompt);
   assert.equal(plan("Draw a circle with radius 5.6 and label its radius").scenes.length, 2);
+  assert.equal(plan("Draw a circle with radius 5.6", "secondary", "and label its radius").scenes.length, 2);
+  for (const requirements of ["and a circle", "and one circle", "and radius", "and radius is"]) {
+    assert.throws(() => animator.planProject({
+      topic: "Draw a circle with radius 5.6",
+      concept: "Draw a circle with radius 5.6",
+      level: "secondary",
+      requirements,
+    }), undefined, requirements);
+  }
   assert.throws(() => animator.planProject({
     topic: "Draw a circle with radius 5.6; plot y = x^2",
     concept: "",

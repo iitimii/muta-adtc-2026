@@ -29,9 +29,9 @@
   });
   const CIRCLE_BRIEF_WORDS = new Set([
     "a", "about", "an", "and", "animate", "animation", "can", "circle", "construct", "could",
-    "create", "draw", "equal", "equals", "explain", "for", "having", "identify", "in", "is", "its", "label",
+    "create", "draw", "equal", "equals", "explain", "for", "has", "having", "identify", "in", "is", "its", "label",
     "lesson", "line", "make", "mark", "me", "of", "one", "please", "radius", "render", "show",
-    "sketch", "the", "this", "to", "unit", "units", "whose", "with", "would", "you",
+    "sketch", "that", "the", "this", "to", "unit", "units", "whose", "with", "would", "you",
   ]);
   const mounted = new Set();
 
@@ -173,7 +173,8 @@
   function parseCircle(source) {
     const value = String(source || "").replace(/[−–—﹣－]/g, "-");
     if (!explicitCircleRequest(value)) return null;
-    if (/\b(?:ellipses?|ovals?|squares?|rectangles?|triangles?|polygons?|spheres?|semicircles?|arcs?|sectors?)\b/i.test(value)) {
+    const withoutRadiusLines = value.replace(/\bradius\s+lines?\b/gi, "");
+    if (/\b(?:ellipses?|ovals?|squares?|rectangles?|triangles?|polygons?|spheres?|semicircles?|arcs?|sectors?|lines?)\b/i.test(withoutRadiusLines)) {
       throw new Error("Use one circle only; mixed or different geometry is not discarded silently.");
     }
     if (/\bcircles\b/i.test(value)) {
@@ -188,16 +189,25 @@
     if (/\b(?:millimet(?:er|re)s?|centimet(?:er|re)s?|kilomet(?:er|re)s?|met(?:er|re)s?|inches?|feet|foot|yards?|miles?|mm|cm|km|m|ft)\b/i.test(value)) {
       throw new Error("Named measurement units are not supported yet; give the radius as a unitless value or generic units.");
     }
-    const pattern = /\bradius\b\s*(?:=|:|of|is)?\s*([+\-]?(?:\d+(?:\.\d*)?|\.\d+))(?!\w)/gi;
+    const pattern = /\bradius\b\s*(?:=|:|of|is|equals)?\s*([+\-]?(?:\d+(?:\.\d*)?|\.\d+))(?!\w)/gi;
     const matches = [...value.matchAll(pattern)];
     if (!matches.length) {
       throw new Error("Add one explicit positive circle radius, for example: draw a circle with radius 5.6.");
     }
-    for (const clause of value.split(/\n+/).filter((item) => explicitCircleRequest(item))) {
-      if ((clause.match(/\bcircles?\b/gi) || []).length !== 1) {
+    for (const clause of value.split(/\n+/).filter((item) => item.trim())) {
+      const circleCount = (clause.match(/\bcircles?\b/gi) || []).length;
+      const radiusCount = (clause.match(/\bradius\b/gi) || []).length;
+      if (!circleCount && !radiusCount) continue;
+      const clauseMatches = [...clause.matchAll(pattern)];
+      const labelOnly = clauseMatches.length === 0
+        && /^(?:\s*and\b)?\s*(?:label|show|mark|identify)\s+(?:the|its|a)?\s*radius(?:\s+line)?\s*[.!?]*$/i.test(clause);
+      if (!clauseMatches.length) {
+        if (labelOnly) continue;
+        throw new Error("Every circle instruction needs one resolved numeric radius; continuation fields cannot add an incomplete circle or radius.");
+      }
+      if (circleCount !== 1) {
         throw new Error("This animation accepts exactly one circle in each circle instruction.");
       }
-      const clauseMatches = [...clause.matchAll(pattern)];
       const clauseRemainder = clauseMatches.reduceRight((textValue, match) => `${textValue.slice(0, match.index)} ${textValue.slice(match.index + match[0].length)}`, clause);
       const remainingRadii = clauseRemainder.match(/\bradius\b/gi) || [];
       const allowedRadiusLabel = remainingRadii.length === 1
@@ -208,6 +218,9 @@
     }
     for (const match of matches) {
       const tail = value.slice(match.index + match[0].length);
+      if (/^\s*(?:in\b|["'])/i.test(tail)) {
+        throw new Error("Inch and foot suffixes are named units and are not discarded silently.");
+      }
       if (/^\s*(?:[+*/×÷^]|-(?=\s*\d))/.test(tail)) {
         throw new Error("Use one resolved numeric radius without additional arithmetic.");
       }
