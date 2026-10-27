@@ -149,6 +149,37 @@ def test_request_id_is_echoed_or_minted():
     assert r2.headers.get("X-Request-ID")
 
 
+def test_animation_source_rejects_oversized_process_step_at_api_boundary():
+    project = {
+        "version": 1,
+        "kind": "lesson-animation",
+        "id": "bounded-process",
+        "title": "A bounded process",
+        "topic": "Safety",
+        "level": "secondary",
+        "summary": "A deterministic lesson.",
+        "created_at": "2026-10-27T00:00:00Z",
+        "updated_at": "2026-10-27T00:00:00Z",
+        "scenes": [
+            {
+                "id": "process",
+                "kind": "process",
+                "title": "Process",
+                "narration": "Follow each step.",
+                "duration_ms": 900,
+                "data": {"steps": ["x" * 121, "Finish safely"], "active": 0},
+            }
+        ],
+    }
+    response = client.post(
+        "/v1/animation/source",
+        headers={"Authorization": "Bearer s1"},
+        json={"project": project},
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"][-2:] == ["steps", 0]
+
+
 def test_ready_shape():
     r = client.get("/v1/ready")
     assert r.status_code == 200

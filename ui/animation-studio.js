@@ -336,6 +336,16 @@
     return { source: payload.source, filename: payload.filename || `${validated.project.id}-manim.py` };
   }
 
+  async function requestManimSourceRevision(project, revision, currentRevision, options = {}) {
+    const generated = await requestManimSource(project, options);
+    if (currentRevision() !== revision) {
+      const error = new Error("The animation project changed while its Manim source was generated.");
+      error.name = "AbortError";
+      throw error;
+    }
+    return generated;
+  }
+
   async function downloadManimSource(project, options = {}) {
     const generated = options.generated || await requestManimSource(project, options);
     downloadBlob(new Blob([generated.source], { type: "text/x-python;charset=utf-8" }), generated.filename);
@@ -676,7 +686,7 @@
 
   class Studio {
     constructor(root, options = {}) {
-      this.root = root; this.options = options; this.player = null; this.project = null; this.timers = []; this.destroyed = false; this.operationToken = 0;
+      this.root = root; this.options = options; this.player = null; this.project = null; this.projectRevision = 0; this.timers = []; this.destroyed = false; this.operationToken = 0;
       this.build(); mounted.add(this);
       if (options.project) this.showProject(options.project, { persist: false });
     }
@@ -754,7 +764,7 @@
     }
     showProject(project, { persist = true } = {}) {
       const result = validateProject(project); if (!result.ok) { this.error.textContent = result.error; return; }
-      this.project = result.project; if (persist) saveProject(this.project); this.player?.destroy(); this.previewRoot.replaceChildren(); this.player = mountPlayer(this.previewRoot, this.project); this.projectActions.hidden = false; this.editor.hidden = false; this.renderProjectActions(); this.renderEditor(); this.options.onProject?.(this.project);
+      this.project = result.project; this.projectRevision += 1; if (persist) saveProject(this.project); this.player?.destroy(); this.previewRoot.replaceChildren(); this.player = mountPlayer(this.previewRoot, this.project); this.projectActions.hidden = false; this.editor.hidden = false; this.renderProjectActions(); this.renderEditor(); this.options.onProject?.(this.project);
     }
     renderProjectActions() {
       this.projectActions.replaceChildren();
@@ -764,9 +774,10 @@
       this.projectActions.append(save, projectExport, transcriptExport);
       const projectSource = document.createElement("details"); projectSource.className = "animation-project-source"; const projectSourceSummary = document.createElement("summary"); projectSourceSummary.textContent = text("animationProjectSource"); const projectSourceText = document.createElement("pre"); projectSourceText.textContent = JSON.stringify(this.project, null, 2); projectSource.append(projectSourceSummary, projectSourceText); this.projectActions.append(projectSource);
       const manimSource = document.createElement("details"); manimSource.className = "animation-project-source animation-manim-source"; const manimSummary = document.createElement("summary"); manimSummary.textContent = text("animationManimSource"); const manimCode = document.createElement("pre"); manimCode.textContent = text("animationManimSourceLoading"); manimSource.append(manimSummary, manimCode); this.projectActions.append(manimSource);
-      const sourceProjectId = this.project.id; this.manimSource = null; this.sourceAbort?.abort(); this.sourceAbort = new AbortController();
-      requestManimSource(this.project, { signal: this.sourceAbort.signal }).then((generated) => { if (!this.destroyed && this.project?.id === sourceProjectId) { this.manimSource = generated; manimCode.textContent = generated.source; } }).catch((error) => { if (error.name !== "AbortError" && !this.destroyed && this.project?.id === sourceProjectId) manimCode.textContent = `${text("animationManimSourceUnavailable")} ${error.message}`; });
-      const sourceDownload = button(text("animationDownloadManimSource")); sourceDownload.addEventListener("click", async () => { sourceDownload.disabled = true; try { const generated = this.manimSource || await requestManimSource(this.project); this.manimSource = generated; manimCode.textContent = generated.source; await downloadManimSource(this.project, { generated }); this.error.textContent = text("animationManimSourceReady"); } catch (error) { this.error.textContent = error.message; } finally { sourceDownload.disabled = false; } }); this.projectActions.append(sourceDownload);
+      const sourceRevision = this.projectRevision; const sourceProject = clone(this.project); this.manimSource = null; this.manimSourceRevision = null; this.sourceAbort?.abort(); this.sourceAbort = new AbortController();
+      const revisionNow = () => this.projectRevision;
+      requestManimSourceRevision(sourceProject, sourceRevision, revisionNow, { signal: this.sourceAbort.signal }).then((generated) => { if (!this.destroyed && this.projectRevision === sourceRevision) { this.manimSource = generated; this.manimSourceRevision = sourceRevision; manimCode.textContent = generated.source; } }).catch((error) => { if (error.name !== "AbortError" && !this.destroyed && this.projectRevision === sourceRevision) manimCode.textContent = `${text("animationManimSourceUnavailable")} ${error.message}`; });
+      const sourceDownload = button(text("animationDownloadManimSource")); sourceDownload.addEventListener("click", async () => { sourceDownload.disabled = true; try { const generated = this.manimSourceRevision === sourceRevision ? this.manimSource : await requestManimSourceRevision(sourceProject, sourceRevision, revisionNow); if (!generated || this.projectRevision !== sourceRevision) return; this.manimSource = generated; this.manimSourceRevision = sourceRevision; manimCode.textContent = generated.source; await downloadManimSource(sourceProject, { generated }); this.error.textContent = text("animationManimSourceReady"); } catch (error) { if (error.name !== "AbortError") this.error.textContent = error.message; } finally { sourceDownload.disabled = false; } }); this.projectActions.append(sourceDownload);
       const manimVideo = button(text("animationRenderManimVideo"), "animation-primary"); manimVideo.addEventListener("click", async () => { manimVideo.disabled = true; this.manimAbort?.abort(); this.manimAbort = new AbortController(); this.error.textContent = text("animationRenderingManimVideo"); try { await exportManimVideo(this.project, { signal: this.manimAbort.signal }); this.error.textContent = text("animationManimVideoReady"); } catch (error) { if (error.name !== "AbortError") this.error.textContent = error.message; } finally { manimVideo.disabled = false; this.manimAbort = null; } }); this.projectActions.append(manimVideo);
       const capability = videoCapability();
       if (capability.supported) { const video = button(text("animationDownloadVideo")); video.addEventListener("click", async () => { video.disabled = true; this.exportAbort?.abort(); this.exportAbort = new AbortController(); this.error.textContent = text("animationEncodingVideo"); try { await exportVideo(this.project, (progress) => { this.error.textContent = text("animationEncodingProgress", { percent: Math.round(progress * 100) }); }, { signal: this.exportAbort.signal }); this.error.textContent = text("animationVideoReady"); } catch (error) { this.error.textContent = error.message; } finally { video.disabled = false; this.exportAbort = null; } }); this.projectActions.append(video); }
@@ -778,12 +789,12 @@
         const titleInput = document.createElement("input"); titleInput.value = scene.title; titleInput.maxLength = 140; const narration = document.createElement("textarea"); narration.value = scene.narration; narration.maxLength = 700; narration.rows = 3;
         const duration = document.createElement("input"); duration.type = "number"; duration.min = String(MIN_SCENE_MS); duration.max = String(MAX_SCENE_MS); duration.step = "100"; duration.value = String(scene.duration_ms);
         const up = button(text("animationMoveUp")); up.disabled = index === 0; up.addEventListener("click", () => this.moveScene(index, -1)); const down = button(text("animationMoveDown")); down.disabled = index === this.project.scenes.length - 1; down.addEventListener("click", () => this.moveScene(index, 1));
-        const apply = button(text("animationApplyScene"), "animation-primary"); apply.addEventListener("click", () => { const updated = clone(this.project); updated.scenes[index].title = titleInput.value.trim(); updated.scenes[index].narration = narration.value.trim(); updated.scenes[index].duration_ms = Number(duration.value); updated.updated_at = new Date().toISOString(); const result = validateProject(updated); if (!result.ok) { this.error.textContent = result.error; return; } this.error.textContent = ""; this.project = saveProject(result.project); this.player.updateProject(this.project); this.renderEditor(); });
+        const apply = button(text("animationApplyScene"), "animation-primary"); apply.addEventListener("click", () => { const updated = clone(this.project); updated.scenes[index].title = titleInput.value.trim(); updated.scenes[index].narration = narration.value.trim(); updated.scenes[index].duration_ms = Number(duration.value); updated.updated_at = new Date().toISOString(); const result = validateProject(updated); if (!result.ok) { this.error.textContent = result.error; return; } this.error.textContent = ""; this.project = saveProject(result.project); this.projectRevision += 1; this.player.updateProject(this.project); this.renderProjectActions(); this.renderEditor(); this.options.onProject?.(this.project); });
         const controls = document.createElement("div"); controls.className = "animation-scene-editor-actions"; controls.append(up, down, apply);
         row.append(legend, field(text("animationSceneTitle"), titleInput), field(text("animationSceneNarration"), narration), field(text("animationSceneDuration"), duration), controls); this.editorBody.append(row);
       });
     }
-    moveScene(index, delta) { const target = index + delta; if (target < 0 || target >= this.project.scenes.length) return; const updated = clone(this.project); [updated.scenes[index], updated.scenes[target]] = [updated.scenes[target], updated.scenes[index]]; updated.updated_at = new Date().toISOString(); this.project = saveProject(updated); this.player.updateProject(this.project); this.renderEditor(); }
+    moveScene(index, delta) { const target = index + delta; if (target < 0 || target >= this.project.scenes.length) return; const updated = clone(this.project); [updated.scenes[index], updated.scenes[target]] = [updated.scenes[target], updated.scenes[index]]; updated.updated_at = new Date().toISOString(); this.project = saveProject(updated); this.projectRevision += 1; this.player.updateProject(this.project); this.renderProjectActions(); this.renderEditor(); this.options.onProject?.(this.project); }
     async importSelected() {
       const file = this.file.files?.[0]; this.file.value = ""; if (!file) return;
       if (file.size > MAX_PROJECT_BYTES) { this.error.textContent = text("animationImportTooLarge"); return; }
@@ -804,7 +815,7 @@
   global.MutaAnimator = Object.freeze({
     VERSION, KIND, validateProject, planProject, requestAnimationPlan, parseFraction, parseArray, parsePolynomial, parseFunction, formatMathValue,
     parseVector, parseProcess, polynomialValue, expressionValue, numericalDerivative, numericalIntegral, projectDescription, loadProjects, saveProject,
-    removeProject, exportProject, exportTranscript, exportVideo, videoCapability, requestManimSource, downloadManimSource, exportManimVideo, drawFrame, drawExportCaption,
+    removeProject, exportProject, exportTranscript, exportVideo, videoCapability, requestManimSource, requestManimSourceRevision, downloadManimSource, exportManimVideo, drawFrame, drawExportCaption,
     mountPlayer, mountStudio, cleanup,
   });
   if (typeof module !== "undefined" && module.exports) module.exports = global.MutaAnimator;

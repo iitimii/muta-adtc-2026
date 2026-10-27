@@ -89,6 +89,15 @@ def _expression_typst(
     if budget is None:
         budget = [0]
 
+    def typst_number(number: float) -> str:
+        if number.is_integer():
+            return str(int(number))
+        rendered = f"{number:.15g}"
+        if "e" not in rendered.lower():
+            return rendered
+        mantissa, exponent = rendered.lower().split("e", maxsplit=1)
+        return f"{mantissa} times 10^({int(exponent)})"
+
     def compile_node(value: dict[str, Any], level: int) -> tuple[str, int, str]:
         budget[0] += 1
         if budget[0] > MAX_AST_NODES or level > MAX_AST_DEPTH or not isinstance(value, dict):
@@ -98,7 +107,7 @@ def _expression_typst(
             number = float(value["value"])
             if not math.isfinite(number) or abs(number) > 1e9:
                 raise AnimationRenderError("animation number is outside the trusted render budget")
-            return (str(int(number)) if number.is_integer() else f"{number:g}", 6, "number")
+            return typst_number(number), 6, "number"
         if kind == "constant" and set(value) == {"type", "name"}:
             if value["name"] not in {"pi", "e"}:
                 raise AnimationRenderError("unsupported function constant")
@@ -288,7 +297,8 @@ def _fraction_scene(index: int, scene) -> list[str]:
         lines += [
             "        content = VGroup(cells, formula)",
             f"        selected_cells = list(cells)[:{shaded}]",
-            "        shade = AnimationGroup(*[cell.animate.set_fill(TEAL, opacity=0.72) for cell in selected_cells]) if selected_cells else Wait(0.05)",
+            "        shade_group = VGroup(*selected_cells)",
+            "        shade = UpdateFromAlphaFunc(shade_group, lambda group, alpha: group.set_fill(TEAL, opacity=0.72 * alpha)) if selected_cells else Wait(0.05)",
             "        scene_intro = Succession(AnimationGroup(FadeIn(scene_title), FadeIn(caption), LaggedStart(*[Create(cell) for cell in cells], lag_ratio=0.04)), AnimationGroup(shade, Write(formula)))",
         ]
     return lines
@@ -474,7 +484,7 @@ def emit_manim_source(project: AnimationPlanProject) -> str:
         "",
         "class MutaLesson(Scene):",
         "    def construct(self):",
-        "        self.camera.background_color = '#111a18'",
+        "        self.camera.background_color = '#181715'",
         f"        lesson_title = Text({_python_text(_wrapped_text(project.title, width=64))}, font_size=38, line_spacing=0.85)",
         "        _fit(lesson_title, 12.2, 0.78).to_edge(UP)",
         "        self.add(lesson_title)",
@@ -572,6 +582,22 @@ def _run_manim_process(
     return output or b""
 
 
+def _animation_worker_command(manim_command: list[str]) -> list[str]:
+    """Select a source-development worker or the frozen gateway's fixed dispatch."""
+    configured = os.environ.get("MUTA_ANIMATION_WORKER_BIN", "").strip()
+    if configured:
+        worker = Path(configured).resolve()
+        if not worker.is_file() or not os.access(worker, os.X_OK):
+            raise AnimationRenderError("configured animation worker is not executable")
+        return [str(worker), "--animation-worker", *manim_command]
+    if getattr(sys, "frozen", False):
+        return [sys.executable, "--animation-worker", *manim_command]
+    worker_script = Path(__file__).with_name("animation_worker.py")
+    if not worker_script.is_file():
+        raise AnimationRenderError("animation worker source is missing from the development build")
+    return [sys.executable, str(worker_script), *manim_command]
+
+
 def render_manim_video(
     project: AnimationPlanProject, *, cancel_event: threading.Event | None = None
 ) -> bytes:
@@ -638,11 +664,7 @@ def _render_manim_video_locked(
             str(script),
             "MutaLesson",
         ]
-        command = [
-            sys.executable,
-            str(Path(__file__).with_name("animation_worker.py")),
-            *manim_command,
-        ]
+        command = _animation_worker_command(manim_command)
         _run_manim_process(
             command,
             cwd=root,

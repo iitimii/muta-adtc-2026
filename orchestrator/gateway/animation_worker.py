@@ -24,14 +24,17 @@ def _install_limits() -> None:
     # workers, so concurrency is bounded by the gateway's single render admission instead.
 
 
-def main() -> int:
-    if len(sys.argv) < 2:
+def main(argv: list[str] | None = None) -> int:
+    args = list(sys.argv[1:] if argv is None else argv)
+    if args and args[0] == "--animation-worker":
+        args.pop(0)
+    if not args:
         return 64
     _install_limits()
-    executable = os.path.realpath(sys.argv[1])
+    executable = os.path.realpath(args[0])
     if not os.path.isfile(executable) or not os.access(executable, os.X_OK):
         return 69
-    os.execve(executable, [executable, *sys.argv[2:]], dict(os.environ))
+    os.execve(executable, [executable, *args[1:]], dict(os.environ))
     return 70  # pragma: no cover - execve replaces the process on success
 
 

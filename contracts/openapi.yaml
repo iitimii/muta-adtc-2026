@@ -3298,6 +3298,8 @@ components:
         steps:
           items:
             type: string
+            maxLength: 120
+            minLength: 1
           type: array
           maxItems: 8
           minItems: 2

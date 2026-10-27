@@ -99,8 +99,14 @@ Runtime/package contract:
 - `MUTA_MANIM_BIN` may override the executable for development or packaging validation.
 - `MUTA_MANIM_FFMPEG_BIN` may point at the packaged FFmpeg executable; only its parent directory is
   added to the worker's minimal `PATH`.
+- Source development launches `animation_worker.py` with the active Python interpreter. A frozen
+  gateway launches its own fixed `--animation-worker` dispatch instead; it never treats the frozen
+  executable as a Python interpreter or relies on a source `.py` path. `MUTA_ANIMATION_WORKER_BIN`
+  may explicitly identify that frozen gateway/worker executable when packaging stages it elsewhere.
 - The gateway passes `--silent`, uses a fixed scene name and argument vector, selects only the final
   `MutaLesson.mp4`, and never accepts a caller-controlled command or output path.
+- Process labels are bounded to 120 visible, non-control characters at schema validation, matching
+  the browser and planner budgets before any text reaches source emission or Pango.
 - Production video uses Manim's fixed medium-quality profile (1280 × 720 at 30 fps); the browser
   canvas remains the immediate low-cost preview.
 - Formulae use Manim 0.22's offline `MathTypst`; numeric tick labels use inert `Text`, so the runtime
@@ -127,6 +133,9 @@ Runtime/package contract:
 - Play/pause, restart, previous/next scene, seek, and speed controls work with pointer, touch, and keyboard.
 - Every interactive control has an accessible name, visible focus, and a minimum 44 × 44 CSS-pixel target.
 - The canvas has an accessible description, captions update with the current scene, and a full transcript is available.
+- Editing or reordering a saved project refreshes both JSON and Manim-source disclosures. Source
+  responses carry a local revision guard, so an older same-ID request cannot replace the current
+  project source or be downloaded as if it matched the rendered video.
 - Reduced-motion users do not receive automatic motion; hidden/offscreen previews stop scheduling frames.
 - Desktop, 375 px and 430 px portrait, and phone landscape layouts have no horizontal overflow or composer obstruction.
 - Light and dark themes preserve contrast and readable diagrams.

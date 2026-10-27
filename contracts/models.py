@@ -7,6 +7,7 @@ Math *and* Scientific Reasoning), so downstream consumers never have to retrofit
 
 from __future__ import annotations
 
+import unicodedata
 from enum import Enum
 from typing import Annotated, Any, Literal
 
@@ -23,6 +24,7 @@ ResourceId = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{32}$")]
 CourseId = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{32}$")]
 ClassPostId = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{32}$")]
 ClassReplyId = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{32}$")]
+AnimationStepText = Annotated[str, StringConstraints(min_length=1, max_length=120)]
 
 
 class TutoringMode(str, Enum):
@@ -313,8 +315,21 @@ class AnimationPlanRequest(BaseModel):
 class AnimationProcessData(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    steps: list[str] = Field(min_length=2, max_length=8)
+    steps: list[AnimationStepText] = Field(min_length=2, max_length=8)
     active: int = Field(ge=0, le=7)
+
+    @field_validator("steps")
+    @classmethod
+    def steps_must_be_bounded_visible_text(cls, values: list[str]) -> list[str]:
+        normalized: list[str] = []
+        for value in values:
+            value = value.strip()
+            if not value:
+                raise ValueError("process steps must contain visible text")
+            if any(unicodedata.category(character) == "Cc" for character in value):
+                raise ValueError("process steps cannot contain control characters")
+            normalized.append(value)
+        return normalized
 
     @model_validator(mode="after")
     def active_step_exists(self) -> AnimationProcessData:

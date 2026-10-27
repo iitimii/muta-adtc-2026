@@ -207,6 +207,34 @@ test("trusted render endpoints fail closed on invalid files and empty video", as
   );
 });
 
+test("Manim source requests reject stale same-ID revisions and preserve edited scene order", async () => {
+  const original = plan("Explain 3/4", "early-primary");
+  const edited = structuredClone(original);
+  edited.scenes[0].narration = "Edited narration for the same project ID.";
+  [edited.scenes[0], edited.scenes[1]] = [edited.scenes[1], edited.scenes[0]];
+  let resolveOld;
+  let revision = 1;
+  const oldFetch = async (_url, options) => {
+    assert.equal(JSON.parse(options.body).project.id, original.id);
+    return new Promise((resolve) => { resolveOld = () => resolve({ ok: true, json: async () => ({ source: "old source", filename: "old.py" }) }); });
+  };
+  const pending = animator.requestManimSourceRevision(original, 1, () => revision, { fetchImpl: oldFetch });
+  await new Promise((resolve) => setImmediate(resolve));
+  revision = 2;
+  resolveOld();
+  await assert.rejects(pending, (error) => error.name === "AbortError");
+
+  let received;
+  const generated = await animator.requestManimSourceRevision(edited, 2, () => revision, { fetchImpl: async (_url, options) => {
+    received = JSON.parse(options.body).project;
+    return { ok: true, json: async () => ({ source: "new source", filename: "new.py" }) };
+  } });
+  assert.equal(generated.source, "new source");
+  assert.equal(received.id, original.id);
+  assert.equal(received.scenes[0].id, original.scenes[1].id);
+  assert.equal(received.scenes[1].narration, "Edited narration for the same project ID.");
+});
+
 test("strict schema rejects unknown fields, invalid dimensions, and over-budget duration", () => {
   const project = plan("Explain 3/4", "early-primary");
   assert.equal(animator.validateProject({ ...project, executable: "alert(1)" }).ok, false);

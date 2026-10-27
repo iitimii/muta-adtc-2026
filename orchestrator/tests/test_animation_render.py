@@ -13,7 +13,7 @@ import pytest
 from pydantic import ValidationError
 
 from contracts.models import AnimationPlanProject
-from orchestrator.gateway import animation_render
+from orchestrator.gateway import animation_render, animation_worker
 from orchestrator.gateway.animation_render import (
     AnimationRenderBusyError,
     AnimationRenderError,
@@ -107,7 +107,7 @@ def test_model_text_is_inert_and_never_becomes_import_or_call_syntax() -> None:
                 _scene(
                     "process",
                     "process",
-                    {"steps": [attack, "Finish safely"], "active": 0},
+                    {"steps": [attack.replace("\n", " "), "Finish safely"], "active": 0},
                     title=attack,
                     narration=attack,
                 )
@@ -148,6 +148,20 @@ def test_long_copy_is_wrapped_without_scaling_short_process_labels_up() -> None:
     assert repr(long_caption) in source
     assert "…" in source and "_fit(label_0, 9.8, 0.48)" in source
     assert "scale_to_fit_width" not in source
+
+
+@pytest.mark.parametrize("step", ["x" * 121, "   ", "Line one\nLine two", "bad\x00step"])
+def test_process_step_import_rejects_oversized_empty_or_control_text(step: str) -> None:
+    with pytest.raises(ValidationError):
+        _project(
+            [
+                _scene(
+                    "process",
+                    "process",
+                    {"steps": [step, "Finish safely"], "active": 0},
+                )
+            ]
+        )
 
 
 @pytest.mark.parametrize(
@@ -342,6 +356,75 @@ def test_second_render_is_rejected_instead_of_forming_an_unbounded_queue(
             render_manim_video(project)
     finally:
         animation_render._render_lock.release()
+
+
+def test_frozen_gateway_uses_explicit_worker_dispatch_without_source_python(
+    monkeypatch, tmp_path: Path
+) -> None:
+    gateway = tmp_path / "muta-gateway"
+    gateway.write_text("frozen gateway")
+    gateway.chmod(0o755)
+    monkeypatch.setattr(animation_render.sys, "frozen", True, raising=False)
+    monkeypatch.setattr(animation_render.sys, "executable", str(gateway))
+    monkeypatch.delenv("MUTA_ANIMATION_WORKER_BIN", raising=False)
+    command = animation_render._animation_worker_command(["/runtime/bin/manim", "--silent"])
+    assert command == [
+        str(gateway),
+        "--animation-worker",
+        "/runtime/bin/manim",
+        "--silent",
+    ]
+    assert "animation_worker.py" not in " ".join(command)
+
+
+def test_fraction_shading_preserves_post_layout_geometry_and_uses_graphite_stage() -> None:
+    source = emit_manim_source(
+        _project(
+            [
+                _scene(
+                    "fraction-shade",
+                    "fraction",
+                    {"numerator": 3, "denominator": 4, "phase": "shade"},
+                )
+            ]
+        )
+    )
+    assert "self.camera.background_color = '#181715'" in source
+    assert "UpdateFromAlphaFunc(shade_group" in source
+    assert ".animate.set_fill" not in source
+
+
+def test_small_coefficients_use_unambiguous_scientific_typst_and_same_numeric_ast() -> None:
+    data = _function()
+    data["expression_text"] = "0.000001*x"
+    data["expression_ast"] = {
+        "type": "binary",
+        "op": "*",
+        "left": {"type": "number", "value": 0.000001},
+        "right": {"type": "variable", "name": "x"},
+    }
+    source = emit_manim_source(_project([_scene("small", "function", data)]))
+    assert "y = 1 times 10^(-6) dot x" in source
+    assert "MathTypst('y = 1e-06" not in source
+    assert "axes.c2p(1.0, 1e-06)" in source
+
+
+def test_worker_dispatch_strips_fixed_mode_before_exec(monkeypatch, tmp_path: Path) -> None:
+    manim = tmp_path / "manim"
+    manim.write_text("worker")
+    manim.chmod(0o755)
+    observed: dict = {}
+
+    def fake_execve(executable, arguments, environment):
+        observed.update(executable=executable, arguments=arguments, environment=environment)
+        raise RuntimeError("exec intercepted")
+
+    monkeypatch.setattr(animation_worker.os, "execve", fake_execve)
+    monkeypatch.setattr(animation_worker, "_install_limits", lambda: None)
+    with pytest.raises(RuntimeError, match="intercepted"):
+        animation_worker.main(["--animation-worker", str(manim), "--silent"])
+    assert observed["executable"] == str(manim)
+    assert observed["arguments"] == [str(manim), "--silent"]
 
 
 def test_cancel_event_stops_the_render_process_group_promptly(tmp_path: Path) -> None:
