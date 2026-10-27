@@ -472,6 +472,7 @@
     "learning.animationRenderCapabilityChecking": "Checking the offline Manim renderer…",
     "learning.animationRenderingManimVideo": "Rendering the lesson with offline Manim…",
     "learning.animationManimVideoReady": "Manim video ready to play.",
+    "learning.animationReviewBeforeRender": "Review every scene and the maths before rendering. Tutor-written explanations can be wrong.",
     "learning.animationDownloadVideo": "Download video",
     "learning.animationDownloadRenderedManimVideo": "Download rendered MP4",
     "learning.animationEncodingVideo": "Encoding a real video locally…",

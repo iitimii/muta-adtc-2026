@@ -155,37 +155,150 @@
   }
 
   function parseScalarExpression(source) {
-    try { const ast = global.MutaViz.parseExpressionV2(source); if (expressionVariables(ast).size) return null; return global.MutaViz.evaluateExpressionV2(ast, {}); } catch { return null; }
+    try { const ast = global.MutaViz.parseExpressionV2(normalizeFunctionInput(source)); if (expressionVariables(ast).size) return null; return global.MutaViz.evaluateExpressionV2(ast, {}); } catch { return null; }
+  }
+
+  function normalizeFunctionInput(source) {
+    const superscript = { "⁻": "-", "⁺": "+", "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4", "⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9" };
+    return String(source || "").replace(/[−–—﹣－]/g, "-").replace(/π/g, "pi")
+      .replace(/[⁻⁺⁰¹²³⁴⁵⁶⁷⁸⁹]+/g, (run) => {
+        const characters = [...run]; const sign = ["⁻", "⁺"].includes(characters[0]) ? characters.shift() : "";
+        if (!characters.length || characters.some((character) => character === "⁻" || character === "⁺")) return "�";
+        return `^${sign ? superscript[sign] : ""}${characters.map((character) => superscript[character]).join("")}`;
+      });
+  }
+
+  function scalarPattern() {
+    const decimal = "(?:\\d+(?:\\.\\d*)?|\\.\\d+)";
+    return `[+\\-]?(?:(?:${decimal}\\s*\\*?\\s*)?pi(?:\\s*\\/\\s*${decimal})?|${decimal}(?:\\s*\\/\\s*${decimal})?)(?![A-Za-z0-9_.])`;
+  }
+
+  function scalarTerminatorPattern(words = "and|with|at|when") {
+    return `(?=\\s*(?:$|\\n|[,.;:]\\s*(?:$|\\n)|\\b(?:${words})\\b))`;
+  }
+
+  function scalarRange(source) {
+    const scalar = scalarPattern();
+    const rangeEnd = scalarTerminatorPattern();
+    const patterns = [
+      { pattern: new RegExp("\\b(?:domain|range|interval)\\s+(?:for\\s+)?(?:([xt])\\s*(?:=|in|∈)\\s*)?[\\[(]\\s*(" + scalar + ")\\s*(?:,|to)\\s*(" + scalar + ")\\s*[\\])]" + rangeEnd, "i"), variable: 1, start: 2, end: 3 },
+      { pattern: new RegExp(`\\bfrom\\s*(${scalar})\\s*(?:to|through|until)\\s*(${scalar})${rangeEnd}`, "i"), start: 1, end: 2 },
+      { pattern: new RegExp(`\\bbetween\\s*(${scalar})\\s*(?:and|to)\\s*(${scalar})${rangeEnd}`, "i"), start: 1, end: 2 },
+      { pattern: new RegExp(`\\b(?:on|over|for)\\s+(?:(?:the\\s+)?(?:domain|range|interval)\\s*)?(?:([xt])\\s*(?:=|in|∈)\\s*)?[\\[(]?\\s*(${scalar})\\s*(?:,|to)\\s*(${scalar})\\s*[\\])]?(?:${rangeEnd})`, "i"), variable: 1, start: 2, end: 3 },
+      { pattern: new RegExp(`(?:\\bfor\\s+)?(${scalar})\\s*(?:<=|≤|<)\\s*([xt])\\s*(?:<=|≤|<)\\s*(${scalar})${rangeEnd}`, "i"), variable: 2, start: 1, end: 3 },
+    ];
+    const matches = patterns.map((entry) => {
+      const match = source.match(entry.pattern);
+      return match ? { entry, match } : null;
+    }).filter(Boolean).sort((left, right) => left.match.index - right.match.index);
+    if (!matches.length) return null;
+    const { entry, match } = matches[0];
+    const start = parseScalarExpression(match[entry.start]); const end = parseScalarExpression(match[entry.end]);
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start === end) return null;
+    const tail = source.slice(match.index + match[0].length).split("\n", 1)[0].trim();
+    const trailingProbe = new RegExp(`^(?:and|with)\\s+(?:show\\s+)?(?:a\\s+|the\\s+)?(?:tangent|derivative|gradient|rate\\s+of\\s+change)\\b(?:\\s+(?:at|when)\\s+[xt]\\s*=\\s*${scalar})?\\s*[,.;:]?$`, "i");
+    if (tail && !/^[,.;:]+$/.test(tail) && !trailingProbe.test(tail)) return null;
+    return { start, end, variable: entry.variable && match[entry.variable] ? match[entry.variable].toLowerCase() : null, index: match.index, length: match[0].length };
+  }
+
+  function explicitScalarRangeRequest(source) {
+    return /\bfrom\b[^\n;]{0,80}\b(?:to|through|until)\b/i.test(source)
+      || /\bbetween\b[^\n;]{0,80}\b(?:and|to)\b/i.test(source)
+      || /\b(?:domain|range|interval)\s+(?:for\s+)?(?:[xt]\s*(?:=|in|∈)\s*)?[\[(]/i.test(source)
+      || /\b(?:on|over|for)\s+(?:(?:the\s+)?(?:domain|range|interval)\b|[xt]\s*(?:=|in|∈)\s*[\[(])/i.test(source)
+      || /(?:<=|≤|<)\s*[xt]\s*(?:<=|≤|<)/i.test(source);
+  }
+
+  function explicitIntegralBoundsRequest(source) {
+    return /\b(?:from|between)\b/i.test(source)
+      || /\b(?:on|over|for)\b[^\n;]{0,32}(?:\b(?:domain|range|interval)\b|[\[(]|(?:<=|≤|<))/i.test(source);
+  }
+
+  function explicitFunctionRequest(source) {
+    const value = normalizeFunctionInput(source).toLowerCase();
+    if (/^(?:(?:use|set|show)\s+)?(?:the\s+)?(?:domain|range|interval)\b/.test(value.trim())) return false;
+    if (!/\b[yzsv]\s*=/.test(value)
+      && !/\b(?:plot|graph|trace)\b/.test(value)
+      && /\b(?:at|when)\s+[xt]\s*=/.test(value)) return false;
+    if (/(?:^|[^\w])(?:[a-z]|[a-z][a-z0-9]*\s*\(\s*[a-z]\s*\))\s*=/.test(value)) return true;
+    return /\b(?:plot|graph|trace)\b[^\n;]{0,180}\b(?:[a-z][a-z0-9]*\s*\(|[xt]\s*(?:\^|[+*/-]|(?:from|between|on|over|for)\b|$))/.test(value);
   }
 
   function parseFunction(source) {
-    const raw = String(source || "").replace(/[−–]/g, "-").replace(/⁰/g, "^0").replace(/¹/g, "^1").replace(/²/g, "^2").replace(/³/g, "^3").replace(/⁴/g, "^4").replace(/⁵/g, "^5");
+    const raw = normalizeFunctionInput(source);
     if (!global.MutaViz?.parseExpressionV2) return null;
-    const scalar = "[+\\-]?(?:(?:\\d+(?:\\.\\d+)?(?:\\s*\\/\\s*\\d+(?:\\.\\d+)?)?)|(?:pi(?:\\s*\\/\\s*\\d+(?:\\.\\d+)?)?))";
-    const rangePattern = new RegExp(`(?:from|between)\\s*(${scalar})\\s*(?:to|and)\\s*(${scalar})`, "i"); const rangeMatch = raw.match(rangePattern);
-    let requestedRange = null;
-    if (rangeMatch) { const start = parseScalarExpression(rangeMatch[1]); const end = parseScalarExpression(rangeMatch[2]); if (Number.isFinite(start) && Number.isFinite(end) && start !== end) requestedRange = [start, end]; }
-    const equation = raw.match(/\b([yzsv])\s*=\s*([^\n;]+)/i); const naked = raw.match(/\b(?:plot|graph|trace)\s+(?:the\s+)?(?:function\s+)?([^\n;]+)/i);
+    const lower = raw.toLowerCase();
+    const derivativeIntent = /\b(?:derivative|differentiat(?:e|ed|es|ing|ion)?|tangent|gradient|rate\s+of\s+change)\b/i.test(lower);
+    const integralIntent = /\b(?:definite\s+integral|integral|area\s+under)\b/i.test(lower);
+    const scalar = scalarPattern();
+    const briefFields = raw.split("\n").map((field) => field.split(";").map((clause) => clause.trim()).filter(Boolean));
+    const briefClauses = briefFields.flat();
+    if (briefFields.some((clauses) => clauses.slice(1).some((clause) => /^[+\-*/×÷^)]/.test(clause)))) return null;
+    const rangeFields = briefFields.map((clauses) => clauses.filter((clause) => explicitScalarRangeRequest(clause) || (integralIntent && explicitIntegralBoundsRequest(clause))));
+    if (rangeFields.some((clauses) => clauses.length > 1)) return null;
+    const rangeLines = rangeFields.flat();
+    const parsedRanges = rangeLines.map((line) => scalarRange(line));
+    if (parsedRanges.some((range) => !range)) return null;
+    const rangeSignatures = new Set(parsedRanges.map((range) => `${range.start}:${range.end}:${range.variable || ""}`));
+    if (rangeSignatures.size > 1) return null;
+    let rangeMatch = null;
+    if (parsedRanges.length) {
+      const selected = parsedRanges[0]; const clauseIndex = raw.indexOf(rangeLines[0]);
+      if (clauseIndex < 0) return null;
+      rangeMatch = { ...selected, index: clauseIndex + selected.index };
+    }
+    const requestedRange = rangeMatch ? [rangeMatch.start, rangeMatch.end] : null;
+    const withoutRange = rangeMatch ? `${raw.slice(0, rangeMatch.index)}${raw.slice(rangeMatch.index + rangeMatch.length)}` : raw;
+    const equation = withoutRange.match(/\b([yzsv])\s*=\s*([^\n;]+)/i); const naked = withoutRange.match(/\b(?:plot|graph|trace)\s+(?:the\s+)?(?:function\s+)?([^\n;]+)/i);
     if (!equation && !naked) return null;
     const output = equation ? equation[1].toLowerCase() : "y"; let expressionText = (equation ? equation[2] : naked[1]).trim();
-    expressionText = expressionText.replace(rangePattern, "").replace(/\s+(?:at|when)\s+[xt]\s*=\s*[+\-]?(?:\d+(?:\.\d+)?|pi(?:\s*\/\s*\d+(?:\.\d+)?)?)\b.*$/i, "")
-      .replace(/\s+(?:with|and)\s+(?:show\s+)?(?:a\s+|the\s+)?(?:tangent|derivative|definite\s+integral|integral|area)\b.*$/i, "").trim();
+    const probePattern = new RegExp(`\\s+(?:at|when)\\s+([xt])\\s*=\\s*(${scalar})\\s*[,.;:]?$`, "i");
+    const probeLinePattern = `(?:at|when)\\s+([xt])\\s*=\\s*(${scalar})(?=\\s*(?:$|[,.;:]\\s*$|\\b(?:and|with)\\b))`;
+    const probeFields = derivativeIntent ? briefFields.map((clauses) => clauses.filter((clause) => /\b(?:at|when)\b/i.test(clause))) : [];
+    if (probeFields.some((clauses) => clauses.length > 1)) return null;
+    const probeLines = probeFields.flat();
+    const parsedProbes = [];
+    for (const line of probeLines) {
+      const matches = [...line.matchAll(new RegExp(probeLinePattern, "gi"))];
+      if (matches.length !== 1) return null;
+      const tail = line.slice(matches[0].index + matches[0][0].length).trim();
+      if (tail && !/^[,.;:]+$/.test(tail)) return null;
+      const value = parseScalarExpression(matches[0][2]);
+      if (!Number.isFinite(value)) return null;
+      parsedProbes.push({ variable: matches[0][1].toLowerCase(), value });
+    }
+    const probeSignatures = new Set(parsedProbes.map((probeValue) => `${probeValue.variable}:${probeValue.value}`));
+    if (probeSignatures.size > 1) return null;
+    const probe = parsedProbes[0] || null;
+    expressionText = expressionText.replace(probePattern, "")
+      .replace(/\s+(?:with|and)\s+(?:show\s+)?(?:a\s+|the\s+)?(?:tangent|derivative|definite\s+integral|integral|area)\b.*$/i, "")
+      .replace(/[,;:]+$/, "").trim();
     let expressionAst;
     try { expressionAst = global.MutaViz.parseExpressionV2(expressionText); } catch { return null; }
     const variables = [...expressionVariables(expressionAst)].filter((name) => ["x", "t"].includes(name));
     if (variables.length !== 1 || expressionVariables(expressionAst).size !== 1) return null;
-    const variable = variables[0]; const lower = raw.toLowerCase();
+    const variable = variables[0];
+    if (/[\n;]/.test(raw)) {
+      const relationLines = briefClauses.filter((line) => /\b[yzsv]\s*=/i.test(line) || explicitFunctionRequest(line));
+      const lineRelations = relationLines.map((line) => parseFunction(line));
+      if (lineRelations.some((relation) => !relation)) return null;
+      const relationSignatures = new Set(lineRelations.map((relation) => JSON.stringify({ output: relation.output, variable: relation.variable, expression_ast: relation.expression_ast })));
+      if (relationSignatures.size > 1) return null;
+    }
+    if (rangeMatch?.variable && rangeMatch.variable !== variable) return null;
     let domain = requestedRange ? [Math.min(...requestedRange), Math.max(...requestedRange)] : (/\b(?:sin|cos|tan)\s*\(/i.test(expressionText) ? [-2 * Math.PI, 2 * Math.PI]
       : /\bexp\s*\(/i.test(expressionText) ? [-4, 4] : expressionText.includes("/") ? [-6, 6]
         : /\^[3-9]/.test(expressionText) ? [-3, 3] : [-6, 6]);
     let mode = "curve"; let parameter; let bounds;
-    if (/\b(?:derivative|differentiat(?:e|ed|es|ing|ion)?|tangent|gradient|rate\s+of\s+change)\b/i.test(lower)) {
-      mode = "derivative"; const probe = lower.match(new RegExp(`(?:at|when)\\s+[xt]\\s*=\\s*(${scalar})`, "i")); parameter = probe ? parseScalarExpression(probe[1]) : 0;
+    if (derivativeIntent) {
+      mode = "derivative";
+      if (probe && probe.variable !== variable) return null;
+      parameter = probe ? probe.value : 0;
       if (!Number.isFinite(parameter)) return null;
       const span = domain[1] - domain[0];
       if (parameter <= domain[0]) domain = [parameter - Math.max(1, span * .2), domain[1]];
       if (parameter >= domain[1]) domain = [domain[0], parameter + Math.max(1, span * .2)];
-    } else if (/\b(?:definite\s+integral|integral|area\s+under)\b/i.test(lower)) {
+    } else if (integralIntent) {
       mode = "integral"; bounds = requestedRange ? [...requestedRange] : [Math.max(domain[0], 0), Math.min(domain[1], 1)];
       if (bounds[0] === bounds[1]) return null;
     }
@@ -239,20 +352,24 @@
     const cleanTopic = String(topic || concept || "Lesson animation").trim().slice(0, 240);
     const combined = `${topic || ""}\n${concept || ""}\n${requirements || ""}`;
     if (!cleanTopic || !LEVELS.has(level)) throw new Error("Add a topic and choose a learner level.");
+    const mathematicalFunction = parseFunction(combined);
+    if (!mathematicalFunction && explicitFunctionRequest(combined)) {
+      const error = new Error("Muta could not safely resolve that explicit function into a typed graph. Check the equation and use supported variables, operators, and functions instead of generating an unverified prose storyboard.");
+      error.code = "function_parse_failed"; throw error;
+    }
     const normalizedNumeric = combined.replace(/[−–]/g, "-");
-    if (/(?:^|[^\w])-\d{1,2}(?:\.\d+)?\s*(?:\/|x|×|groups?\s+of)\s*\d{1,2}(?:\.\d+)?/i.test(normalizedNumeric)
-      || /\b(?:minus|negative)\s+(?:\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+(?:halves?|thirds?|quarters?|fourths?|fifths?|sixths?|eighths?|tenths?|twelfths?|groups?|rows?)/i.test(combined)) throw new Error("Signed fractions and signed array dimensions are not yet supported. Muta will not drop the negative sign; use a number-line or function lesson instead.");
-    if (/\d+\.\d+\s*(?:\/|x|×)\s*\d+(?:\.\d+)?|\d+(?:\.\d+)?\s*(?:\/|x|×)\s*\d+\.\d+/i.test(normalizedNumeric)) throw new Error("Decimal fractions and decimal array dimensions are not supported by these concrete models. Muta will not truncate a decimal; use a typed function lesson instead.");
-    if ((normalizedNumeric.match(/\d+\s*\/\s*\d+/g) || []).length > 1 && /[+−-]/.test(normalizedNumeric.replace(/^\s*[−-]/, ""))) throw new Error("Arithmetic with multiple fractions needs a dedicated equation model. Muta will not discard an operand.");
+    if (!mathematicalFunction && (/(?:^|[^\w])-\d{1,2}(?:\.\d+)?\s*(?:\/|x|×|groups?\s+of)\s*\d{1,2}(?:\.\d+)?/i.test(normalizedNumeric)
+      || /\b(?:minus|negative)\s+(?:\d{1,2}|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+(?:halves?|thirds?|quarters?|fourths?|fifths?|sixths?|eighths?|tenths?|twelfths?|groups?|rows?)/i.test(combined))) throw new Error("Signed fractions and signed array dimensions are not yet supported. Muta will not drop the negative sign; use a number-line or function lesson instead.");
+    if (!mathematicalFunction && /\d+\.\d+\s*(?:\/|x|×)\s*\d+(?:\.\d+)?|\d+(?:\.\d+)?\s*(?:\/|x|×)\s*\d+\.\d+/i.test(normalizedNumeric)) throw new Error("Decimal fractions and decimal array dimensions are not supported by these concrete models. Muta will not truncate a decimal; use a typed function lesson instead.");
+    if (!mathematicalFunction && (normalizedNumeric.match(/\d+\s*\/\s*\d+/g) || []).length > 1 && /[+−-]/.test(normalizedNumeric.replace(/^\s*[−-]/, ""))) throw new Error("Arithmetic with multiple fractions needs a dedicated equation model. Muta will not discard an operand.");
     const unsupportedPresentation = String(requirements || "").match(/\b(?:red|blue|yellow|purple|orange|pink|colour|color|music|sound|voice[- ]?over|three[- ]dimensional|3d|rotate|rotation|\d+\s*(?:seconds?|minutes?))\b/i);
     if (unsupportedPresentation) throw new Error(`“${unsupportedPresentation[0]}” is not applied silently. Generate the semantic lesson first, then use the scene editor for timing; custom colours, audio, and 3D camera directions are not supported in this workspace yet.`);
     const fraction = parseFraction(combined);
     const array = parseArray(combined);
-    const mathematicalFunction = parseFunction(combined);
     const vector = parseVector(combined);
     const process = parseProcess(requirements);
     let scenes; let summary;
-    if (fraction && fraction.numerator > fraction.denominator * 4) throw new Error("This fraction needs more than four whole bars. Use an equivalent mixed number or a smaller numerator so the animation remains readable.");
+    if (!mathematicalFunction && fraction && fraction.numerator > fraction.denominator * 4) throw new Error("This fraction needs more than four whole bars. Use an equivalent mixed number or a smaller numerator so the animation remains readable.");
     if (mathematicalFunction) {
       const relation = `${mathematicalFunction.output} = ${mathematicalFunction.expression_text}`;
       summary = `Plot ${relation} over a bounded domain using Muta's typed expression tree. ${levelPhrase(level)}`;
@@ -796,6 +913,7 @@
       this.exportAbort?.abort(); this.exportAbort = null;
       this.manimCapabilityAbort?.abort(); this.manimCapabilityAbort = null;
       this.projectActions.replaceChildren();
+      const reviewNotice = document.createElement("p"); reviewNotice.className = "animation-review-notice"; reviewNotice.setAttribute("role", "note"); reviewNotice.textContent = text("animationReviewBeforeRender"); this.projectActions.append(reviewNotice);
       const save = button(text("animationSave"), "animation-primary"); save.addEventListener("click", () => { saveProject(this.project); this.error.textContent = text("animationSaved"); });
       const projectExport = button(text("animationExport")); projectExport.addEventListener("click", () => exportProject(this.project));
       const transcriptExport = button(text("animationTranscriptDownload")); transcriptExport.addEventListener("click", () => exportTranscript(this.project));

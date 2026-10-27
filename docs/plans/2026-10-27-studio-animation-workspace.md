@@ -125,6 +125,77 @@ Runtime/package contract:
   host `PATH`; the Studio checks the capability endpoint, disables only trusted MP4 rendering, and
   keeps canvas preview and trusted source available.
 
+## Unicode scalar and range regression milestone
+
+The packaged-app acceptance prompt `Plot y = sin(x) from −π to π` exposed a boundary mismatch:
+the shared typed-expression parser accepts Unicode π, but the Studio's range extractor recognized
+only the ASCII spelling `pi`. When extraction failed, the otherwise valid range words remained in
+the expression and incorrectly forced the slower local planner.
+
+Implementation and QA plan:
+
+1. Normalize common Unicode minus characters and π at the Studio's function-input boundary before
+   both scalar-range extraction and typed-expression parsing. Keep this as data normalization only;
+   the existing typed AST remains the sole executable mathematical representation.
+2. Replace the single range regex with a small bounded set of grammatical range forms: `from … to`,
+   `between … and`, interval notation after `on`/`over`/`for`, and a two-sided scalar inequality.
+   Support ordinary π multiples and fractions without accepting arbitrary source text.
+3. Remove only the recognized range span before parsing the equation, preserving the original
+   expression semantics and deterministic fast path.
+4. Treat an explicit unresolved equation/function request as a typed-function error, not as a
+   generic process-storyboard opportunity. Enforce the same narrow rule at the local model planner
+   boundary so a direct request cannot turn unresolved mathematics into plausible but unverified
+   prose scenes.
+5. Add regressions for the exact packaged-app brief, ASCII compatibility, Unicode minus/π,
+   `between`, bracketed intervals, π multiples/fractions, and two-sided inequalities. Confirm an
+   actual two-variable or unsupported explicit function fails closed without entering the prose
+   planner, while genuinely novel non-mathematical compositions retain the bounded planner path.
+   Require every scalar match to end at a grammatical boundary so unsupported endpoint arithmetic
+   cannot be split between a domain and a changed function. Cover strict inequalities, full
+   superscript runs, rational coefficients/domains, and derivative probes such as `2π` and `.5`.
+   Apply concrete-fraction guards only after the typed-function path has had the opportunity to
+   validate the complete expression. Treat explicit scalar intent separately from a successful
+   parse: default calculus probes/bounds are allowed only when no explicit `at`/`when` or range
+   clause was supplied.
+6. Run focused Animation Studio tests, the complete Node and Python suites, lint/diff checks, and a
+   real-browser generation of the exact brief. Freeze a clean commit and require a fresh independent
+   adversarial review before handing the SHA back for packaging integration.
+
+## Whole-brief clauses and generated-caption completion
+
+The function planner classifies each newline- or semicolon-delimited brief clause by role before
+checking consistency. A requirement such as “Show the tangent at x=2” is a calculus probe, not a
+second function relation. A standalone “Use domain x in [-pi, pi]” clause is a typed range and
+supplies the exact function domain; equivalent domain/range/interval assignments using `=` are
+handled the same way. Conflicting equations, multiple same-field probes or ranges, malformed scalar
+tails, and dangling positive or negative arithmetic clauses still fail closed. Identical repeated
+relations remain valid.
+
+The local-model process planner retains the 120-character schema ceiling but now prompts for one
+complete 60–90-character sentence per narration, ending in punctuation well before that ceiling.
+Proposal validation rejects missing terminal punctuation and obvious incomplete endings such as a
+trailing article or conjunction. The existing single structured-repair attempt receives an
+“incomplete_sentence” error; raw model text is never patched by appending punctuation. This applies
+only to model-generated proposals and does not rewrite user-authored process labels. Terminal
+quotes/brackets cannot conceal an incomplete lexical ending, while common Latin, CJK and Arabic
+sentence terminators remain valid.
+
+For small-model schema truncation, keep an already-complete generated sentence prefix only when the
+remaining suffix is incomplete, then run the same completion validation again. Do not append or
+invent text. When the brief explicitly requests two through eight steps, require that exact scene
+count and include a mismatch in the single bounded repair response.
+Exclude thank-you, end-screen, return-to-storyboard and interface/meta filler from the model prompt;
+validate the same exclusions after decode so every accepted state belongs to the requested teaching
+sequence. Treat digit, word and hyphenated step counts consistently; reject unsupported or
+conflicting counts before model contact. Sentence-prefix recovery must distinguish genuine terminal
+boundaries from decimal points and abbreviations.
+Invalid count errors belong to the animation-plan endpoint, not model selection: return HTTP 422
+with an actionable two-to-eight-scene message, and release both generation and session admission.
+Check that signed, zero, and long numeric counts cannot be partially matched as valid small counts.
+Keep a brief persistent notice beside the preview/render actions: learners must review every scene
+and the maths because tutor-written process explanations can be wrong. Do not imply that typed-AST
+numeric validation certifies open-ended model narration.
+
 ## Acceptance criteria
 
 ### Semantic and authoring correctness
