@@ -13,6 +13,7 @@ import collect_desktop_package as package
 import collect_desktop_release as collect
 import generate_latest_json as latest
 import prepare_tauri_release as prepare
+import pytest
 
 
 def test_tauri_public_key_is_validated_and_normalized():
@@ -161,6 +162,58 @@ def test_unsigned_package_collector_adds_macos_private_test_launcher(
         assert b"Double-click Muta.command" not in instructions
 
 
+def test_macos_package_preserves_file_and_framework_directory_symlinks(
+    tmp_path: Path, monkeypatch
+):
+    bundle = tmp_path / "bundle"
+    app = bundle / "macos/Muta.app"
+    worker = app / "Contents/Resources/resources/bin/muta-manim/_internal"
+    worker.mkdir(parents=True)
+    library = worker / "av/.dylibs/libavcodec.dylib"
+    library.parent.mkdir(parents=True)
+    library.write_bytes(b"library")
+    (worker / "libavcodec.dylib").symlink_to("av/.dylibs/libavcodec.dylib")
+    versions = app / "Contents/Frameworks/Test.framework/Versions"
+    (versions / "A/Resources").mkdir(parents=True)
+    (versions / "Current").symlink_to("A", target_is_directory=True)
+    kit = tmp_path / "offline-kit"
+    (kit / "model-pack").mkdir(parents=True)
+    (kit / "model-pack/model-pack.json").write_text('{"schema": 1}', encoding="utf-8")
+    args = argparse.Namespace(
+        platform="darwin-aarch64",
+        version="1.2.3",
+        bundle_root=bundle,
+        offline_kit=kit,
+        output=tmp_path / "output",
+    )
+    monkeypatch.setattr(package, "_adhoc_sign_macos_app", lambda _app: None)
+
+    archive = package.collect(args)
+
+    root = "Muta_1.2.3_darwin-aarch64_offline/Muta.app"
+    with tarfile.open(archive, "r:gz") as package_archive:
+        file_alias = package_archive.getmember(
+            f"{root}/Contents/Resources/resources/bin/muta-manim/_internal/libavcodec.dylib"
+        )
+        directory_alias = package_archive.getmember(
+            f"{root}/Contents/Frameworks/Test.framework/Versions/Current"
+        )
+        assert file_alias.issym()
+        assert file_alias.linkname == "av/.dylibs/libavcodec.dylib"
+        assert directory_alias.issym()
+        assert directory_alias.linkname == "A"
+        package_archive.extractall(tmp_path / "extracted")
+
+    extracted = tmp_path / "extracted" / root
+    assert (
+        extracted
+        / "Contents/Resources/resources/bin/muta-manim/_internal/libavcodec.dylib"
+    ).is_symlink()
+    assert (
+        extracted / "Contents/Frameworks/Test.framework/Versions/Current"
+    ).is_symlink()
+
+
 def test_macos_private_test_seal_signs_then_strictly_verifies(tmp_path: Path, monkeypatch):
     app = tmp_path / "Muta.app"
     app.mkdir()
@@ -214,6 +267,120 @@ def test_macos_macho_scan_tolerates_non_utf8_file_metadata(
     monkeypatch.setattr(package.subprocess, "run", fake_run)
 
     assert package._mach_o_files(app) == [candidate]
+
+
+def test_macos_seal_restores_tauri_dereferenced_worker_aliases(
+    tmp_path: Path, monkeypatch
+):
+    app = tmp_path / "Muta.app"
+    worker = app / "Contents/Resources/resources/bin/muta-manim"
+    target = worker / "_internal/av/.dylibs/libavcodec.dylib"
+    target.parent.mkdir(parents=True)
+    target.write_bytes(b"same-library")
+    alias = worker / "_internal/libavcodec.dylib"
+    alias.write_bytes(target.read_bytes())
+    (worker / "MUTA-MANIM-MANIFEST.json").write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "files": [
+                    {
+                        "path": "_internal/libavcodec.dylib",
+                        "type": "symlink",
+                        "target": "av/.dylibs/libavcodec.dylib",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(package.sys, "platform", "darwin")
+    monkeypatch.setattr(package.shutil, "which", lambda _command: "/usr/bin/codesign")
+    monkeypatch.setattr(package, "_mach_o_files", lambda _app: [])
+    monkeypatch.setattr(package.subprocess, "run", lambda *_args, **_kwargs: None)
+
+    package._adhoc_sign_macos_app(app)
+
+    assert alias.is_symlink()
+    assert alias.readlink() == Path("av/.dylibs/libavcodec.dylib")
+
+
+def test_macos_seal_rejects_changed_dereferenced_worker_alias(tmp_path: Path):
+    app = tmp_path / "Muta.app"
+    worker = app / "Contents/Resources/resources/bin/muta-manim"
+    target = worker / "_internal/av/.dylibs/libavcodec.dylib"
+    target.parent.mkdir(parents=True)
+    target.write_bytes(b"expected")
+    alias = worker / "_internal/libavcodec.dylib"
+    alias.write_bytes(b"changed")
+    (worker / "MUTA-MANIM-MANIFEST.json").write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "files": [
+                    {
+                        "path": "_internal/libavcodec.dylib",
+                        "type": "symlink",
+                        "target": "av/.dylibs/libavcodec.dylib",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(package.PackageError, match="differs from target"):
+        package._restore_manim_worker_symlinks(app)
+
+
+def test_macos_seal_rejects_worker_root_symlink_outside_app(tmp_path: Path):
+    app = tmp_path / "Muta.app"
+    worker_parent = app / "Contents/Resources/resources/bin"
+    worker_parent.mkdir(parents=True)
+    external = tmp_path / "external-worker"
+    external.mkdir()
+    (external / "MUTA-MANIM-MANIFEST.json").write_text(
+        json.dumps({"schema": 1, "files": []}), encoding="utf-8"
+    )
+    (worker_parent / "muta-manim").symlink_to(external, target_is_directory=True)
+
+    with pytest.raises(package.PackageError, match="path contains a symlink"):
+        package._restore_manim_worker_symlinks(app)
+
+
+def test_macos_seal_rejects_intermediate_alias_parent_symlink(tmp_path: Path):
+    app = tmp_path / "Muta.app"
+    worker = app / "Contents/Resources/resources/bin/muta-manim"
+    internal = worker / "_internal"
+    internal.mkdir(parents=True)
+    real_parent = worker / "real-parent"
+    real_parent.mkdir()
+    target = real_parent / "target.dylib"
+    target.write_bytes(b"library")
+    alias_parent = internal / "redirected"
+    alias_parent.symlink_to(real_parent, target_is_directory=True)
+    alias = alias_parent / "alias.dylib"
+    alias.write_bytes(target.read_bytes())
+    (worker / "MUTA-MANIM-MANIFEST.json").write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "files": [
+                    {
+                        "path": "_internal/redirected/alias.dylib",
+                        "type": "symlink",
+                        "target": "target.dylib",
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(package.PackageError, match="parent escapes its root"):
+        package._restore_manim_worker_symlinks(app)
+    assert alias.read_bytes() == b"library"
 
 
 def test_macos_private_test_refreshes_manifests_after_nested_signing(

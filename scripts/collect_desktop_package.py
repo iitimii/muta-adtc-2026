@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import shutil
 import stat
 import subprocess
@@ -61,6 +62,64 @@ def _mach_o_files(app: Path) -> list[Path]:
     return sorted(candidates, key=lambda path: len(path.parts), reverse=True)
 
 
+def _restore_manim_worker_symlinks(app: Path) -> None:
+    """Restore worker aliases that Tauri's resource copier dereferences."""
+    if app.is_symlink():
+        raise PackageError(f"macOS application root must not be a symlink: {app}")
+    app_root = app.resolve(strict=True)
+    worker = app / "Contents" / "Resources" / "resources" / "bin" / "muta-manim"
+    cursor = app
+    for part in worker.relative_to(app).parts:
+        cursor /= part
+        if cursor.is_symlink():
+            raise PackageError(f"Manim worker path contains a symlink: {cursor}")
+        if not cursor.exists():
+            return
+    root = worker.resolve(strict=True)
+    if app_root not in root.parents:
+        raise PackageError(f"Manim worker escapes the macOS application: {worker}")
+    manifest_path = root / "MUTA-MANIM-MANIFEST.json"
+    if not manifest_path.is_file():
+        return
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise PackageError(f"could not read Manim worker manifest: {manifest_path}") from error
+    if manifest.get("schema") != 1 or not isinstance(manifest.get("files"), list):
+        raise PackageError(f"invalid Manim worker manifest: {manifest_path}")
+
+    for entry in manifest["files"]:
+        if not isinstance(entry, dict) or entry.get("type") != "symlink":
+            continue
+        relative = Path(str(entry.get("path", "")))
+        target = Path(str(entry.get("target", "")))
+        if (
+            not relative.parts
+            or not target.parts
+            or relative.is_absolute()
+            or target.is_absolute()
+            or ".." in relative.parts
+            or ".." in target.parts
+        ):
+            raise PackageError(f"unsafe Manim worker symlink entry: {entry}")
+        alias = root / relative
+        parent = alias.parent.resolve(strict=True)
+        expected_parent = root / relative.parent
+        if parent != expected_parent or (parent != root and root not in parent.parents):
+            raise PackageError(f"Manim worker alias parent escapes its root: {relative}")
+        resolved_target = (alias.parent / target).resolve()
+        if root not in resolved_target.parents or not resolved_target.is_file():
+            raise PackageError(f"Manim worker symlink target is invalid: {relative} -> {target}")
+        if alias.is_symlink():
+            if Path(alias.readlink()) != target:
+                raise PackageError(f"Manim worker symlink changed: {relative}")
+            continue
+        if not alias.is_file() or _sha256(alias) != _sha256(resolved_target):
+            raise PackageError(f"dereferenced Manim worker alias differs from target: {relative}")
+        alias.unlink()
+        alias.symlink_to(target)
+
+
 def _adhoc_sign_macos_app(app: Path) -> None:
     """Sign nested code, refresh byte manifests, then seal the private-test bundle."""
     if sys.platform != "darwin":
@@ -69,6 +128,7 @@ def _adhoc_sign_macos_app(app: Path) -> None:
     if not codesign:
         raise PackageError("codesign is required to seal a macOS private-test package")
     try:
+        _restore_manim_worker_symlinks(app)
         for candidate in _mach_o_files(app):
             subprocess.run(
                 [
