@@ -190,20 +190,38 @@
       throw new Error("Named measurement units are not supported yet; give the radius as a unitless value or generic units.");
     }
     const pattern = /\bradius\b\s*(?:=|:|of|is|equals)?\s*([+\-]?(?:\d+(?:\.\d*)?|\.\d+))(?!\w)/gi;
-    const matches = [...value.matchAll(pattern)];
+    const allowedContinuation = /^(?:\s*(?:and|then)\b)?\s*(?:label|show|mark|identify)\s+(?:the|its|a)?\s*radius(?:\s+line)?\s*[.!?]*$/i;
+    const completeInstruction = /^(?:please\s+)?(?:(?:can|could|would)\s+you\s+)?(?:draw|sketch|construct|show|render|animate|create|make|explain)\s+(?:me\s+)?(?:an?\s+|the\s+)?circle\s+(?:(?:with|having)\s+(?:a\s+|the\s+|its\s+)?radius|whose\s+radius|that\s+has\s+(?:a\s+|the\s+|its\s+)?radius|of\s+(?:a\s+|the\s+)?radius|radius)\s*(?:=|:|of|is|equals)?\s*[+\-]?(?:\d+(?:\.\d*)?|\.\d+)(?:\s+units?)?(?:\s+(?:and|then)\s+(?:label|show|mark|identify)\s+(?:the|its|a)?\s*radius(?:\s+line)?)?\s*[.!?]*$/i;
+    let instructionValue = value;
+    if (Array.isArray(briefFields)) {
+      const instructionFields = [];
+      for (const [fieldIndex, item] of briefFields.entries()) {
+        const fieldValue = String(item || "").trim().replace(/[−–—﹣－]/g, "-");
+        if (!fieldValue) continue;
+        const normalizedField = fieldValue.replace(/^lesson\s*:\s*/i, "");
+        if (completeInstruction.test(normalizedField)) {
+          instructionFields.push(normalizedField);
+          continue;
+        }
+        if (allowedContinuation.test(normalizedField)) {
+          instructionFields.push(normalizedField);
+          continue;
+        }
+        const instructionLike = /\b(?:draw|sketch|construct|show|render|animate|create|make|label|mark|identify|radius|diameter)\b/i.test(normalizedField)
+          || /^(?:and|then)\b/i.test(normalizedField);
+        if (fieldIndex === 2 || instructionLike) {
+          throw new Error("Use one complete circle construction such as “draw a circle with radius 5.6”, followed only by an optional instruction to label that radius.");
+        }
+      }
+      instructionValue = instructionFields.join("\n");
+    } else if (!completeInstruction.test(value.trim())) {
+      throw new Error("Use one complete circle construction such as “draw a circle with radius 5.6”, followed only by an optional instruction to label that radius.");
+    }
+    const matches = [...instructionValue.matchAll(pattern)];
     if (!matches.length) {
       throw new Error("Add one explicit positive circle radius, for example: draw a circle with radius 5.6.");
     }
-    const allowedContinuation = /^(?:\s*(?:and|then)\b)?\s*(?:label|show|mark|identify)\s+(?:the|its|a)?\s*radius(?:\s+line)?\s*[.!?]*$/i;
-    if (Array.isArray(briefFields)) {
-      for (const fieldValue of briefFields.map((item) => String(item || "").trim()).filter(Boolean)) {
-        const fieldMatches = [...fieldValue.replace(/[−–—﹣－]/g, "-").matchAll(pattern)];
-        if (!fieldMatches.length && !allowedContinuation.test(fieldValue)) {
-          throw new Error("A circle brief may contain only complete radius instructions and an optional instruction to label that radius.");
-        }
-      }
-    }
-    for (const clause of value.split(/\n+/).filter((item) => item.trim())) {
+    for (const clause of instructionValue.split(/\n+/).filter((item) => item.trim())) {
       const circleCount = (clause.match(/\bcircles?\b/gi) || []).length;
       const radiusCount = (clause.match(/\bradius\b/gi) || []).length;
       if (!circleCount && !radiusCount) continue;
@@ -226,7 +244,7 @@
       }
     }
     for (const match of matches) {
-      const tail = value.slice(match.index + match[0].length);
+      const tail = instructionValue.slice(match.index + match[0].length);
       const unitTail = tail.replace(/^[\s([{\-]+/, "");
       if (/^(?:in\b|["'′″“”])/i.test(unitTail)) {
         throw new Error("Inch and foot suffixes are named units and are not discarded silently.");
@@ -238,7 +256,7 @@
     if (matches.some((match) => (match[1].split(".")[1] || "").length > 6)) {
       throw new Error("Circle radius supports at most six decimal places so its label remains exact.");
     }
-    const remainder = matches.reduceRight((textValue, match) => `${textValue.slice(0, match.index)} ${textValue.slice(match.index + match[0].length)}`, value);
+    const remainder = matches.reduceRight((textValue, match) => `${textValue.slice(0, match.index)} ${textValue.slice(match.index + match[0].length)}`, instructionValue);
     if (/[+\-]?(?:\d+(?:\.\d*)?|\.\d+)/.test(remainder)) {
       throw new Error("Use one radius without additional numeric constraints or coordinates.");
     }
