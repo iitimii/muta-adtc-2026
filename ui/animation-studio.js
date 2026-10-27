@@ -31,7 +31,7 @@
     "a", "about", "an", "and", "animate", "animation", "can", "circle", "construct", "could",
     "create", "draw", "equal", "equals", "explain", "for", "has", "having", "identify", "in", "is", "its", "label",
     "lesson", "line", "make", "mark", "me", "of", "one", "please", "radius", "render", "show",
-    "sketch", "that", "the", "this", "to", "unit", "units", "whose", "with", "would", "you",
+    "sketch", "that", "the", "then", "this", "to", "unit", "units", "whose", "with", "would", "you",
   ]);
   const mounted = new Set();
 
@@ -173,25 +173,10 @@
   function parseCircle(source, briefFields = null) {
     const value = String(source || "").replace(/[−–—﹣－]/g, "-");
     if (!explicitCircleRequest(value)) return null;
-    const withoutRadiusLines = value.replace(/\bradius\s+lines?\b/gi, "");
-    if (/\b(?:ellipses?|ovals?|squares?|rectangles?|triangles?|polygons?|spheres?|semicircles?|arcs?|sectors?|lines?)\b/i.test(withoutRadiusLines)) {
-      throw new Error("Use one circle only; mixed or different geometry is not discarded silently.");
-    }
-    if (/\bcircles\b/i.test(value)) {
-      throw new Error("This animation accepts one circle at a time, not multiple circles.");
-    }
-    if (/\b(?:cent(?:er|re)(?:ed|d|ing)?|origins?|coordinates?)\b/i.test(value)) {
-      throw new Error("Custom circle centres and coordinates are not supported yet; remove the centre constraint.");
-    }
-    if (/\bdiameters?\b/i.test(value)) {
-      throw new Error("Use a positive radius for this circle animation; diameter input is not converted silently.");
-    }
-    if (/\b(?:millimet(?:er|re)s?|centimet(?:er|re)s?|kilomet(?:er|re)s?|met(?:er|re)s?|inches?|feet|foot|yards?|miles?|mm|cm|km|m|ft)\b/i.test(value)) {
-      throw new Error("Named measurement units are not supported yet; give the radius as a unitless value or generic units.");
-    }
     const pattern = /\bradius\b\s*(?:=|:|of|is|equals)?\s*([+\-]?(?:\d+(?:\.\d*)?|\.\d+))(?!\w)/gi;
     const allowedContinuation = /^(?:\s*(?:and|then)\b)?\s*(?:label|show|mark|identify)\s+(?:the|its|a)?\s*radius(?:\s+line)?\s*[.!?]*$/i;
     const completeInstruction = /^(?:please\s+)?(?:(?:can|could|would)\s+you\s+)?(?:draw|sketch|construct|show|render|animate|create|make|explain)\s+(?:me\s+)?(?:an?\s+|the\s+)?circle\s+(?:(?:with|having)\s+(?:a\s+|the\s+|its\s+)?radius|whose\s+radius|that\s+has\s+(?:a\s+|the\s+|its\s+)?radius|of\s+(?:a\s+|the\s+)?radius|radius)\s*(?:=|:|of|is|equals)?\s*[+\-]?(?:\d+(?:\.\d*)?|\.\d+)(?:\s+units?)?(?:\s+(?:and|then)\s+(?:label|show|mark|identify)\s+(?:the|its|a)?\s*radius(?:\s+line)?)?\s*[.!?]*$/i;
+    const safeMetadata = /^(?:(?:introduction|intro|overview|basics)\s+(?:to|of)\s+)?(?:circle|circles|geometry|radius|radii|construction|lesson)(?:[\s:–—-]+(?:circle|circles|geometry|radius|radii|construction|lesson))*\s*[.!?]*$/i;
     let instructionValue = value;
     if (Array.isArray(briefFields)) {
       const instructionFields = [];
@@ -207,15 +192,28 @@
           instructionFields.push(normalizedField);
           continue;
         }
-        const instructionLike = /\b(?:draw|sketch|construct|show|render|animate|create|make|label|mark|identify|radius|diameter)\b/i.test(normalizedField)
-          || /^(?:and|then)\b/i.test(normalizedField);
-        if (fieldIndex === 2 || instructionLike) {
-          throw new Error("Use one complete circle construction such as “draw a circle with radius 5.6”, followed only by an optional instruction to label that radius.");
-        }
+        if (fieldIndex === 0 && safeMetadata.test(normalizedField)) continue;
+        throw new Error("Use one complete circle construction such as “draw a circle with radius 5.6”, followed only by an optional instruction to label that radius.");
       }
       instructionValue = instructionFields.join("\n");
     } else if (!completeInstruction.test(value.trim())) {
       throw new Error("Use one complete circle construction such as “draw a circle with radius 5.6”, followed only by an optional instruction to label that radius.");
+    }
+    const withoutRadiusLines = instructionValue.replace(/\bradius\s+lines?\b/gi, "");
+    if (/\b(?:ellipses?|ovals?|squares?|rectangles?|triangles?|polygons?|spheres?|semicircles?|arcs?|sectors?|lines?)\b/i.test(withoutRadiusLines)) {
+      throw new Error("Use one circle only; mixed or different geometry is not discarded silently.");
+    }
+    if (/\bcircles\b/i.test(instructionValue)) {
+      throw new Error("This animation accepts one circle at a time, not multiple circles.");
+    }
+    if (/\b(?:cent(?:er|re)(?:ed|d|ing)?|origins?|coordinates?)\b/i.test(instructionValue)) {
+      throw new Error("Custom circle centres and coordinates are not supported yet; remove the centre constraint.");
+    }
+    if (/\bdiameters?\b/i.test(instructionValue)) {
+      throw new Error("Use a positive radius for this circle animation; diameter input is not converted silently.");
+    }
+    if (/\b(?:millimet(?:er|re)s?|centimet(?:er|re)s?|kilomet(?:er|re)s?|met(?:er|re)s?|inches?|feet|foot|yards?|miles?|mm|cm|km|m|ft)\b/i.test(instructionValue)) {
+      throw new Error("Named measurement units are not supported yet; give the radius as a unitless value or generic units.");
     }
     const matches = [...instructionValue.matchAll(pattern)];
     if (!matches.length) {
@@ -238,7 +236,7 @@
       const clauseRemainder = clauseMatches.reduceRight((textValue, match) => `${textValue.slice(0, match.index)} ${textValue.slice(match.index + match[0].length)}`, clause);
       const remainingRadii = clauseRemainder.match(/\bradius\b/gi) || [];
       const allowedRadiusLabel = remainingRadii.length === 1
-        && /(?:\band\b|[.!?])\s*(?:label|show|mark|identify)\s+(?:the|its|a)?\s*radius(?:\s+line)?\s*[.!?]*$/i.test(clauseRemainder);
+        && /(?:\b(?:and|then)\b|[.!?])\s*(?:label|show|mark|identify)\s+(?:the|its|a)?\s*radius(?:\s+line)?\s*[.!?]*$/i.test(clauseRemainder);
       if (remainingRadii.length && !allowedRadiusLabel) {
         throw new Error("Every radius clause needs one resolved numeric value; only a final instruction to label that radius may omit it.");
       }

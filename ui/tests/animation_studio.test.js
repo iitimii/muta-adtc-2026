@@ -123,7 +123,9 @@ test("circle requests fail closed instead of becoming prose storyboards", () => 
     "Draw a circle with radius 5.6,(\" )",
   ]) assert.throws(() => plan(prompt), undefined, prompt);
   assert.equal(plan("Draw a circle with radius 5.6 and label its radius").scenes.length, 2);
+  assert.equal(plan("Draw a circle with radius 5.6 then label its radius").scenes.length, 2);
   assert.equal(plan("Draw a circle with radius 5.6", "secondary", "and label its radius").scenes.length, 2);
+  assert.equal(plan("Draw a circle with radius 5.6", "secondary", "then label its radius").scenes.length, 2);
   assert.equal(animator.planProject({
     topic: "Circle geometry",
     concept: "Draw a circle with radius 5.6",
@@ -136,6 +138,14 @@ test("circle requests fail closed instead of becoming prose storyboards", () => 
     level: "secondary",
     requirements: "and label its radius",
   }).scenes.length, 2);
+  for (const topic of ["Circles", "Introduction to circles", "Circle radius lesson"]) {
+    assert.equal(animator.planProject({
+      topic,
+      concept: "Draw a circle with radius 5.6",
+      level: "secondary",
+      requirements: "",
+    }).scenes.length, 2, topic);
+  }
   for (const requirements of ["and a circle", "and one circle", "and radius", "and radius is"]) {
     assert.throws(() => animator.planProject({
       topic: "Draw a circle with radius 5.6",
@@ -157,6 +167,14 @@ test("circle requests fail closed instead of becoming prose storyboards", () => 
     "Draw a circle with radius 5.6\nand draw one",
     "Draw a circle with radius 5.6; and construct one",
   ]) assert.throws(() => animator.planProject({ topic: "", concept, level: "secondary", requirements: "" }), undefined, concept);
+  for (const concept of ["Another circle", "Add another circle", "Add a circle", "Display another circle", "Produce another circle", "A second circle", "One more circle"]) {
+    assert.throws(() => animator.planProject({
+      topic: "Draw a circle with radius 5.6",
+      concept,
+      level: "secondary",
+      requirements: "",
+    }), undefined, concept);
+  }
   assert.throws(() => animator.planProject({
     topic: "Draw a circle with radius 5.6; plot y = x^2",
     concept: "",
