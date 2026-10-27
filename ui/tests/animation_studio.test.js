@@ -113,12 +113,24 @@ test("circle requests fail closed instead of becoming prose storyboards", () => 
     "Draw a circle with radius 5.6 in",
     "Draw a circle with radius 5.6\"",
     "Draw a circle with radius 5.6'",
+    "Draw a circle with radius 5.6 (in)",
+    "Draw a circle with radius 5.6-in",
+    "Draw a circle with radius 5.6 (\")",
+    "Draw a circle with radius 5.6 ('')",
   ]) assert.throws(() => plan(prompt), undefined, prompt);
   assert.equal(plan("Draw a circle with radius 5.6 and label its radius").scenes.length, 2);
   assert.equal(plan("Draw a circle with radius 5.6", "secondary", "and label its radius").scenes.length, 2);
   for (const requirements of ["and a circle", "and one circle", "and radius", "and radius is"]) {
     assert.throws(() => animator.planProject({
       topic: "Draw a circle with radius 5.6",
+      concept: "Draw a circle with radius 5.6",
+      level: "secondary",
+      requirements,
+    }), undefined, requirements);
+  }
+  for (const requirements of ["and draw one", "and construct one", "and show one", "and animate one", "and render one", "and sketch one", "and create one", "and make one", "and draw this"]) {
+    assert.throws(() => animator.planProject({
+      topic: "",
       concept: "Draw a circle with radius 5.6",
       level: "secondary",
       requirements,

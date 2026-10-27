@@ -40,4 +40,3 @@ emitter implement the same semantics. The local model remains unable to emit thi
    representative frames, then rebuild both macOS candidates from the reviewed immutable commit.
 5. Keep native download acceptance explicitly pending until the user's existing app can be closed;
    do not touch the current app process or learner data.
-

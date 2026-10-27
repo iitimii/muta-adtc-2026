@@ -170,7 +170,7 @@
       && /\b(?:draw|sketch|construct|show|render|animate|radius|diameter)\b/i.test(value);
   }
 
-  function parseCircle(source) {
+  function parseCircle(source, briefFields = null) {
     const value = String(source || "").replace(/[−–—﹣－]/g, "-");
     if (!explicitCircleRequest(value)) return null;
     const withoutRadiusLines = value.replace(/\bradius\s+lines?\b/gi, "");
@@ -194,13 +194,22 @@
     if (!matches.length) {
       throw new Error("Add one explicit positive circle radius, for example: draw a circle with radius 5.6.");
     }
+    const allowedContinuation = /^(?:\s*(?:and|then)\b)?\s*(?:label|show|mark|identify)\s+(?:the|its|a)?\s*radius(?:\s+line)?\s*[.!?]*$/i;
+    if (Array.isArray(briefFields)) {
+      for (const fieldValue of briefFields.map((item) => String(item || "").trim()).filter(Boolean)) {
+        const fieldMatches = [...fieldValue.replace(/[−–—﹣－]/g, "-").matchAll(pattern)];
+        if (!fieldMatches.length && !allowedContinuation.test(fieldValue)) {
+          throw new Error("A circle brief may contain only complete radius instructions and an optional instruction to label that radius.");
+        }
+      }
+    }
     for (const clause of value.split(/\n+/).filter((item) => item.trim())) {
       const circleCount = (clause.match(/\bcircles?\b/gi) || []).length;
       const radiusCount = (clause.match(/\bradius\b/gi) || []).length;
       if (!circleCount && !radiusCount) continue;
       const clauseMatches = [...clause.matchAll(pattern)];
       const labelOnly = clauseMatches.length === 0
-        && /^(?:\s*and\b)?\s*(?:label|show|mark|identify)\s+(?:the|its|a)?\s*radius(?:\s+line)?\s*[.!?]*$/i.test(clause);
+        && allowedContinuation.test(clause);
       if (!clauseMatches.length) {
         if (labelOnly) continue;
         throw new Error("Every circle instruction needs one resolved numeric radius; continuation fields cannot add an incomplete circle or radius.");
@@ -218,7 +227,8 @@
     }
     for (const match of matches) {
       const tail = value.slice(match.index + match[0].length);
-      if (/^\s*(?:in\b|["'])/i.test(tail)) {
+      const unitTail = tail.replace(/^[\s([{\-]+/, "");
+      if (/^(?:in\b|["'′″“”])/i.test(unitTail)) {
         throw new Error("Inch and foot suffixes are named units and are not discarded silently.");
       }
       if (/^\s*(?:[+*/×÷^]|-(?=\s*\d))/.test(tail)) {
@@ -501,7 +511,7 @@
     if (!mathematicalFunction && (normalizedNumeric.match(/\d+\s*\/\s*\d+/g) || []).length > 1 && /[+−-]/.test(normalizedNumeric.replace(/^\s*[−-]/, ""))) throw new Error("Arithmetic with multiple fractions needs a dedicated equation model. Muta will not discard an operand.");
     const unsupportedPresentation = String(requirements || "").match(/\b(?:red|blue|yellow|purple|orange|pink|colour|color|music|sound|voice[- ]?over|three[- ]dimensional|3d|rotate|rotation|\d+\s*(?:seconds?|minutes?))\b/i);
     if (unsupportedPresentation) throw new Error(`“${unsupportedPresentation[0]}” is not applied silently. Generate the semantic lesson first, then use the scene editor for timing; custom colours, audio, and 3D camera directions are not supported in this workspace yet.`);
-    const circle = parseCircle(combined);
+    const circle = parseCircle(combined, [topic, concept, requirements]);
     const division = mathematicalFunction || circle ? null : parseDivision(combined);
     const fraction = division ? null : parseFraction(combined);
     const array = parseArray(combined);
