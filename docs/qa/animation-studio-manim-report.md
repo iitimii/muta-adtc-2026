@@ -64,12 +64,17 @@ deterministic source and capability requests after generation, with no `/v1/anim
 request.
 
 Regression coverage also checks Unicode minus variants, `between`, bracketed intervals, two-sided
-inequalities, π/2 and ±2π/2pi bounds, rational bounds, negative fractional and decimal function
-coefficients, and complete Unicode exponent runs such as `x²³` and `x⁻²`. Full scalar boundaries
-prevent a numeric prefix such as the `2` in `2π` from being consumed while leaving `π` inside the
-function expression. Explicit function requests that do not parse into the allow-listed typed AST
-now fail closed in both browser and model-planner boundaries, so they cannot become prose-only
-process storyboards. Non-mathematical novel process planning remains available.
+inequalities (strict and inclusive), π/2 and ±2π/2pi bounds, rational bounds, negative fractional
+and decimal function coefficients, and complete Unicode exponent runs such as `x²³` and `x⁻²`.
+Full scalar boundaries prevent a numeric prefix such as the `2` in `2π` from being consumed while
+leaving `π` inside the function expression. They also reject unsupported endpoint tails such as
+`2π+1`, `2π×2`, and `π/π` rather than splitting them between a domain and an altered equation.
+Valid typed functions containing values that resemble concrete fraction lessons, including
+`10/2*x`, `-10/2*x`, and rational domain endpoints, are parsed before those lesson-family guards.
+Derivative probes retain `2π` and leading-decimal points without contaminating the expression AST.
+Explicit function requests that do not parse into the allow-listed typed AST now fail closed in both
+browser and model-planner boundaries, so they cannot become prose-only process storyboards.
+Non-mathematical novel process planning remains available.
 
 Post-regression automated gates: 2,395 selected Python tests, 191/191 Node tests, focused Animation
 Studio 33/33, focused planner 10/10, Ruff, whitespace, source-inventory, and built-asset parity.

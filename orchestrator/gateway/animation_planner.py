@@ -30,17 +30,41 @@ log = logging.getLogger("muta.gateway.animation_planner")
 
 MAX_ANIMATION_PLAN_ATTEMPTS = 2
 
+_INTENT_SUPERSCRIPT = str.maketrans(
+    {"⁻": "-", "⁺": "+", "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4", "⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9"}
+)
+
+
+def _normalize_function_intent(value: str) -> str:
+    normalized = value.translate(
+        str.maketrans({"−": "-", "–": "-", "—": "-", "﹣": "-", "－": "-", "π": "pi"})
+    )
+    return re.sub(
+        r"[⁻⁺⁰¹²³⁴⁵⁶⁷⁸⁹]+",
+        lambda match: "^" + match.group(0).translate(_INTENT_SUPERSCRIPT),
+        normalized,
+    )
+
 
 def _is_explicit_function_request(request: AnimationPlanRequest) -> bool:
-    value = "\n".join(
-        part for part in (request.topic, request.concept or "", request.requirements or "") if part
-    ).replace("π", "pi")
-    if re.search(r"\b[yzsv]\s*=", value, re.IGNORECASE):
+    value = _normalize_function_intent(
+        "\n".join(
+            part
+            for part in (request.topic, request.concept or "", request.requirements or "")
+            if part
+        )
+    )
+    if re.search(
+        r"(?:^|[^\w])(?:[a-z]|[a-z][a-z0-9]*\s*\(\s*[a-z]\s*\))\s*=",
+        value,
+        re.IGNORECASE,
+    ):
         return True
     return bool(
         re.search(
             r"\b(?:plot|graph|trace)\b[^\n;]{0,180}"
-            r"(?:\b[a-z][a-z0-9]*\s*\(|\b[xt]\s*\^|\b[xt](?:\s*[+*/-]|\s*$))",
+            r"(?:\b[a-z][a-z0-9]*\s*\(|\b[xt]\s*"
+            r"(?:\^|[+*/-]|(?:from|between|on|over|for)\b|$))",
             value,
             re.IGNORECASE,
         )

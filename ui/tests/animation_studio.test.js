@@ -91,6 +91,8 @@ test("Unicode pi and common scalar range forms stay on the typed function path",
     ["Plot y = sin(x) on the interval [−2π, 2π]", [-2 * Math.PI, 2 * Math.PI]],
     ["Plot y = cos(x) for x ∈ [−π/2, π/2]", [-Math.PI / 2, Math.PI / 2]],
     ["Plot y = sin(x) for −π ≤ x ≤ π", [-Math.PI, Math.PI]],
+    ["Plot y = sin(x) for −π < x < π", [-Math.PI, Math.PI]],
+    ["Graph y = sin(x), −π ≤ x ≤ π", [-Math.PI, Math.PI]],
   ];
   for (const [prompt, domain] of cases) {
     const parsed = animator.parseFunction(prompt);
@@ -110,6 +112,30 @@ test("Unicode pi and common scalar range forms stay on the typed function path",
   assert.equal(animator.expressionValue(negativeFraction.scenes[0].data.expression_ast, "x", 4), -2);
   const decimalCoefficient = plan("Plot y = 0.5*x");
   assert.equal(animator.expressionValue(decimalCoefficient.scenes[0].data.expression_ast, "x", 4), 2);
+  const wholeNumberQuotient = plan("Plot y = 10/2*x");
+  assert.equal(wholeNumberQuotient.scenes[0].data.expression_text, "10/2*x");
+  assert.equal(animator.expressionValue(wholeNumberQuotient.scenes[0].data.expression_ast, "x", 4), 20);
+  const negativeWholeNumberQuotient = plan("Plot y = -10/2*x");
+  assert.equal(animator.expressionValue(negativeWholeNumberQuotient.scenes[0].data.expression_ast, "x", 4), -20);
+  const quotientDomain = plan("Plot y = x from -10/2 to 1/2");
+  assert.deepEqual(quotientDomain.scenes[0].data.domain, [-5, 0.5]);
+
+  const unsupportedEndpointArithmetic = [
+    "Plot y = sin(x) from -2π to 2π+1",
+    "Plot y = sin(x) from -2π to 2π - 1",
+    "Plot y = sin(x) from -2π to 2π*2",
+    "Plot y = sin(x) from -2π to 2π × 2",
+    "Plot y = sin(x) from -2π to 2π/x",
+    "Plot y = sin(x) from -2π to 2π^2",
+    "Plot y = sin(x) from -π to π/2+1",
+    "Plot y = sin(x) between -π and π+pi",
+    "Plot y = sin(x) on the interval [-π, π*pi]",
+    "Plot y = sin(x) for -π ≤ x ≤ π/pi",
+  ];
+  for (const prompt of unsupportedEndpointArithmetic) {
+    assert.equal(animator.parseFunction(prompt), null, prompt);
+    assert.throws(() => plan(prompt), /could not safely resolve that explicit function/, prompt);
+  }
 });
 
 test("Unicode exponent runs preserve one exponent instead of chaining powers", () => {
@@ -134,6 +160,13 @@ test("tertiary derivative and definite-integral workflows compute real quantitie
   const naturalDerivative = plan("Derivative y = x^2 at x = 2", "tertiary");
   assert.equal(naturalDerivative.scenes[1].data.parameter, 2);
   assert.ok(Math.abs(animator.numericalDerivative(naturalDerivative.scenes[1].data.expression_ast, "x", 2) - 4) < 1e-5);
+  const piDerivative = plan("Derivative y = x^2 at x = 2π", "tertiary");
+  assert.equal(piDerivative.scenes[0].data.expression_text, "x^2");
+  assert.ok(Math.abs(piDerivative.scenes[1].data.parameter - 2 * Math.PI) < 1e-10);
+  assert.ok(Math.abs(animator.numericalDerivative(piDerivative.scenes[1].data.expression_ast, "x", 2 * Math.PI) - 4 * Math.PI) < 1e-4);
+  const decimalDerivative = plan("Derivative y = x^2 at x = .5", "tertiary");
+  assert.equal(decimalDerivative.scenes[0].data.expression_text, "x^2");
+  assert.equal(decimalDerivative.scenes[1].data.parameter, 0.5);
   const naturalIntegral = plan("Integral y = x^2 from 0 to 1", "tertiary");
   assert.deepEqual(naturalIntegral.scenes[1].data.bounds, [0, 1]);
 });
@@ -166,6 +199,8 @@ test("ambiguous prompts fail honestly instead of selecting an unrelated visual",
     () => animator.planProject({ topic: "Unresolved graph", concept: "Plot y = mystery(x) from −π to π", level: "secondary", requirements: "start -> peak -> finish" }),
     /could not safely resolve that explicit function/,
   );
+  assert.throws(() => animator.planProject({ topic: "Unresolved equation", concept: "x = mystery(t)", level: "secondary", requirements: "start -> finish" }), /could not safely resolve that explicit function/);
+  assert.throws(() => animator.planProject({ topic: "Unresolved function", concept: "f(x) = mystery(x)", level: "secondary", requirements: "start -> finish" }), /could not safely resolve that explicit function/);
   assert.throws(() => plan("Plot y = ∫x dx from −π to π"), /could not safely resolve that explicit function/);
 });
 

@@ -92,18 +92,27 @@ def test_valid_plan_builds_only_typed_process_scenes() -> None:
 
 
 def test_explicit_unresolved_function_never_becomes_a_prose_storyboard() -> None:
-    engine = _Engine([_valid()])
-    request = AnimationPlanRequest(
-        student_id="learner",
-        topic="A sine wave",
-        level="secondary",
-        concept="Plot y = mystery(x) from −π to π",
-        requirements="Draw labelled axes and trace the curve.",
-    )
-    project, repaired = plan_animation_project(engine, request)
-    assert project is None
-    assert repaired is False
-    assert engine.local.calls == []
+    for concept in (
+        "Plot y = mystery(x) from −π to π",
+        "x = mystery(t)",
+        "f(x) = mystery(x)",
+        "Plot x²",
+        "Plot x⁻²",
+        "Plot x from -π to π",
+        "Graph -1/2*x from -π to π",
+    ):
+        engine = _Engine([_valid()])
+        request = AnimationPlanRequest(
+            student_id="learner",
+            topic="An unresolved function",
+            level="secondary",
+            concept=concept,
+            requirements="Draw labelled axes and trace the curve.",
+        )
+        project, repaired = plan_animation_project(engine, request)
+        assert project is None
+        assert repaired is False
+        assert engine.local.calls == []
 
 
 def test_invalid_proposal_gets_one_structured_repair() -> None:

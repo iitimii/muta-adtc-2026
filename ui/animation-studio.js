@@ -173,13 +173,18 @@
     return `[+\\-]?(?:(?:${decimal}\\s*\\*?\\s*)?pi(?:\\s*\\/\\s*${decimal})?|${decimal}(?:\\s*\\/\\s*${decimal})?)(?![A-Za-z0-9_.])`;
   }
 
+  function scalarTerminatorPattern(words = "and|with|at|when") {
+    return `(?=\\s*(?:$|[\\]\\),.;]|\\n|\\b(?:${words})\\b))`;
+  }
+
   function scalarRange(source) {
     const scalar = scalarPattern();
+    const rangeEnd = scalarTerminatorPattern();
     const patterns = [
-      new RegExp(`\\bfrom\\s*(${scalar})\\s*(?:to|through|until)\\s*(${scalar})`, "i"),
-      new RegExp(`\\bbetween\\s*(${scalar})\\s*(?:and|to)\\s*(${scalar})`, "i"),
-      new RegExp(`\\b(?:on|over|for)\\s+(?:(?:the\\s+)?(?:domain|range|interval)\\s*)?(?:[xt]\\s*(?:=|in|∈)\\s*)?[\\[(]?\\s*(${scalar})\\s*(?:,|to)\\s*(${scalar})\\s*[\\])]?`, "i"),
-      new RegExp(`(?:\\bfor\\s+)?(${scalar})\\s*(?:<=|≤)\\s*[xt]\\s*(?:<=|≤)\\s*(${scalar})`, "i"),
+      new RegExp(`\\bfrom\\s*(${scalar})\\s*(?:to|through|until)\\s*(${scalar})${rangeEnd}`, "i"),
+      new RegExp(`\\bbetween\\s*(${scalar})\\s*(?:and|to)\\s*(${scalar})${rangeEnd}`, "i"),
+      new RegExp(`\\b(?:on|over|for)\\s+(?:(?:the\\s+)?(?:domain|range|interval)\\s*)?(?:[xt]\\s*(?:=|in|∈)\\s*)?[\\[(]?\\s*(${scalar})\\s*(?:,|to)\\s*(${scalar})\\s*[\\])]?(?:${rangeEnd})`, "i"),
+      new RegExp(`(?:\\bfor\\s+)?(${scalar})\\s*(?:<=|≤|<)\\s*[xt]\\s*(?:<=|≤|<)\\s*(${scalar})${rangeEnd}`, "i"),
     ];
     const matches = patterns.map((pattern) => source.match(pattern)).filter(Boolean).sort((left, right) => left.index - right.index);
     if (!matches.length) return null;
@@ -190,8 +195,8 @@
 
   function explicitFunctionRequest(source) {
     const value = normalizeFunctionInput(source).toLowerCase();
-    if (/\b[yzsv]\s*=/.test(value)) return true;
-    return /\b(?:plot|graph|trace)\b[^\n;]{0,180}\b(?:[a-z][a-z0-9]*\s*\(|[xt]\s*\^|[xt](?:\s*[+*/-]|\s*$))/.test(value);
+    if (/(?:^|[^\w])(?:[a-z]|[a-z][a-z0-9]*\s*\(\s*[a-z]\s*\))\s*=/.test(value)) return true;
+    return /\b(?:plot|graph|trace)\b[^\n;]{0,180}\b(?:[a-z][a-z0-9]*\s*\(|[xt]\s*(?:\^|[+*/-]|(?:from|between|on|over|for)\b|$))/.test(value);
   }
 
   function parseFunction(source) {
@@ -203,8 +208,11 @@
     const equation = withoutRange.match(/\b([yzsv])\s*=\s*([^\n;]+)/i); const naked = withoutRange.match(/\b(?:plot|graph|trace)\s+(?:the\s+)?(?:function\s+)?([^\n;]+)/i);
     if (!equation && !naked) return null;
     const output = equation ? equation[1].toLowerCase() : "y"; let expressionText = (equation ? equation[2] : naked[1]).trim();
-    expressionText = expressionText.replace(/\s+(?:at|when)\s+[xt]\s*=\s*[+\-]?(?:\d+(?:\.\d+)?|pi(?:\s*\/\s*\d+(?:\.\d+)?)?)\b.*$/i, "")
-      .replace(/\s+(?:with|and)\s+(?:show\s+)?(?:a\s+|the\s+)?(?:tangent|derivative|definite\s+integral|integral|area)\b.*$/i, "").trim();
+    const probeEnd = scalarTerminatorPattern("and|with");
+    const probePattern = new RegExp(`\\s+(?:at|when)\\s+[xt]\\s*=\\s*(${scalar})${probeEnd}.*$`, "i");
+    expressionText = expressionText.replace(probePattern, "")
+      .replace(/\s+(?:with|and)\s+(?:show\s+)?(?:a\s+|the\s+)?(?:tangent|derivative|definite\s+integral|integral|area)\b.*$/i, "")
+      .replace(/[,;:]+$/, "").trim();
     let expressionAst;
     try { expressionAst = global.MutaViz.parseExpressionV2(expressionText); } catch { return null; }
     const variables = [...expressionVariables(expressionAst)].filter((name) => ["x", "t"].includes(name));
@@ -215,7 +223,7 @@
         : /\^[3-9]/.test(expressionText) ? [-3, 3] : [-6, 6]);
     let mode = "curve"; let parameter; let bounds;
     if (/\b(?:derivative|differentiat(?:e|ed|es|ing|ion)?|tangent|gradient|rate\s+of\s+change)\b/i.test(lower)) {
-      mode = "derivative"; const probe = lower.match(new RegExp(`(?:at|when)\\s+[xt]\\s*=\\s*(${scalar})`, "i")); parameter = probe ? parseScalarExpression(probe[1]) : 0;
+      mode = "derivative"; const probe = lower.match(new RegExp(`(?:at|when)\\s+[xt]\\s*=\\s*(${scalar})${probeEnd}`, "i")); parameter = probe ? parseScalarExpression(probe[1]) : 0;
       if (!Number.isFinite(parameter)) return null;
       const span = domain[1] - domain[0];
       if (parameter <= domain[0]) domain = [parameter - Math.max(1, span * .2), domain[1]];
@@ -291,7 +299,7 @@
     const vector = parseVector(combined);
     const process = parseProcess(requirements);
     let scenes; let summary;
-    if (fraction && fraction.numerator > fraction.denominator * 4) throw new Error("This fraction needs more than four whole bars. Use an equivalent mixed number or a smaller numerator so the animation remains readable.");
+    if (!mathematicalFunction && fraction && fraction.numerator > fraction.denominator * 4) throw new Error("This fraction needs more than four whole bars. Use an equivalent mixed number or a smaller numerator so the animation remains readable.");
     if (mathematicalFunction) {
       const relation = `${mathematicalFunction.output} = ${mathematicalFunction.expression_text}`;
       summary = `Plot ${relation} over a bounded domain using Muta's typed expression tree. ${levelPhrase(level)}`;
