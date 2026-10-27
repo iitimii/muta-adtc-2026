@@ -70,6 +70,15 @@ def _valid() -> dict:
     }
 
 
+@pytest.mark.parametrize("concept", ["Explain division", "Explain 14 ÷ 4", "Explain 12 divided by 3", "Divide twelve by three", "Share 12 objects among 3 friends"])
+def test_whole_number_division_never_uses_unverified_process_arithmetic(concept):
+    engine = _Engine([_valid()])
+    request = _request().model_copy(update={"topic": concept, "concept": concept, "requirements": ""})
+    project, repaired = plan_animation_project(engine, request)
+    assert project is None and repaired is False
+    assert engine.local.calls == []
+
+
 def test_planner_schema_is_closed_and_contains_no_source_fields() -> None:
     schema = animation_planner_schema()
     assert schema["strict"] is True

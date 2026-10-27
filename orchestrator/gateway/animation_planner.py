@@ -440,9 +440,18 @@ def plan_animation_project(
     cancel_event: threading.Event | None = None,
 ) -> tuple[AnimationPlanProject | None, bool]:
     """Ask the installed local model for a safe ordered composition, repairing once."""
-    if _is_explicit_function_request(request):
+    brief_text = "\n".join((request.topic, request.concept or "", request.requirements or ""))
+    mathematical_division = bool(
+        re.search(r"÷|\bdivided\s+by\b|\bdivid(?:e|ing)\b[^\n;]{0,80}\bby\b|\b(?:share|sharing|divide|dividing)\b[^\n;]{0,120}\b(?:among|between|into)\b", brief_text, re.IGNORECASE)
+        or (
+            re.search(r"\bdivision\b", brief_text, re.IGNORECASE)
+            and not re.search(r"\b(?:cells?|mitosis|meiosis|fission)\b", brief_text, re.IGNORECASE)
+        )
+    )
+    if _is_explicit_function_request(request) or mathematical_division:
         # This planner can produce only prose process scenes. An unresolved explicit function must
         # stay unresolved rather than being converted into an authoritative-looking storyboard.
+        # Equal sharing is also a checked concrete family in Studio, never model-written arithmetic.
         return None, False
     requested_step_count, step_count_error = _requested_step_count(request)
     if step_count_error is not None:

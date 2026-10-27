@@ -42,6 +42,40 @@ test("array parser recognizes groups in words", () => {
   assert.deepEqual(animator.parseArray("Build six groups of four"), { rows: 6, columns: 4 });
 });
 
+test("division derives every count and remainder, without generic process filler", () => {
+  for (const [prompt, dividend, divisor] of [
+    ["Explain division", 12, 3], ["Explain 12 ÷ 3", 12, 3],
+    ["Explain 14 divided by 4", 14, 4], ["Share twelve blocks among three friends", 12, 3],
+    ["Share 23 apples between 5 friends", 23, 5], ["Explain 0 ÷ 4", 0, 4],
+    ["Divide 12 by 3", 12, 3], ["Divide twelve by three", 12, 3],
+    ["Explain 12 ÷ 3.", 12, 3], ["Divide 12 by 3.", 12, 3], ["Share 12 blocks among 3.", 12, 3],
+  ]) {
+    const project = plan(prompt, "upper-primary");
+    assert.deepEqual(project.scenes.map((scene) => scene.kind), ["division", "division", "division"]);
+    assert.deepEqual(project.scenes[1].data, { dividend, divisor, phase: "share" });
+    assert.match(project.scenes[1].narration, new RegExp(`${dividend % divisor} objects remain unshared`));
+    assert.match(project.scenes[2].narration, new RegExp(`${dividend} = ${divisor} × ${Math.floor(dividend / divisor)} \\+ ${dividend % divisor}`));
+    assert.doesNotMatch(JSON.stringify(project), /wave|left\? That/);
+  }
+  assert.match(plan("Explain division").scenes[0].title, /^Example:/);
+  assert.equal(animator.parseDivision("Explain cell division"), null);
+  for (const prompt of ["Explain 12 ÷ 0", "Explain 12.5 ÷ 3", "Explain 12 ÷ -3", "Explain 12 ÷ 3+2", "Explain 12 ÷ 3 + 2", "Explain 12 ÷ 3 × 2", "Show the division 12 / 3 / 2", "twelve divided by three hundred", "twenty one divided by three", "Share one hundred and twelve objects among 3 groups", "Share 12 apples plus 6 pears among 3 friends", "Share 12 objects minus 3 among 3 friends", "Explain division of a dozen sweets", "Explain 12 ÷ 3 and 5 ÷ nope", "Explain 12 ÷ 3 and 14 ÷ 2", "Explain division of 20 objects", "Explain division of thirteen objects", "Explain polynomial division"]) {
+    assert.throws(() => plan(prompt), undefined, prompt);
+  }
+});
+
+test("all shared objects remain inside their group boundaries on a narrow draft", () => {
+  for (const [width, height] of [[375, 300], [640, 371], [960, 540]]) {
+    const boxes = []; const dots = [];
+    const context = new Proxy({ measureText: () => ({ width: 20 }), roundRect: (x, y, w, h) => boxes.push({ x, y, w, h }), arc: (x, y, r) => dots.push({ x, y, r }) }, { get: (target, key) => target[key] || (() => {}) });
+    const canvas = { style: {}, getContext: () => context };
+    animator.drawFrame(canvas, plan("144 ÷ 12"), 1, 1, { width, height });
+    assert.equal(dots.length, 144);
+    assert.equal(boxes.length, 12);
+    for (const dot of dots) assert.ok(boxes.some((box) => dot.x - dot.r >= box.x && dot.x + dot.r <= box.x + box.w && dot.y - dot.r >= box.y && dot.y + dot.r <= box.y + box.h));
+  }
+});
+
 test("safe polynomial parser creates coefficients without executing source", () => {
   const cubic = animator.parseFunction("Plot y = x^3");
   assert.equal(cubic.output, "y"); assert.equal(cubic.variable, "x"); assert.equal(cubic.expression_text, "x^3"); assert.deepEqual(cubic.domain, [-3, 3]);
@@ -595,7 +629,10 @@ test("production module contains no executable source sink", () => {
   assert.match(source, /this\.exportAbort\?\.abort\(\); this\.exportAbort = null/);
   assert.match(source, /this\.exportAbort === exportAbort/);
   assert.match(source, /this\.manimCapabilityAbort\?\.abort\(\); this\.manimCapabilityAbort = null/);
-  assert.match(source, /manimVideo\.disabled = !result\.available/);
+  assert.match(source, /if \(!capability\.available\) \{ this\.showDraft\(capability\.detail\)/);
+  assert.match(source, /this\.previewRoot\.append\(this\.stageMessage, this\.draftRoot, renderedVideo\)/);
+  assert.match(source, /await this\.showProject\(result\.project, \{ persist: true, autoRender: true \}\)/);
+  assert.match(source, /this\.toolsBody\.append\(projectSource\)/);
   assert.match(source, /item\.setAttribute\("role", "listitem"\)/);
   assert.doesNotMatch(source, /node\.setAttribute\("role", "listitem"\)/);
   assert.doesNotMatch(source, /renderedVideo\.autoplay/);

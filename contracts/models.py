@@ -370,6 +370,20 @@ class AnimationArrayData(BaseModel):
     phase: Literal["build", "addition", "equation"]
 
 
+class AnimationDivisionData(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    dividend: AnimationInteger = Field(ge=0, le=144)
+    divisor: AnimationInteger = Field(ge=1, le=12)
+    phase: Literal["count", "share", "recap"]
+
+    @model_validator(mode="after")
+    def readable_quotient(self) -> AnimationDivisionData:
+        if self.dividend // self.divisor > 12:
+            raise ValueError("equal-sharing diagrams support at most twelve objects per group")
+        return self
+
+
 class AnimationFunctionData(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -460,6 +474,11 @@ class AnimationArrayScene(_AnimationSceneBase):
     data: AnimationArrayData
 
 
+class AnimationDivisionScene(_AnimationSceneBase):
+    kind: Literal["division"] = "division"
+    data: AnimationDivisionData
+
+
 class AnimationFunctionScene(_AnimationSceneBase):
     kind: Literal["function"] = "function"
     data: AnimationFunctionData
@@ -474,6 +493,7 @@ AnimationPlanScene = Annotated[
     AnimationProcessScene
     | AnimationFractionScene
     | AnimationArrayScene
+    | AnimationDivisionScene
     | AnimationFunctionScene
     | AnimationVectorScene,
     Field(discriminator="kind"),

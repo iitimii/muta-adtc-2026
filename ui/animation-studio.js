@@ -11,10 +11,11 @@
   const MAX_SCENE_MS = 10000;
   const MAX_TOTAL_MS = 60000;
   const LEVELS = new Set(["early-primary", "upper-primary", "secondary", "tertiary"]);
-  const SCENE_KINDS = new Set(["fraction", "array", "function", "process", "vector"]);
+  const SCENE_KINDS = new Set(["fraction", "array", "division", "function", "process", "vector"]);
   const PHASES = Object.freeze({
     fraction: new Set(["partition", "shade", "recap"]),
     array: new Set(["build", "addition", "equation"]),
+    division: new Set(["count", "share", "recap"]),
   });
   const WORD_NUMBERS = Object.freeze({
     zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6,
@@ -74,6 +75,11 @@
       if (!onlyKeys(data, ["rows", "columns", "phase"]) || !Number.isInteger(data.rows)
         || !Number.isInteger(data.columns) || data.rows < 1 || data.rows > 12 || data.columns < 1
         || data.columns > 12 || !PHASES.array.has(data.phase)) return "Array scene is invalid.";
+    } else if (scene.kind === "division") {
+      if (!onlyKeys(data, ["dividend", "divisor", "phase"]) || !Number.isInteger(data.dividend)
+        || !Number.isInteger(data.divisor) || data.dividend < 0 || data.dividend > 144
+        || data.divisor < 1 || data.divisor > 12 || Math.floor(data.dividend / data.divisor) > 12
+        || !PHASES.division.has(data.phase)) return "Division scene is invalid.";
     } else if (scene.kind === "function") {
       if (!onlyKeys(data, ["expression_ast", "expression_text", "domain", "variable", "output", "mode", "parameter", "bounds"])
         || !plainRecord(data.expression_ast) || typeof global.MutaViz?.validateExpressionV2 !== "function"
@@ -144,6 +150,31 @@
     match = value.match(/\b(\d{1,2}|zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+(?:groups?|rows?)\s+of\s+(\d{1,2}|zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b/);
     if (!match) return null;
     return { rows: numberFromToken(match[1]), columns: numberFromToken(match[2]) };
+  }
+
+  function parseDivision(source) {
+    const value = String(source || "").toLowerCase().replace(/[−–]/g, "-");
+    if (/\b(?:cell|cells|mitosis|meiosis|fission)\b/.test(value) && !/÷|divided\s+by/.test(value)) return null;
+    const intent = /\bdivision\b|\bdivided\s+by\b|÷|\bdivid(?:e|ing)\b[^\n;]{0,80}\bby\b|\b(?:share|sharing|divide|dividing)\b[^\n;]{0,120}\b(?:among|between|into\s+\S+\s+(?:equal\s+)?groups?)\b/.test(value);
+    if (!intent) return null;
+    if (/\b(?:polynomial|algebraic|long\s+division|synthetic\s+division|decimal|fractional)\b/.test(value)) throw new Error("This equal-sharing model uses whole objects. Use a concrete division such as 12 ÷ 3; algebraic or long-division procedures need a different visual model.");
+    const token = "(?:[+-]?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:e[+-]?\\d+)?|zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)";
+    const operation = new RegExp(`(?<![\\w.+/-])(${token})\\s*(?:÷|divided\\s+by|/|by)\\s*(${token})(?![\\w/+-]|\\.\\d)`, "g");
+    const sharing = new RegExp(`(?<![\\w.+/-])(${token})\\s+(?:blocks?|objects?|items?|apples?|counters?|sweets?)\\s+(?:equally\\s+)?(?:among|between|into)\\s+(${token})(?![\\w/+-]|\\.\\d)`, "g");
+    const operations = [...value.matchAll(operation)]; const matches = [...operations, ...value.matchAll(sharing)];
+    if ((value.match(/÷|divided\s+by/g) || []).length !== operations.filter((match) => /÷|divided\s+by/.test(match[0])).length) throw new Error("Muta could not read the complete division. Use one whole-number relationship such as 12 ÷ 3, without an extra arithmetic tail.");
+    if (!matches.length) {
+      if (/[\d+÷/−-]|\b(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|billion|trillion|dozen)\b/.test(value)) throw new Error("Use one whole-number division, such as 12 ÷ 3, or share 12 blocks among 3 friends. Muta will not guess missing quantities.");
+      return { dividend: 12, divisor: 3, example: true };
+    }
+    let remainderText = value;
+    for (const match of [...matches].sort((a, b) => b.index - a.index)) remainderText = remainderText.slice(0, match.index) + " " + remainderText.slice(match.index + match[0].length);
+    if (/[\d+×*/÷=^]|(?:^|\s)-(?=\s|\d)|\b(?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|billion|trillion|dozen|negative|minus|plus|times|multiplied)\b/.test(remainderText)) throw new Error("Use one complete whole-number division without additional arithmetic or unresolved quantities. Muta will not discard part of your request.");
+    const quantities = matches.map((match) => ({ dividend: Object.hasOwn(WORD_NUMBERS, match[1]) ? WORD_NUMBERS[match[1]] : Number(match[1]), divisor: Object.hasOwn(WORD_NUMBERS, match[2]) ? WORD_NUMBERS[match[2]] : Number(match[2]) }));
+    const result = quantities[0];
+    if (quantities.some((item) => item.dividend !== result.dividend || item.divisor !== result.divisor)) throw new Error("Use one division relationship per lesson; the supplied quantities conflict.");
+    if (!Number.isInteger(result.dividend) || !Number.isInteger(result.divisor) || result.dividend < 0 || result.dividend > 144 || result.divisor < 1 || result.divisor > 12 || Math.floor(result.dividend / result.divisor) > 12) throw new Error("Use 0–144 whole objects, 1–12 groups, and at most 12 objects per group. Division by zero and fractional sharing are not supported by this concrete model.");
+    return { ...result, example: false };
   }
 
   function expressionVariables(node, output = new Set()) {
@@ -364,7 +395,8 @@
     if (!mathematicalFunction && (normalizedNumeric.match(/\d+\s*\/\s*\d+/g) || []).length > 1 && /[+−-]/.test(normalizedNumeric.replace(/^\s*[−-]/, ""))) throw new Error("Arithmetic with multiple fractions needs a dedicated equation model. Muta will not discard an operand.");
     const unsupportedPresentation = String(requirements || "").match(/\b(?:red|blue|yellow|purple|orange|pink|colour|color|music|sound|voice[- ]?over|three[- ]dimensional|3d|rotate|rotation|\d+\s*(?:seconds?|minutes?))\b/i);
     if (unsupportedPresentation) throw new Error(`“${unsupportedPresentation[0]}” is not applied silently. Generate the semantic lesson first, then use the scene editor for timing; custom colours, audio, and 3D camera directions are not supported in this workspace yet.`);
-    const fraction = parseFraction(combined);
+    const division = mathematicalFunction ? null : parseDivision(combined);
+    const fraction = division ? null : parseFraction(combined);
     const array = parseArray(combined);
     const vector = parseVector(combined);
     const process = parseProcess(requirements);
@@ -386,6 +418,15 @@
       } else {
         scenes.push(makeScene("function-read", "function", "Read values and behaviour", `Use the labelled axes, domain, scale, and any visible gaps to connect input ${mathematicalFunction.variable} with output ${mathematicalFunction.output}.`, 3600, curveData));
       }
+    } else if (division) {
+      const { dividend, divisor, example } = division; const quotient = Math.floor(dividend / divisor); const remainder = dividend % divisor;
+      const data = { dividend, divisor };
+      summary = `${example ? "Example: " : ""}${dividend} ÷ ${divisor} = ${quotient}, remainder ${remainder}. ${levelPhrase(level)}`;
+      scenes = [
+        makeScene("division-count", "division", `${example ? "Example: " : ""}Start with ${dividend} objects`, `Share ${dividend} whole objects equally among ${divisor} groups.`, 2800, { ...data, phase: "count" }),
+        makeScene("division-share", "division", "Share equally", `Each group receives ${quotient} objects. ${remainder} objects remain unshared.`, 3600, { ...data, phase: "share" }),
+        makeScene("division-recap", "division", "Check the division", `${dividend} = ${divisor} × ${quotient} + ${remainder}. ${dividend} ÷ ${divisor} is ${quotient} with remainder ${remainder}.`, 3200, { ...data, phase: "recap" }),
+      ];
     } else if (fraction && fraction.denominator >= 2 && fraction.denominator <= 12 && fraction.numerator >= 0 && fraction.numerator <= fraction.denominator * 4) {
       const { numerator, denominator } = fraction;
       summary = `${numerator} out of every ${denominator} equal parts are selected. ${levelPhrase(level)}`;
@@ -432,7 +473,7 @@
     const response = await fetchImpl("/v1/animation/plan", {
       method: "POST", signal: options.signal,
       headers: { "content-type": "application/json", ...(options.headers || global.MutaChat?.authHeaders?.() || {}) },
-      body: JSON.stringify({ student_id: studentId, topic: String(values.topic || "").trim(), level: values.level, concept: String(values.concept || "").trim(), requirements: String(values.requirements || "").trim() }),
+      body: JSON.stringify({ student_id: studentId, topic: String(values.topic || "").trim() || String(values.concept || "").trim(), level: values.level, concept: String(values.concept || "").trim(), requirements: String(values.requirements || "").trim() }),
     });
     let payload = null; try { payload = await response.json(); } catch { /* response has no JSON body */ }
     if (!response.ok) throw new Error(payload?.detail || "The local tutor could not create a valid animation plan. Edit the brief and try again.");
@@ -673,6 +714,28 @@
     }
   }
 
+  function drawDivision(ctx, scene, width, height, progress, palette) {
+    const { dividend, divisor, phase } = scene.data; const quotient = Math.floor(dividend / divisor); const remainder = dividend % divisor;
+    const columns = Math.min(4, divisor); const rows = Math.ceil(divisor / columns);
+    const cellW = (width - 64) / columns; const cellH = Math.max(48, (height - 215) / rows);
+    const shared = divisor * quotient; const transferred = phase === "count" ? 0 : Math.ceil(shared * progress);
+    for (let group = 0; group < divisor; group += 1) {
+      const x = 32 + (group % columns) * cellW; const y = 85 + Math.floor(group / columns) * cellH;
+      roundedRect(ctx, x + 3, y, cellW - 6, cellH - 8, 8); ctx.strokeStyle = palette.border; ctx.lineWidth = 2; ctx.stroke();
+      for (let item = 0; item < quotient; item += 1) {
+        if (item * divisor + group >= transferred) continue;
+        const stepY = Math.min(16, (cellH - 20) / Math.max(1, Math.ceil(quotient / 4)));
+        ctx.beginPath(); ctx.arc(x + cellW / 2 + ((item % 4) - (Math.min(quotient, 4) - 1) / 2) * Math.min(22, cellW / 5), y + 10 + Math.floor(item / 4) * stepY, 4, 0, Math.PI * 2); ctx.fillStyle = palette.accent; ctx.fill();
+      }
+    }
+    const loose = dividend - transferred;
+    for (let item = 0; item < loose; item += 1) {
+      ctx.beginPath(); ctx.arc(36 + (item % 24) * ((width - 72) / 24), height - 90 + Math.floor(item / 24) * 7, 3, 0, Math.PI * 2); ctx.fillStyle = palette.ink; ctx.fill();
+    }
+    ctx.fillStyle = palette.ink; ctx.textAlign = "center"; ctx.font = `700 ${width < 500 ? 17 : 24}px Onest, sans-serif`;
+    ctx.fillText(phase === "count" ? `${dividend} objects · ${divisor} groups` : `${dividend} ÷ ${divisor} = ${quotient} · remainder ${remainder}`, width / 2, height - 35, width - 40);
+  }
+
   function drawFunction(ctx, scene, width, height, progress, palette) {
     const { expression_ast: expressionAst, expression_text: expressionText, domain, variable, output, mode, parameter, bounds } = scene.data; const left = 64; const right = width - 30; const top = 86; const bottom = height - 60;
     const samples = 240; const values = Array.from({ length: samples + 1 }, (_, index) => { const x = domain[0] + (domain[1] - domain[0]) * index / samples; return [x, expressionValue(expressionAst, variable, x)]; });
@@ -729,6 +792,7 @@
     const p = Math.max(0, Math.min(1, progress));
     if (scene.kind === "fraction") drawFraction(ctx, scene, width, height, p, palette);
     else if (scene.kind === "array") drawArray(ctx, scene, width, height, p, palette);
+    else if (scene.kind === "division") drawDivision(ctx, scene, width, height, p, palette);
     else if (scene.kind === "function") drawFunction(ctx, scene, width, height, p, palette);
     else if (scene.kind === "process") drawProcess(ctx, scene, width, height, p, palette);
     else if (scene.kind === "vector") drawVector(ctx, scene, width, height, p, palette);
@@ -829,18 +893,19 @@
     constructor(root, options = {}) {
       this.root = root; this.options = options; this.player = null; this.project = null; this.projectRevision = 0; this.timers = []; this.destroyed = false; this.operationToken = 0;
       this.build(); mounted.add(this);
-      if (options.project) this.showProject(options.project, { persist: false });
+      if (options.project) { this.concept.value = options.project.title; this.level.value = options.project.level; this.updatePrompt(); this.showProject(options.project, { persist: false }); }
     }
     build() {
       this.root.replaceChildren(); this.root.classList.add("animation-studio-workspace"); this.root.dataset.animationMount = "true";
-      const examples = document.createElement("div"); examples.className = "animation-examples";
-      const exampleLabel = document.createElement("span"); exampleLabel.textContent = text("animationTryLesson"); examples.append(exampleLabel);
+      const examples = document.createElement("details"); examples.className = "animation-examples animation-editor";
+      const exampleLabel = document.createElement("summary"); exampleLabel.textContent = text("animationTryLesson"); examples.append(exampleLabel);
+      const exampleChips = document.createElement("div"); exampleChips.className = "animation-example-chips"; examples.append(exampleChips);
       [
         ["three-quarters", text("animationExampleFraction"), { topic: "Understanding three quarters", level: "early-primary", concept: "Explain 3/4", requirements: "Divide a bar into four equal parts -> shade three parts -> read the fraction" }],
         ["six-by-four", text("animationExampleArray"), { topic: "Six groups of four", level: "upper-primary", concept: "Build 6 × 4", requirements: "Build six rows of four -> connect repeated addition -> write the multiplication equation" }],
         ["cubic", text("animationExampleGraph"), { topic: "How a cubic function changes", level: "secondary", concept: "Plot y = x^3", requirements: "Trace the curve -> read the axes and scale" }],
         ["calculus", text("animationExampleCalculus"), { topic: "Tangent and derivative of a cubic", level: "tertiary", concept: "Plot y = x^3 and show the tangent at x = 2", requirements: "Trace the function -> reveal the tangent -> interpret the local rate of change" }],
-      ].forEach(([id, label, values]) => { const chip = button(label, "animation-chip"); chip.dataset.example = id; chip.addEventListener("click", () => { this.topic.value = values.topic; this.level.value = values.level; this.concept.value = values.concept; this.requirements.value = values.requirements; this.updatePrompt(); this.topic.focus(); }); examples.append(chip); });
+      ].forEach(([id, label, values]) => { const chip = button(label, "animation-chip"); chip.dataset.example = id; chip.addEventListener("click", () => { this.topic.value = values.topic; this.level.value = values.level; this.concept.value = values.concept; this.requirements.value = values.requirements; this.updatePrompt(); this.concept.focus(); }); exampleChips.append(chip); });
 
       const layout = document.createElement("div"); layout.className = "animation-authoring-layout";
       const brief = document.createElement("section"); brief.className = "animation-brief"; brief.setAttribute("aria-labelledby", "animation-brief-title");
@@ -849,18 +914,22 @@
       this.topic = document.createElement("input"); this.topic.id = "animation-topic"; this.topic.maxLength = 240; this.topic.placeholder = text("animationTopicPlaceholder");
       this.level = document.createElement("select"); this.level.id = "animation-level";
       [["early-primary", text("animationLevelEarly")], ["upper-primary", text("animationLevelUpper")], ["secondary", text("animationLevelSecondary")], ["tertiary", text("animationLevelTertiary")]].forEach(([value, label]) => { const option = document.createElement("option"); option.value = value; option.textContent = label; if (value === "secondary") option.selected = true; this.level.append(option); });
-      this.concept = document.createElement("input"); this.concept.id = "animation-concept"; this.concept.maxLength = 240; this.concept.placeholder = text("animationConceptPlaceholder");
+      this.concept = document.createElement("textarea"); this.concept.id = "animation-concept"; this.concept.maxLength = 240; this.concept.rows = 4; this.concept.placeholder = text("animationConceptPlaceholder");
       this.requirements = document.createElement("textarea"); this.requirements.id = "animation-requirements"; this.requirements.maxLength = 1000; this.requirements.rows = 5; this.requirements.placeholder = text("animationRequirementsPlaceholder");
       const prompt = document.createElement("details"); prompt.className = "animation-prompt"; const promptSummary = document.createElement("summary"); promptSummary.textContent = text("animationPromptShow"); this.promptText = document.createElement("pre"); prompt.append(promptSummary, this.promptText);
       this.generate = button(text("animationGenerate"), "animation-primary animation-generate"); this.generate.addEventListener("click", () => this.generateProject());
-      this.cancelGenerate = button(text("animationCancelGeneration")); this.cancelGenerate.hidden = true; this.cancelGenerate.addEventListener("click", () => { this.operationToken += 1; this.plannerAbort?.abort(); this.plannerAbort = null; this.generate.disabled = false; this.cancelGenerate.hidden = true; this.progress.hidden = true; this.error.textContent = text("animationGenerationCancelled"); });
+      this.cancelGenerate = button(text("animationCancelGeneration")); this.cancelGenerate.hidden = true; this.cancelGenerate.addEventListener("click", () => this.cancelWork());
       const importButton = button(text("animationImport")); this.file = document.createElement("input"); this.file.type = "file"; this.file.accept = ".mutaanim,application/vnd.muta.animation+json,application/json"; this.file.hidden = true;
       importButton.addEventListener("click", () => this.file.click()); this.file.addEventListener("change", () => this.importSelected());
-      const actions = document.createElement("div"); actions.className = "animation-brief-actions"; actions.append(this.generate, this.cancelGenerate, importButton, this.file);
+      const actions = document.createElement("div"); actions.className = "animation-brief-actions"; actions.append(this.generate, this.cancelGenerate);
+      const options = document.createElement("details"); options.className = "animation-lesson-options animation-editor";
+      const optionsSummary = document.createElement("summary"); optionsSummary.textContent = text("animationLessonOptions");
+      const importActions = document.createElement("div"); importActions.className = "animation-brief-actions"; importActions.append(importButton, this.file);
+      options.append(optionsSummary, field(text("animationTopic"), this.topic), field(text("animationRequirements"), this.requirements), prompt, importActions);
       this.progress = document.createElement("div"); this.progress.className = "animation-generation-progress"; this.progress.hidden = true; this.progress.setAttribute("role", "status"); this.progress.setAttribute("aria-live", "polite");
       this.progressBar = document.createElement("span"); this.progressCopy = document.createElement("p"); this.progress.append(this.progressBar, this.progressCopy);
       this.error = document.createElement("p"); this.error.className = "animation-error"; this.error.setAttribute("role", "alert");
-      brief.append(briefTitle, briefHelp, field(text("animationTopic"), this.topic), field(text("animationLevel"), this.level), field(text("animationConcept"), this.concept), field(text("animationRequirements"), this.requirements), prompt, actions, this.progress, this.error);
+      brief.append(briefTitle, briefHelp, field(text("animationConcept"), this.concept), field(text("animationLevel"), this.level), actions, this.progress, this.error, options, examples);
 
       const preview = document.createElement("section"); preview.className = "animation-preview-panel"; preview.setAttribute("aria-labelledby", "animation-preview-title");
       const previewTitle = document.createElement("h4"); previewTitle.id = "animation-preview-title"; previewTitle.textContent = text("animationPreviewTitle");
@@ -868,8 +937,12 @@
       this.empty = document.createElement("div"); this.empty.className = "animation-preview-empty"; const emptyTitle = document.createElement("strong"); emptyTitle.textContent = text("animationEmptyTitle"); const emptyCopy = document.createElement("p"); emptyCopy.textContent = text("animationEmptyHelp"); this.empty.append(emptyTitle, emptyCopy); this.previewRoot.append(this.empty);
       this.projectActions = document.createElement("div"); this.projectActions.className = "animation-project-actions"; this.projectActions.hidden = true;
       this.editor = document.createElement("details"); this.editor.className = "animation-editor"; this.editor.hidden = true; const editorSummary = document.createElement("summary"); editorSummary.textContent = text("animationEditScenes"); this.editorBody = document.createElement("div"); this.editorBody.className = "animation-editor-body"; this.editor.append(editorSummary, this.editorBody);
-      preview.append(previewTitle, this.previewRoot, this.projectActions, this.editor);
-      layout.append(brief, preview); this.root.append(examples, layout);
+      this.tools = document.createElement("details"); this.tools.className = "animation-project-tools animation-editor"; this.tools.hidden = true;
+      const toolsSummary = document.createElement("summary"); toolsSummary.textContent = text("animationProjectTools");
+      this.toolsBody = document.createElement("div"); this.toolsBody.className = "animation-tools-body";
+      this.tools.append(toolsSummary, this.toolsBody, this.editor);
+      preview.append(previewTitle, this.previewRoot, this.projectActions, this.tools);
+      layout.append(brief, preview); this.root.append(layout);
       [this.topic, this.level, this.concept, this.requirements].forEach((node) => node.addEventListener("input", () => this.updatePrompt())); this.updatePrompt();
     }
     updatePrompt() {
@@ -882,6 +955,7 @@
       const token = ++this.operationToken; this.clearTimers(); this.plannerAbort?.abort(); this.error.textContent = ""; this.generate.disabled = true; this.cancelGenerate.hidden = false; this.setProgress(text("animationProgressUnderstand"), 22);
       const values = { topic: this.topic.value, level: this.level.value, concept: this.concept.value, requirements: this.requirements.value };
       try {
+        if (!values.topic.trim() && !values.concept.trim()) throw new Error(text("animationEnterConcept"));
         await new Promise((resolve) => this.timers.push(global.setTimeout(resolve, 80)));
         if (this.destroyed || token !== this.operationToken) return;
         this.setProgress(text("animationProgressCompose"), 56);
@@ -894,7 +968,8 @@
         }
         if (this.destroyed || token !== this.operationToken) return;
         this.setProgress(text("animationProgressValidate"), 88); const result = validateProject(project); if (!result.ok) throw new Error(result.error);
-        this.setProgress(text("animationProgressReady"), 100); this.showProject(result.project, { persist: true });
+        await this.showProject(result.project, { persist: true, autoRender: true });
+        if (this.destroyed || token !== this.operationToken) return;
         this.timers.push(global.setTimeout(() => { if (!this.destroyed && token === this.operationToken) this.progress.hidden = true; }, 500));
       } catch (error) {
         if (this.destroyed || token !== this.operationToken || error.name === "AbortError") return;
@@ -903,36 +978,99 @@
         if (!this.destroyed && token === this.operationToken) { this.generate.disabled = false; this.cancelGenerate.hidden = true; this.plannerAbort = null; }
       }
     }
-    showProject(project, { persist = true } = {}) {
+    showProject(project, { persist = true, autoRender = true } = {}) {
       const result = validateProject(project); if (!result.ok) { this.error.textContent = result.error; return; }
-      this.project = result.project; this.projectRevision += 1; if (persist) saveProject(this.project); this.player?.destroy(); this.previewRoot.replaceChildren(); this.player = mountPlayer(this.previewRoot, this.project); this.projectActions.hidden = false; this.editor.hidden = false; this.renderProjectActions(); this.renderEditor(); this.options.onProject?.(this.project);
+      this.project = result.project; this.projectRevision += 1; if (persist) saveProject(this.project);
+      this.projectActions.hidden = false; this.editor.hidden = false; this.tools.hidden = false;
+      const ready = this.renderProjectActions({ autoRender }); this.renderEditor(); this.options.onProject?.(this.project); return ready;
     }
-    renderProjectActions() {
+    renderProjectActions({ autoRender = false } = {}) {
       this.clearRenderedManimVideo();
       this.manimAbort?.abort(); this.manimAbort = null;
       this.exportAbort?.abort(); this.exportAbort = null;
       this.manimCapabilityAbort?.abort(); this.manimCapabilityAbort = null;
-      this.projectActions.replaceChildren();
+      this.generate.disabled = false; this.cancelGenerate.hidden = true; this.progress.hidden = true;
+      this.player?.destroy(); this.player = null;
+      this.previewRoot.replaceChildren(); this.projectActions.replaceChildren(); this.toolsBody.replaceChildren();
+      this.stageMessage = document.createElement("div"); this.stageMessage.className = "animation-preview-empty";
+      this.stageMessage.textContent = text("animationRenderingManimVideo"); this.stageMessage.setAttribute("role", "status");
+      this.draftRoot = document.createElement("div"); this.draftRoot.className = "animation-draft-preview"; this.draftRoot.hidden = true;
+      const renderedVideo = document.createElement("video"); renderedVideo.className = "animation-rendered-video";
+      renderedVideo.controls = true; renderedVideo.playsInline = true; renderedVideo.preload = "metadata"; renderedVideo.hidden = true;
+      renderedVideo.setAttribute("aria-label", this.project.title); this.renderedManimVideo = renderedVideo;
+      this.previewRoot.append(this.stageMessage, this.draftRoot, renderedVideo);
+      const downloadRendered = button(text("animationDownloadVideo")); downloadRendered.hidden = true;
+      downloadRendered.addEventListener("click", () => { if (this.manimVideoBlob && this.manimVideoRevision === this.projectRevision) downloadBlob(this.manimVideoBlob, `${this.project.id}-manim.mp4`); });
+      this.downloadRendered = downloadRendered;
+      this.renderButton = button(text("animationRenderUpdatedVideo")); this.renderButton.addEventListener("click", () => this.renderVideo());
+      this.projectActions.append(downloadRendered, this.renderButton);
       const reviewNotice = document.createElement("p"); reviewNotice.className = "animation-review-notice"; reviewNotice.setAttribute("role", "note"); reviewNotice.textContent = text("animationReviewBeforeRender"); this.projectActions.append(reviewNotice);
-      const save = button(text("animationSave"), "animation-primary"); save.addEventListener("click", () => { saveProject(this.project); this.error.textContent = text("animationSaved"); });
+      const save = button(text("animationSave")); save.addEventListener("click", () => { saveProject(this.project); this.error.textContent = text("animationSaved"); });
       const projectExport = button(text("animationExport")); projectExport.addEventListener("click", () => exportProject(this.project));
       const transcriptExport = button(text("animationTranscriptDownload")); transcriptExport.addEventListener("click", () => exportTranscript(this.project));
-      this.projectActions.append(save, projectExport, transcriptExport);
-      const projectSource = document.createElement("details"); projectSource.className = "animation-project-source"; const projectSourceSummary = document.createElement("summary"); projectSourceSummary.textContent = text("animationProjectSource"); const projectSourceText = document.createElement("pre"); projectSourceText.textContent = JSON.stringify(this.project, null, 2); projectSource.append(projectSourceSummary, projectSourceText); this.projectActions.append(projectSource);
-      const manimSource = document.createElement("details"); manimSource.className = "animation-project-source animation-manim-source"; const manimSummary = document.createElement("summary"); manimSummary.textContent = text("animationManimSource"); const manimCode = document.createElement("pre"); manimCode.textContent = text("animationManimSourceLoading"); manimSource.append(manimSummary, manimCode); this.projectActions.append(manimSource);
-      const sourceRevision = this.projectRevision; const sourceProject = clone(this.project); this.manimSource = null; this.manimSourceRevision = null; this.sourceAbort?.abort(); this.sourceAbort = new AbortController();
-      const revisionNow = () => this.projectRevision;
-      requestManimSourceRevision(sourceProject, sourceRevision, revisionNow, { signal: this.sourceAbort.signal }).then((generated) => { if (!this.destroyed && this.projectRevision === sourceRevision) { this.manimSource = generated; this.manimSourceRevision = sourceRevision; manimCode.textContent = generated.source; } }).catch((error) => { if (error.name !== "AbortError" && !this.destroyed && this.projectRevision === sourceRevision) manimCode.textContent = `${text("animationManimSourceUnavailable")} ${error.message}`; });
-      const sourceDownload = button(text("animationDownloadManimSource")); sourceDownload.addEventListener("click", async () => { sourceDownload.disabled = true; try { const generated = this.manimSourceRevision === sourceRevision ? this.manimSource : await requestManimSourceRevision(sourceProject, sourceRevision, revisionNow); if (!generated || this.projectRevision !== sourceRevision) return; this.manimSource = generated; this.manimSourceRevision = sourceRevision; manimCode.textContent = generated.source; await downloadManimSource(sourceProject, { generated }); this.error.textContent = text("animationManimSourceReady"); } catch (error) { if (error.name !== "AbortError") this.error.textContent = error.message; } finally { sourceDownload.disabled = false; } }); this.projectActions.append(sourceDownload);
-      const renderedVideo = document.createElement("video"); renderedVideo.className = "animation-rendered-video"; renderedVideo.controls = true; renderedVideo.playsInline = true; renderedVideo.preload = "metadata"; renderedVideo.hidden = true; renderedVideo.setAttribute("aria-label", text("animationManimVideoReady")); this.renderedManimVideo = renderedVideo; this.projectActions.append(renderedVideo);
-      const downloadRendered = button(text("animationDownloadRenderedManimVideo")); downloadRendered.hidden = true; downloadRendered.addEventListener("click", () => { if (this.manimVideoBlob && this.manimVideoRevision === this.projectRevision) downloadBlob(this.manimVideoBlob, `${this.project.id}-manim.mp4`); }); this.projectActions.append(downloadRendered);
-      const manimVideo = button(text("animationRenderManimVideo"), "animation-primary"); manimVideo.addEventListener("click", async () => { manimVideo.disabled = true; this.manimAbort?.abort(); const renderAbort = new AbortController(); const renderRevision = this.projectRevision; const renderProject = clone(this.project); const isCurrent = () => !this.destroyed && this.projectRevision === renderRevision && this.manimAbort === renderAbort; this.manimAbort = renderAbort; this.error.textContent = text("animationRenderingManimVideo"); try { const result = await exportManimVideo(renderProject, { signal: renderAbort.signal, isCurrent, download: false }); if (isCurrent() && !result.discarded) { this.clearRenderedManimVideo({ keepElement: true }); this.manimVideoBlob = result.blob; this.manimVideoRevision = renderRevision; this.manimVideoUrl = URL.createObjectURL(result.blob); renderedVideo.src = this.manimVideoUrl; renderedVideo.hidden = false; renderedVideo.load(); downloadRendered.hidden = false; this.error.textContent = text("animationManimVideoReady"); } } catch (error) { if (error.name !== "AbortError" && isCurrent()) this.error.textContent = error.message; } finally { manimVideo.disabled = false; if (this.manimAbort === renderAbort) this.manimAbort = null; } }); this.projectActions.append(manimVideo);
-      const manimCapabilityNote = document.createElement("p"); manimCapabilityNote.className = "animation-export-note"; manimCapabilityNote.textContent = text("animationRenderCapabilityChecking"); this.projectActions.append(manimCapabilityNote); manimVideo.disabled = true;
-      const capabilityRevision = this.projectRevision; const capabilityAbort = new AbortController(); this.manimCapabilityAbort = capabilityAbort;
-      requestManimCapability({ signal: capabilityAbort.signal }).then((result) => { if (this.destroyed || this.projectRevision !== capabilityRevision || this.manimCapabilityAbort !== capabilityAbort) return; manimVideo.disabled = !result.available; manimCapabilityNote.hidden = result.available; manimCapabilityNote.textContent = result.detail; if (!result.available) manimVideo.title = result.detail; }).catch((error) => { if (error.name !== "AbortError" && !this.destroyed && this.projectRevision === capabilityRevision && this.manimCapabilityAbort === capabilityAbort) { manimVideo.disabled = true; manimCapabilityNote.hidden = false; manimCapabilityNote.textContent = error.message; manimVideo.title = error.message; } }).finally(() => { if (this.manimCapabilityAbort === capabilityAbort) this.manimCapabilityAbort = null; });
+      const fileActions = document.createElement("div"); fileActions.className = "animation-brief-actions"; fileActions.append(save, projectExport, transcriptExport); this.toolsBody.append(fileActions);
+      const projectSource = document.createElement("details"); projectSource.className = "animation-project-source"; const projectSourceSummary = document.createElement("summary"); projectSourceSummary.textContent = text("animationProjectSource"); const projectSourceText = document.createElement("pre"); projectSourceText.textContent = JSON.stringify(this.project, null, 2); projectSource.append(projectSourceSummary, projectSourceText); this.toolsBody.append(projectSource);
+      const manimSource = document.createElement("details"); manimSource.className = "animation-project-source animation-manim-source"; const manimSummary = document.createElement("summary"); manimSummary.textContent = text("animationManimSource"); const manimCode = document.createElement("pre"); manimCode.textContent = text("animationManimSourceLoading"); manimSource.append(manimSummary, manimCode); this.toolsBody.append(manimSource);
+      const sourceRevision = this.projectRevision; const sourceProject = clone(this.project); this.manimSource = null; this.manimSourceRevision = null; this.sourceAbort?.abort(); this.sourceAbort = null;
+      const revisionNow = () => this.destroyed ? null : this.projectRevision;
+      let sourcePending = null;
+      const loadSource = () => {
+        if (this.manimSourceRevision === sourceRevision && this.manimSource) return Promise.resolve(this.manimSource);
+        if (sourcePending) return sourcePending;
+        this.sourceAbort = new AbortController();
+        sourcePending = requestManimSourceRevision(sourceProject, sourceRevision, revisionNow, { signal: this.sourceAbort.signal }).then((generated) => { if (this.destroyed) return null; this.manimSource = generated; this.manimSourceRevision = sourceRevision; manimCode.textContent = generated.source; return generated; }).finally(() => { sourcePending = null; });
+        return sourcePending;
+      };
+      manimSource.addEventListener("toggle", () => { if (manimSource.open) loadSource().catch((error) => { if (error.name !== "AbortError" && !this.destroyed && this.projectRevision === sourceRevision) manimCode.textContent = `${text("animationManimSourceUnavailable")} ${error.message}`; }); });
+      const sourceDownload = button(text("animationDownloadManimSource")); sourceDownload.addEventListener("click", async () => { sourceDownload.disabled = true; try { const generated = await loadSource(); if (!generated || this.destroyed || this.projectRevision !== sourceRevision) return; await downloadManimSource(sourceProject, { generated }); } catch (error) { if (error.name !== "AbortError" && this.projectRevision === sourceRevision) this.error.textContent = error.message; } finally { sourceDownload.disabled = false; } }); manimSource.append(sourceDownload);
       const capability = videoCapability();
-      if (capability.supported) { const video = button(text("animationDownloadVideo")); video.addEventListener("click", async () => { video.disabled = true; this.exportAbort?.abort(); const exportAbort = new AbortController(); const exportRevision = this.projectRevision; const exportProjectSnapshot = clone(this.project); const isCurrent = () => !this.destroyed && this.projectRevision === exportRevision && this.exportAbort === exportAbort; this.exportAbort = exportAbort; this.error.textContent = text("animationEncodingVideo"); try { const result = await exportVideo(exportProjectSnapshot, (progress) => { if (isCurrent()) this.error.textContent = text("animationEncodingProgress", { percent: Math.round(progress * 100) }); }, { signal: exportAbort.signal, isCurrent }); if (isCurrent() && !result.discarded) this.error.textContent = text("animationVideoReady"); } catch (error) { if (error.name !== "AbortError" && isCurrent()) this.error.textContent = error.message; } finally { video.disabled = false; if (this.exportAbort === exportAbort) this.exportAbort = null; } }); this.projectActions.append(video); }
-      else { const note = document.createElement("p"); note.className = "animation-export-note"; note.textContent = text("animationVideoUnavailable"); this.projectActions.append(note); }
+      if (capability.supported) { const video = button(text("animationDownloadDraft")); this.draftExport = video; video.hidden = true; video.addEventListener("click", async () => { video.disabled = true; this.exportAbort?.abort(); const exportAbort = new AbortController(); const exportRevision = this.projectRevision; const exportProjectSnapshot = clone(this.project); const isCurrent = () => !this.destroyed && this.projectRevision === exportRevision && this.exportAbort === exportAbort; this.exportAbort = exportAbort; try { await exportVideo(exportProjectSnapshot, () => {}, { signal: exportAbort.signal, isCurrent }); } catch (error) { if (error.name !== "AbortError" && isCurrent()) this.error.textContent = error.message; } finally { video.disabled = false; if (this.exportAbort === exportAbort) this.exportAbort = null; } }); this.toolsBody.append(video); }
+      else this.draftExport = null;
+      if (autoRender) return this.renderVideo();
+      this.showDraft(text("animationDraftNeedsRender")); return Promise.resolve();
+    }
+    showDraft(message) {
+      this.clearRenderedManimVideo({ keepElement: true }); this.renderedManimVideo.hidden = true;
+      this.stageMessage.hidden = false; this.stageMessage.className = "animation-stage-note"; this.stageMessage.textContent = message;
+      this.draftRoot.hidden = false;
+      if (!this.player) this.player = mountPlayer(this.draftRoot, this.project);
+      this.downloadRendered.hidden = true; this.renderButton.hidden = false;
+      if (this.draftExport) this.draftExport.hidden = false;
+    }
+    async renderVideo() {
+      if (this.destroyed || !this.project || this.manimAbort) return;
+      this.exportAbort?.abort(); this.exportAbort = null;
+      const renderAbort = new AbortController(); const renderRevision = this.projectRevision; const renderProject = clone(this.project);
+      const isCurrent = () => !this.destroyed && this.projectRevision === renderRevision && this.manimAbort === renderAbort;
+      this.manimAbort = renderAbort; this.player?.pause(); this.clearRenderedManimVideo({ keepElement: true });
+      this.renderedManimVideo.hidden = true; this.draftRoot.hidden = true;
+      this.stageMessage.hidden = false; this.stageMessage.className = "animation-preview-empty"; this.stageMessage.textContent = text("animationRenderingManimVideo");
+      this.renderButton.hidden = true; this.downloadRendered.hidden = true; if (this.draftExport) this.draftExport.hidden = true;
+      this.generate.disabled = true; this.cancelGenerate.hidden = false; this.error.textContent = "";
+      this.setProgress(text("animationRenderCapabilityChecking"), 90);
+      try {
+        const capability = await requestManimCapability({ signal: renderAbort.signal });
+        if (!isCurrent()) return;
+        if (!capability.available) { this.showDraft(capability.detail); return; }
+        this.setProgress(text("animationRenderingManimVideo"), 94);
+        const result = await exportManimVideo(renderProject, { signal: renderAbort.signal, isCurrent, download: false });
+        if (!isCurrent() || result.discarded) return;
+        this.player?.destroy(); this.player = null; this.draftRoot.replaceChildren(); this.draftRoot.hidden = true;
+        this.manimVideoBlob = result.blob; this.manimVideoRevision = renderRevision; this.manimVideoUrl = URL.createObjectURL(result.blob);
+        this.renderedManimVideo.src = this.manimVideoUrl; this.renderedManimVideo.hidden = false; this.renderedManimVideo.load();
+        this.stageMessage.hidden = true; this.downloadRendered.hidden = false;
+      } catch (error) {
+        if (error.name !== "AbortError" && isCurrent()) this.showDraft(`${text("animationRenderFailed")} ${error.message}`);
+      } finally {
+        if (isCurrent()) { this.manimAbort = null; this.generate.disabled = false; this.cancelGenerate.hidden = true; this.progress.hidden = true; }
+      }
+    }
+    cancelWork() {
+      this.operationToken += 1; this.plannerAbort?.abort(); this.plannerAbort = null;
+      const wasRendering = Boolean(this.manimAbort); this.manimAbort?.abort(); this.manimAbort = null;
+      this.generate.disabled = false; this.cancelGenerate.hidden = true; this.progress.hidden = true;
+      if (wasRendering && this.project) this.showDraft(text("animationGenerationCancelled"));
+      this.error.textContent = wasRendering ? "" : text("animationGenerationCancelled");
     }
     renderEditor() {
       this.editorBody.replaceChildren(); this.project.scenes.forEach((scene, index) => {
@@ -940,18 +1078,18 @@
         const titleInput = document.createElement("input"); titleInput.value = scene.title; titleInput.maxLength = 140; const narration = document.createElement("textarea"); narration.value = scene.narration; narration.maxLength = 700; narration.rows = 3;
         const duration = document.createElement("input"); duration.type = "number"; duration.min = String(MIN_SCENE_MS); duration.max = String(MAX_SCENE_MS); duration.step = "100"; duration.value = String(scene.duration_ms);
         const up = button(text("animationMoveUp")); up.disabled = index === 0; up.addEventListener("click", () => this.moveScene(index, -1)); const down = button(text("animationMoveDown")); down.disabled = index === this.project.scenes.length - 1; down.addEventListener("click", () => this.moveScene(index, 1));
-        const apply = button(text("animationApplyScene"), "animation-primary"); apply.addEventListener("click", () => { const updated = clone(this.project); updated.scenes[index].title = titleInput.value.trim(); updated.scenes[index].narration = narration.value.trim(); updated.scenes[index].duration_ms = Number(duration.value); updated.updated_at = new Date().toISOString(); const result = validateProject(updated); if (!result.ok) { this.error.textContent = result.error; return; } this.error.textContent = ""; this.project = saveProject(result.project); this.projectRevision += 1; this.player.updateProject(this.project); this.renderProjectActions(); this.renderEditor(); this.options.onProject?.(this.project); });
+        const apply = button(text("animationApplyScene")); apply.addEventListener("click", () => { const updated = clone(this.project); updated.scenes[index].title = titleInput.value.trim(); updated.scenes[index].narration = narration.value.trim(); updated.scenes[index].duration_ms = Number(duration.value); updated.updated_at = new Date().toISOString(); const result = validateProject(updated); if (!result.ok) { this.error.textContent = result.error; return; } this.cancelWork(); this.error.textContent = ""; this.showProject(result.project, { persist: true, autoRender: false }); });
         const controls = document.createElement("div"); controls.className = "animation-scene-editor-actions"; controls.append(up, down, apply);
         row.append(legend, field(text("animationSceneTitle"), titleInput), field(text("animationSceneNarration"), narration), field(text("animationSceneDuration"), duration), controls); this.editorBody.append(row);
       });
     }
-    moveScene(index, delta) { const target = index + delta; if (target < 0 || target >= this.project.scenes.length) return; const updated = clone(this.project); [updated.scenes[index], updated.scenes[target]] = [updated.scenes[target], updated.scenes[index]]; updated.updated_at = new Date().toISOString(); this.project = saveProject(updated); this.projectRevision += 1; this.player.updateProject(this.project); this.renderProjectActions(); this.renderEditor(); this.options.onProject?.(this.project); }
+    moveScene(index, delta) { const target = index + delta; if (target < 0 || target >= this.project.scenes.length) return; const updated = clone(this.project); [updated.scenes[index], updated.scenes[target]] = [updated.scenes[target], updated.scenes[index]]; updated.updated_at = new Date().toISOString(); this.cancelWork(); this.showProject(updated, { persist: true, autoRender: false }); }
     clearRenderedManimVideo({ keepElement = false } = {}) { this.renderedManimVideo?.pause?.(); if (this.renderedManimVideo) { this.renderedManimVideo.removeAttribute("src"); this.renderedManimVideo.load?.(); if (!keepElement) this.renderedManimVideo = null; } if (this.manimVideoUrl) URL.revokeObjectURL(this.manimVideoUrl); this.manimVideoUrl = null; this.manimVideoBlob = null; this.manimVideoRevision = null; }
     async importSelected() {
       const file = this.file.files?.[0]; this.file.value = ""; if (!file) return;
       if (file.size > MAX_PROJECT_BYTES) { this.error.textContent = text("animationImportTooLarge"); return; }
-      const token = ++this.operationToken; this.clearTimers(); this.pendingProject = null; this.plannerAbort?.abort(); this.plannerAbort = null; this.generate.disabled = false; this.cancelGenerate.hidden = true; this.progress.hidden = true;
-      try { const parsed = JSON.parse(await file.text()); if (this.destroyed || token !== this.operationToken) return; const result = validateProject(parsed); if (!result.ok) throw new Error(result.error); this.topic.value = result.project.topic; this.level.value = result.project.level; this.concept.value = result.project.title; this.requirements.value = result.project.summary; this.updatePrompt(); this.showProject(result.project, { persist: true }); this.error.textContent = text("animationImported"); } catch (error) { if (!this.destroyed && token === this.operationToken) this.error.textContent = `${text("animationImportFailed")} ${error.message}`; }
+      this.cancelWork(); const token = ++this.operationToken; this.clearTimers(); this.pendingProject = null;
+      try { const parsed = JSON.parse(await file.text()); if (this.destroyed || token !== this.operationToken) return; const result = validateProject(parsed); if (!result.ok) throw new Error(result.error); this.topic.value = ""; this.level.value = result.project.level; this.concept.value = result.project.title; this.requirements.value = ""; this.updatePrompt(); await this.showProject(result.project, { persist: true }); } catch (error) { if (!this.destroyed && token === this.operationToken) this.error.textContent = `${text("animationImportFailed")} ${error.message}`; }
     }
     destroy() { if (this.destroyed) return; this.destroyed = true; this.operationToken += 1; this.exportAbort?.abort(); this.plannerAbort?.abort(); this.sourceAbort?.abort(); this.manimAbort?.abort(); this.manimCapabilityAbort?.abort(); this.clearRenderedManimVideo(); this.clearTimers(); this.player?.destroy(); mounted.delete(this); }
   }
@@ -965,7 +1103,7 @@
   }
 
   global.MutaAnimator = Object.freeze({
-    VERSION, KIND, validateProject, planProject, requestAnimationPlan, parseFraction, parseArray, parsePolynomial, parseFunction, formatMathValue,
+    VERSION, KIND, validateProject, planProject, requestAnimationPlan, parseFraction, parseArray, parseDivision, parsePolynomial, parseFunction, formatMathValue,
     parseVector, parseProcess, polynomialValue, expressionValue, numericalDerivative, numericalIntegral, projectDescription, loadProjects, saveProject,
     removeProject, exportProject, exportTranscript, deliverBrowserVideo, exportVideo, videoCapability, requestManimCapability, requestManimSource, requestManimSourceRevision, downloadManimSource, exportManimVideo, drawFrame, drawExportCaption,
     mountPlayer, mountStudio, cleanup,

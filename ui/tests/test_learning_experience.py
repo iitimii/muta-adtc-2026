@@ -202,13 +202,13 @@ def test_animation_studio_is_safe_offline_editable_and_packaged() -> None:
     css = (UI / "learning-platform.css").read_text()
     i18n = (UI / "i18n.js").read_text()
 
-    assert 'animation-studio.js?v=20261027-animation-studio-1' in html
+    assert 'animation-studio.js?v=20261027-single-stage-2' in html
     assert html.index("animation-studio.js") < html.index("learning-platform.js")
     assert 'global.MutaAnimator?.mountStudio' in platform
     assert 'global.MutaAnimator?.loadProjects' in platform
     assert 'global.MutaAnimator?.cleanup(view())' in platform
     assert 'const KIND = "lesson-animation"' in animator
-    assert 'const SCENE_KINDS = new Set(["fraction", "array", "function", "process", "vector"])' in animator
+    assert 'const SCENE_KINDS = new Set(["fraction", "array", "division", "function", "process", "vector"])' in animator
     assert "MediaRecorder.isTypeSupported" in animator
     assert "canvas.captureStream(24)" in animator
     assert "IntersectionObserver" in animator and 'document.addEventListener("visibilitychange"' in animator

@@ -1,5 +1,33 @@
 # Muta Studio animation workspace
 
+## Reference-aligned simplification (27 October learner feedback)
+
+The shipped candidate exposed two independent players: the draft Canvas storyboard and the
+rendered Manim MP4. This is not the reference workflow. Replace that with one fixed 16:9 stage:
+empty → local planning/rendering → click-to-play MP4. Generate performs the complete trusted
+pipeline. Never autoplay. Only when the renderer is unavailable or fails may the same stage show
+a clearly labelled draft fallback; never show Canvas transport and video transport together.
+Keep the brief compact (concept + learner level); put title, sequence, request inspection and
+project import under Lesson options. Keep scene editing, project JSON, transcript and source
+downloads under one closed details section. One visible Download video action serves the MP4;
+browser draft export is explicitly named and available only in fallback. Reopening a saved
+project follows the same pipeline. Edits invalidate/revoke old output, leave a rebuild action,
+and retain revision/controller cancellation guards. Rendering must be cancellable without losing
+the validated saved project. Unavailable/failed rendering must remain recoverable.
+
+Keep existing Muta tokens, vanilla DOM and CSS; introduce no framework, library or brand changes.
+Use container-based collapse for narrow embedded workspaces, not just viewport breakpoints.
+Test one visible stage, click-to-play, generate/render progress, failure/retry/cancel, revision
+races, import/reopen, keyboard, light/dark, narrow/landscape, and reduced motion.
+
+The division screenshot also contains unsupported model narration (incorrect remainder and an
+unrelated wave). Add a bounded whole-number equal-sharing family with derived quotient and
+remainder, parameterised by dividend/divisor, rather than model-written arithmetic. A general
+division request may use an explicitly labelled example; supplied operands must be fully parsed
+or rejected, never silently substituted. Use a strict shared scene schema and matching Canvas
+and trusted Manim emitters. Retain the final teaching frame in the video instead of fading to
+an empty title at the end. Review fresh source adversarially before Mac-only rebuilding.
+
 ## Scope and boundaries
 
 Build an offline lesson-animation authoring workspace inside the existing Study Studio and Playground. The implementation must be useful without a network, generative image service, or arbitrary code execution. It must preserve Muta's typed-spec, no-`eval`, strict-CSP boundary while supporting a separately packaged, trusted Manim runtime for high-quality source and MP4 output.

@@ -503,7 +503,13 @@
     if (!output) return;
     if (kind === "animation") {
       global.MutaAnimator?.cleanup(output);
-      global.MutaAnimator?.mountStudio(output, {
+      const builder = $("#studio-topic")?.closest(".studio-builder"); if (builder) builder.hidden = true;
+      const intro = view().querySelector(".learning-section-heading");
+      if (intro) { intro.querySelector("h3").textContent = learningText("lessonAnimation"); intro.querySelector("p")?.remove(); }
+      const back = button(learningText("backToStudio"), "reader-secondary", () => { global.MutaAnimator?.cleanup(output); renderStudio(); });
+      const toolbar = document.createElement("div"); toolbar.className = "reader-toolbar animation-workspace-toolbar"; toolbar.append(back);
+      const workspace = document.createElement("div"); output.replaceChildren(toolbar, workspace);
+      global.MutaAnimator?.mountStudio(workspace, {
         onProject: (project) => recordEvent("animation_project", { animation_id: project.id, level: project.level }),
       });
       output.scrollIntoView?.({ behavior: global.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });

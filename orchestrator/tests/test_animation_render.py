@@ -99,6 +99,38 @@ def test_emitter_covers_parameterised_math_and_process_families() -> None:
     assert "scale_to_fit_width" not in source
 
 
+@pytest.mark.parametrize("dividend,divisor", [(12, 3), (14, 4), (0, 5), (144, 12)])
+def test_equal_sharing_is_derived_and_retains_the_final_frame(dividend, divisor):
+    project = _project([
+        _scene("count", "division", {"dividend": dividend, "divisor": divisor, "phase": "count"}),
+        _scene("share", "division", {"dividend": dividend, "divisor": divisor, "phase": "share"}),
+        _scene("recap", "division", {"dividend": dividend, "divisor": divisor, "phase": "recap"}),
+    ])
+    source = emit_manim_source(project)
+    compile(source, "lesson.py", "exec")
+    quotient, remainder = divmod(dividend, divisor)
+    assert f"{dividend} ÷ {divisor} = {quotient} · remainder {remainder}" in source
+    assert f"for object_index in range({dividend}):" in source
+    assert f"for object_index in range({divisor * quotient}):" in source
+    assert source.count("self.play(FadeOut(scene_group)") == 2
+    assert source.rstrip().endswith("self.wait(0.35)")
+    assert source.index("_fit(content, 12.0, 4.6)") < source.index("scene_intro = division_intro()")
+    assert "content = VGroup(groups, dots)\n        def division_intro" in source
+
+
+@pytest.mark.parametrize("data", [
+    {"dividend": 12, "divisor": 0, "phase": "share"},
+    {"dividend": -1, "divisor": 3, "phase": "share"},
+    {"dividend": True, "divisor": 3, "phase": "share"},
+    {"dividend": 12.5, "divisor": 3, "phase": "share"},
+    {"dividend": 144, "divisor": 1, "phase": "share"},
+    {"dividend": 12, "divisor": 3, "phase": "share", "remainder": 4},
+])
+def test_invalid_equal_sharing_is_rejected(data):
+    with pytest.raises(ValidationError):
+        _project([_scene("division", "division", data)])
+
+
 @pytest.mark.parametrize(
     "scene",
     [

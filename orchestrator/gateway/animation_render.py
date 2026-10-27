@@ -471,6 +471,44 @@ def _vector_scene(index: int, scene) -> list[str]:
     ]
 
 
+def _division_scene(index: int, scene) -> list[str]:
+    data = scene.data
+    quotient, remainder = divmod(data.dividend, data.divisor)
+    lines = _scene_prelude(scene.title, scene.narration) + [
+        "        groups = VGroup()",
+        f"        for group_index in range({data.divisor}):",
+        "            groups.add(RoundedRectangle(width=2.45, height=1.05, corner_radius=0.12))",
+        f"        groups.arrange_in_grid(cols={min(4, data.divisor)}, buff=0.18)",
+        "        dots = VGroup()",
+        f"        for object_index in range({data.dividend}):",
+        "            dots.add(Dot(radius=0.055, color=TEAL))",
+        "        if len(dots):",
+        "            dots.arrange_in_grid(cols=min(24, len(dots)), buff=0.12)",
+        "        dots.next_to(groups, DOWN, buff=0.3)",
+        f"        equation = Text({_python_text(f'{data.dividend} ÷ {data.divisor} = {quotient} · remainder {remainder}')}, font_size=28).next_to(groups, UP, buff=0.25)",
+        "        content = VGroup(groups, dots)" if data.phase == "count" else "        content = VGroup(groups, dots, equation)",
+    ]
+    if data.phase == "count":
+        intro = [
+            "        return AnimationGroup(FadeIn(scene_title), FadeIn(caption), FadeIn(groups), FadeIn(dots))",
+        ]
+    else:
+        intro = [
+            "        sharing = []",
+            f"        for object_index in range({data.divisor * quotient}):",
+            f"            group_index = object_index % {data.divisor}",
+            f"            place_index = object_index // {data.divisor}",
+            f"            target = groups[group_index].get_center() + RIGHT * ((place_index % 4) - ({min(quotient, 4)} - 1) / 2) * 0.42 + UP * (0.28 - (place_index // 4) * 0.28)",
+            "            sharing.append(dots[object_index].animate.move_to(target))",
+            "        deal = LaggedStart(*sharing, lag_ratio=0.02) if sharing else Wait(0.05)",
+            "        return Succession(AnimationGroup(FadeIn(scene_title), FadeIn(caption), FadeIn(groups), FadeIn(dots)), deal, Write(equation))",
+        ]
+    # Resolve target positions only after the common content fitting/translation step.
+    lines.append("        def division_intro():")
+    lines.extend("    " + line for line in intro)
+    return lines
+
+
 def emit_manim_source(project: AnimationPlanProject) -> str:
     """Emit deterministic, inspectable Manim Python from a validated project."""
     project = AnimationPlanProject.model_validate(project)
@@ -494,6 +532,8 @@ def emit_manim_source(project: AnimationPlanProject) -> str:
             block = _fraction_scene(index, scene)
         elif scene.kind == "array":
             block = _array_scene(index, scene)
+        elif scene.kind == "division":
+            block = _division_scene(index, scene)
         elif scene.kind == "function":
             block = _function_scene(index, scene)
         elif scene.kind == "vector":
@@ -503,13 +543,18 @@ def emit_manim_source(project: AnimationPlanProject) -> str:
         else:  # Pydantic discriminator makes this unreachable; retain fail-closed behaviour.
             raise AnimationRenderError("unsupported animation scene kind")
         lines.extend(block)
+        lines.append("        _fit(content, 12.0, 4.6).shift(DOWN * 0.25)")
+        if scene.kind == "division":
+            lines.append("        scene_intro = division_intro()")
         lines += [
-            "        _fit(content, 12.0, 4.6).shift(DOWN * 0.25)",
             "        scene_group = VGroup(scene_title, content, caption)",
             "        self.play(scene_intro, run_time=0.75)",
             f"        self.wait({_finite(max(0.2, scene.duration_ms / 1000 - 1.1))})",
-            "        self.play(FadeOut(scene_group), run_time=0.35)",
         ]
+        if index < len(project.scenes) - 1:
+            lines.append("        self.play(FadeOut(scene_group), run_time=0.35)")
+        else:
+            lines.append("        self.wait(0.35)")  # Keep the final teaching frame for replay/seek.
     source = "\n".join(lines) + "\n"
     if len(source.encode("utf-8")) > MAX_SOURCE_BYTES:
         raise AnimationRenderError("trusted animation source exceeds the size budget")

@@ -2995,6 +2995,69 @@ components:
       - duration_ms
       - data
       title: AnimationArrayScene
+    AnimationDivisionData:
+      properties:
+        dividend:
+          type: integer
+          maximum: 144.0
+          minimum: 0.0
+          title: Dividend
+        divisor:
+          type: integer
+          maximum: 12.0
+          minimum: 1.0
+          title: Divisor
+        phase:
+          type: string
+          enum:
+          - count
+          - share
+          - recap
+          title: Phase
+      additionalProperties: false
+      type: object
+      required:
+      - dividend
+      - divisor
+      - phase
+      title: AnimationDivisionData
+    AnimationDivisionScene:
+      properties:
+        id:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9-]{0,79}$
+          title: Id
+        title:
+          type: string
+          maxLength: 140
+          minLength: 1
+          title: Title
+        narration:
+          type: string
+          maxLength: 700
+          minLength: 1
+          title: Narration
+        duration_ms:
+          type: integer
+          maximum: 10000.0
+          minimum: 900.0
+          title: Duration Ms
+        kind:
+          type: string
+          const: division
+          title: Kind
+          default: division
+        data:
+          $ref: '#/components/schemas/AnimationDivisionData'
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - title
+      - narration
+      - duration_ms
+      - data
+      title: AnimationDivisionScene
     AnimationFractionData:
       properties:
         numerator:
@@ -3217,12 +3280,14 @@ components:
             - $ref: '#/components/schemas/AnimationProcessScene'
             - $ref: '#/components/schemas/AnimationFractionScene'
             - $ref: '#/components/schemas/AnimationArrayScene'
+            - $ref: '#/components/schemas/AnimationDivisionScene'
             - $ref: '#/components/schemas/AnimationFunctionScene'
             - $ref: '#/components/schemas/AnimationVectorScene'
             discriminator:
               propertyName: kind
               mapping:
                 array: '#/components/schemas/AnimationArrayScene'
+                division: '#/components/schemas/AnimationDivisionScene'
                 fraction: '#/components/schemas/AnimationFractionScene'
                 function: '#/components/schemas/AnimationFunctionScene'
                 process: '#/components/schemas/AnimationProcessScene'

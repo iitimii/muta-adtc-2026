@@ -363,17 +363,18 @@
 .studio-infographic h4 { margin: 22px 0 7px; font: 600 1rem/1.25 var(--serif); }
 .studio-infographic p { margin: 0; color: var(--muted); font-size: .75rem; line-height: 1.45; }
 
-.animation-studio-workspace { min-width: 0; scroll-margin-top: 18px; }
+.animation-studio-workspace { min-width: 0; scroll-margin-top: 18px; container-type: inline-size; }
+.studio-builder[hidden] { display: none; }
+.animation-workspace-toolbar { margin-bottom: 12px; }
+.learning-actions[hidden] { display: none; }
+.learning-header { grid-row: 1; }
+.learning-tabs { grid-row: 2; }
+.learning-actions { grid-row: 3; }
+.learning-view { grid-row: 4; }
 .animation-examples {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 14px;
-  overflow-x: auto;
-  padding: 2px 1px 8px;
-  scrollbar-width: thin;
+  margin-bottom: 0;
 }
-.animation-examples > span { flex: 0 0 auto; color: var(--muted); font-size: .72rem; font-weight: 700; }
+.animation-example-chips { display: flex; flex-wrap: wrap; gap: 8px; padding-bottom: 8px; }
 .animation-chip {
   min-height: 44px;
   flex: 0 0 auto;
@@ -388,7 +389,7 @@
 .animation-authoring-layout {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(18rem, .82fr) minmax(26rem, 1.18fr);
+  grid-template-columns: minmax(15rem, .7fr) minmax(0, 1.5fr);
   gap: 16px;
   align-items: start;
 }
@@ -402,7 +403,7 @@
 }
 .animation-brief h4, .animation-preview-panel > h4 { margin: 0; font: 600 1.25rem/1.25 var(--serif); }
 .animation-brief > p { margin: 7px 0 18px; color: var(--muted); font-size: .78rem; line-height: 1.5; }
-.animation-brief > label, .animation-scene-editor > label {
+.animation-brief label, .animation-scene-editor > label {
   display: grid;
   gap: 6px;
   margin-top: 12px;
@@ -441,8 +442,12 @@
   gap: 8px;
   margin-top: 15px;
 }
+.animation-brief-actions .animation-generate { flex: 1 1 auto; }
+.animation-tools-body { min-width: 0; }
+.animation-tools-body > button { min-height: 44px; }
+.animation-stage-note { margin: 0 0 10px; color: var(--muted); font-size: .78rem; line-height: 1.5; }
 .animation-brief-actions button, .animation-project-actions button, .animation-scene-editor-actions button,
-.animation-controls button, .animation-controls select, .animation-library-actions button {
+.animation-controls button, .animation-controls select, .animation-library-actions button, .animation-tools-body button {
   min-width: 44px;
   min-height: 44px;
   padding: 0 12px;
@@ -459,14 +464,15 @@
   color: var(--on-accent);
 }
 .animation-brief-actions button:hover, .animation-project-actions button:hover, .animation-scene-editor-actions button:hover,
-.animation-controls button:hover, .animation-timeline-step:hover { border-color: var(--accent); }
+.animation-controls button:hover, .animation-timeline-step:hover, .animation-tools-body button:hover { border-color: var(--accent); }
 .animation-generation-progress { position: relative; margin-top: 14px; padding-top: 8px; overflow: hidden; border-radius: 8px; background: var(--accent-soft); }
 .animation-generation-progress[hidden] { display: none; }
 .animation-generation-progress > span { position: absolute; inset: 0 auto auto 0; height: 5px; border-radius: 999px; background: var(--accent-strong); transition: width .2s ease; }
 .animation-generation-progress p { margin: 8px 11px 10px; color: var(--text); font-size: .72rem; }
 .animation-error { min-height: 1.4em; margin: 10px 0 0; color: var(--danger); font-size: .72rem; line-height: 1.45; }
 .animation-preview-root { min-width: 0; margin-top: 14px; }
-.animation-preview-empty { min-height: 360px; display: grid; place-content: center; padding: 24px; border: 1px dashed var(--border); border-radius: 14px; background: var(--bg); text-align: center; }
+.animation-preview-empty { box-sizing: border-box; min-height: 220px; aspect-ratio: 16 / 9; display: grid; place-content: center; padding: 24px; border: 1px dashed var(--border); border-radius: 14px; background: var(--bg); text-align: center; }
+.animation-preview-root > [hidden], .animation-project-tools[hidden] { display: none; }
 .animation-preview-empty p { max-width: 30rem; margin: 8px auto 0; color: var(--muted); font-size: .78rem; line-height: 1.5; }
 .animation-player { min-width: 0; }
 .animation-preview-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 13px; border: 1px solid var(--border); border-bottom: 0; border-radius: 13px 13px 0 0; background: var(--bg); }
@@ -476,6 +482,7 @@
 .animation-stage { position: relative; min-width: 0; min-height: var(--animation-height, 360px); overflow: hidden; border: 1px solid var(--border); background: var(--card); }
 .animation-stage canvas { width: 100%; height: var(--animation-height, 360px); display: block; outline-offset: -4px; touch-action: manipulation; }
 .animation-caption { position: absolute; inset: auto 14px 14px; margin: 0; padding: 9px 12px; border-radius: 9px; background: color-mix(in srgb, var(--card) 92%, transparent); color: var(--text); box-shadow: 0 5px 22px color-mix(in srgb, var(--text) 12%, transparent); font-size: .74rem; line-height: 1.4; }
+.animation-draft-preview .animation-caption { position: static; border-radius: 0; box-shadow: none; }
 .animation-timeline { display: flex; gap: 7px; padding: 10px; overflow-x: auto; border: 1px solid var(--border); border-top: 0; background: var(--bg); scrollbar-width: thin; }
 .animation-timeline-item { display: flex; flex: 0 0 auto; }
 .animation-timeline-step { min-height: 44px; flex: 0 0 auto; padding: 0 11px; border: 1px solid var(--border); border-radius: 9px; background: var(--card); color: var(--muted); font: 650 .68rem/1 var(--sans); }
@@ -489,18 +496,22 @@
 .animation-scene-editor { min-width: 0; margin: 0; padding: 13px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); }
 .animation-scene-editor legend { padding: 0 5px; color: var(--accent); font-size: .7rem; font-weight: 800; }
 .animation-export-note { flex: 1 1 100%; margin: 0; color: var(--muted); font-size: .7rem; line-height: 1.45; }
-.animation-review-notice { flex: 1 1 100%; margin: 0; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--accent-soft); color: var(--text); font-size: .72rem; line-height: 1.45; }
+.animation-review-notice { flex: 1 1 100%; margin: 0; color: var(--muted); font-size: .72rem; line-height: 1.45; }
 .animation-project-actions button:disabled { cursor: not-allowed; opacity: .5; }
 .animation-project-source { flex: 1 1 100%; min-width: 0; border-top: 1px solid var(--border); }
 .animation-project-source summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; color: var(--text); font-size: .72rem; font-weight: 750; }
 .animation-project-source pre { max-height: 240px; margin: 0; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--muted); font: 500 .68rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
-.animation-rendered-video { flex: 1 1 100%; width: 100%; max-height: min(62vh, 32rem); border: 1px solid var(--border); border-radius: 12px; background: #181715; }
+.animation-rendered-video { display: block; box-sizing: border-box; width: 100%; aspect-ratio: 16 / 9; object-fit: contain; border: 1px solid var(--border); border-radius: 12px; background: #181715; }
 .animation-rendered-video[hidden] { display: none; }
 .playground-animation-heading { margin-top: 30px; }
 .animation-library-card { display: grid; align-content: start; }
 .animation-library-card > p { min-height: 4.5em; }
 .animation-library-actions .course-open { flex: 1 1 100%; }
 .saved-animation-workspace { min-width: 0; }
+
+@container (max-width: 740px) {
+  .animation-authoring-layout { grid-template-columns: minmax(0, 1fr); }
+}
 
 
 .muta-tour { position: fixed; inset: 0; z-index: 2100; pointer-events: none; }
