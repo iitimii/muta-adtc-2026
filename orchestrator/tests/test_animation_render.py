@@ -150,7 +150,18 @@ def test_long_copy_is_wrapped_without_scaling_short_process_labels_up() -> None:
     assert "scale_to_fit_width" not in source
 
 
-@pytest.mark.parametrize("step", ["x" * 121, "   ", "Line one\nLine two", "bad\x00step"])
+@pytest.mark.parametrize(
+    "step",
+    [
+        "x" * 121,
+        "   ",
+        "Line one\nLine two",
+        "bad\x00step",
+        "\u200b",
+        "\u2060",
+        "\u0301",
+    ],
+)
 def test_process_step_import_rejects_oversized_empty_or_control_text(step: str) -> None:
     with pytest.raises(ValidationError):
         _project(
@@ -404,9 +415,44 @@ def test_small_coefficients_use_unambiguous_scientific_typst_and_same_numeric_as
         "right": {"type": "variable", "name": "x"},
     }
     source = emit_manim_source(_project([_scene("small", "function", data)]))
-    assert "y = 1 times 10^(-6) dot x" in source
+    assert "y = (1 times 10^(-6)) dot x" in source
     assert "MathTypst('y = 1e-06" not in source
     assert "axes.c2p(1.0, 1e-06)" in source
+
+
+@pytest.mark.parametrize(
+    ("expression_text", "expression_ast", "expected"),
+    [
+        (
+            "x^0.000001",
+            {
+                "type": "binary",
+                "op": "^",
+                "left": {"type": "variable", "name": "x"},
+                "right": {"type": "number", "value": 0.000001},
+            },
+            "y = x^(1 times 10^(-6))",
+        ),
+        (
+            "0.000001^x",
+            {
+                "type": "binary",
+                "op": "^",
+                "left": {"type": "number", "value": 0.000001},
+                "right": {"type": "variable", "name": "x"},
+            },
+            "y = (1 times 10^(-6))^x",
+        ),
+    ],
+)
+def test_scientific_typst_literals_stay_grouped_in_powers(
+    expression_text: str, expression_ast: dict, expected: str
+) -> None:
+    data = _function()
+    data["expression_text"] = expression_text
+    data["expression_ast"] = expression_ast
+    source = emit_manim_source(_project([_scene("power", "function", data)]))
+    assert f"MathTypst('{expected}'" in source
 
 
 def test_worker_dispatch_strips_fixed_mode_before_exec(monkeypatch, tmp_path: Path) -> None:

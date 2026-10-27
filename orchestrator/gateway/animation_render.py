@@ -96,7 +96,7 @@ def _expression_typst(
         if "e" not in rendered.lower():
             return rendered
         mantissa, exponent = rendered.lower().split("e", maxsplit=1)
-        return f"{mantissa} times 10^({int(exponent)})"
+        return f"({mantissa} times 10^({int(exponent)}))"
 
     def compile_node(value: dict[str, Any], level: int) -> tuple[str, int, str]:
         budget[0] += 1

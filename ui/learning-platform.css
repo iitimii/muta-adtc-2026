@@ -491,6 +491,8 @@
 .animation-project-source { flex: 1 1 100%; min-width: 0; border-top: 1px solid var(--border); }
 .animation-project-source summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; color: var(--text); font-size: .72rem; font-weight: 750; }
 .animation-project-source pre { max-height: 240px; margin: 0; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--muted); font: 500 .68rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.animation-rendered-video { flex: 1 1 100%; width: 100%; max-height: min(62vh, 32rem); border: 1px solid var(--border); border-radius: 12px; background: #181715; }
+.animation-rendered-video[hidden] { display: none; }
 .playground-animation-heading { margin-top: 30px; }
 .animation-library-card { display: grid; align-content: start; }
 .animation-library-card > p { min-height: 4.5em; }

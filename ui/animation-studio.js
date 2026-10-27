@@ -33,6 +33,8 @@
     && Object.keys(value).every((key) => keys.includes(key) && key !== "__proto__" && key !== "constructor" && key !== "prototype");
   const boundedText = (value, max, required = true) => typeof value === "string"
     && value.length <= max && (!required || value.trim().length > 0);
+  const boundedVisibleText = (value, max) => boundedText(value, max)
+    && !/[\p{Cc}\p{Cf}]/u.test(value) && /[\p{L}\p{N}\p{P}\p{S}]/u.test(value);
   const finite = (value, min, max) => typeof value === "number" && Number.isFinite(value) && value >= min && value <= max;
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const safeId = (value) => typeof value === "string" && /^[a-z0-9][a-z0-9-]{0,79}$/.test(value);
@@ -90,7 +92,7 @@
         || !data.bounds.every((value) => finite(value, data.domain[0], data.domain[1])) || data.bounds[0] === data.bounds[1])) return "Integral bounds are invalid.";
     } else if (scene.kind === "process") {
       if (!onlyKeys(data, ["steps", "active"]) || !Array.isArray(data.steps) || data.steps.length < 2 || data.steps.length > 8
-        || !data.steps.every((step) => boundedText(step, 120)) || !Number.isInteger(data.active)
+        || !data.steps.every((step) => boundedVisibleText(step, 120)) || !Number.isInteger(data.active)
         || data.active < 0 || data.active >= data.steps.length) return "Process scene is invalid.";
     } else if (scene.kind === "vector") {
       if (!onlyKeys(data, ["x", "y", "label"]) || !finite(data.x, -1000, 1000) || !finite(data.y, -1000, 1000)
@@ -368,6 +370,8 @@
     if (mime !== "video/mp4") throw new Error("The offline renderer returned an unexpected file type.");
     const blob = await response.blob();
     if (!blob.size) throw new Error("The offline renderer returned an empty video.");
+    if (typeof options.isCurrent === "function" && !options.isCurrent()) return { bytes: blob.size, mime, discarded: true };
+    if (options.download === false) return { bytes: blob.size, mime, blob };
     downloadBlob(blob, `${validated.project.id}-manim.mp4`);
     return { bytes: blob.size, mime };
   }
@@ -767,6 +771,8 @@
       this.project = result.project; this.projectRevision += 1; if (persist) saveProject(this.project); this.player?.destroy(); this.previewRoot.replaceChildren(); this.player = mountPlayer(this.previewRoot, this.project); this.projectActions.hidden = false; this.editor.hidden = false; this.renderProjectActions(); this.renderEditor(); this.options.onProject?.(this.project);
     }
     renderProjectActions() {
+      this.clearRenderedManimVideo();
+      this.manimAbort?.abort(); this.manimAbort = null;
       this.projectActions.replaceChildren();
       const save = button(text("animationSave"), "animation-primary"); save.addEventListener("click", () => { saveProject(this.project); this.error.textContent = text("animationSaved"); });
       const projectExport = button(text("animationExport")); projectExport.addEventListener("click", () => exportProject(this.project));
@@ -778,7 +784,9 @@
       const revisionNow = () => this.projectRevision;
       requestManimSourceRevision(sourceProject, sourceRevision, revisionNow, { signal: this.sourceAbort.signal }).then((generated) => { if (!this.destroyed && this.projectRevision === sourceRevision) { this.manimSource = generated; this.manimSourceRevision = sourceRevision; manimCode.textContent = generated.source; } }).catch((error) => { if (error.name !== "AbortError" && !this.destroyed && this.projectRevision === sourceRevision) manimCode.textContent = `${text("animationManimSourceUnavailable")} ${error.message}`; });
       const sourceDownload = button(text("animationDownloadManimSource")); sourceDownload.addEventListener("click", async () => { sourceDownload.disabled = true; try { const generated = this.manimSourceRevision === sourceRevision ? this.manimSource : await requestManimSourceRevision(sourceProject, sourceRevision, revisionNow); if (!generated || this.projectRevision !== sourceRevision) return; this.manimSource = generated; this.manimSourceRevision = sourceRevision; manimCode.textContent = generated.source; await downloadManimSource(sourceProject, { generated }); this.error.textContent = text("animationManimSourceReady"); } catch (error) { if (error.name !== "AbortError") this.error.textContent = error.message; } finally { sourceDownload.disabled = false; } }); this.projectActions.append(sourceDownload);
-      const manimVideo = button(text("animationRenderManimVideo"), "animation-primary"); manimVideo.addEventListener("click", async () => { manimVideo.disabled = true; this.manimAbort?.abort(); this.manimAbort = new AbortController(); this.error.textContent = text("animationRenderingManimVideo"); try { await exportManimVideo(this.project, { signal: this.manimAbort.signal }); this.error.textContent = text("animationManimVideoReady"); } catch (error) { if (error.name !== "AbortError") this.error.textContent = error.message; } finally { manimVideo.disabled = false; this.manimAbort = null; } }); this.projectActions.append(manimVideo);
+      const renderedVideo = document.createElement("video"); renderedVideo.className = "animation-rendered-video"; renderedVideo.controls = true; renderedVideo.playsInline = true; renderedVideo.preload = "metadata"; renderedVideo.hidden = true; renderedVideo.setAttribute("aria-label", text("animationManimVideoReady")); this.renderedManimVideo = renderedVideo; this.projectActions.append(renderedVideo);
+      const downloadRendered = button(text("animationDownloadRenderedManimVideo")); downloadRendered.hidden = true; downloadRendered.addEventListener("click", () => { if (this.manimVideoBlob && this.manimVideoRevision === this.projectRevision) downloadBlob(this.manimVideoBlob, `${this.project.id}-manim.mp4`); }); this.projectActions.append(downloadRendered);
+      const manimVideo = button(text("animationRenderManimVideo"), "animation-primary"); manimVideo.addEventListener("click", async () => { manimVideo.disabled = true; this.manimAbort?.abort(); const renderAbort = new AbortController(); const renderRevision = this.projectRevision; const renderProject = clone(this.project); const isCurrent = () => !this.destroyed && this.projectRevision === renderRevision && this.manimAbort === renderAbort; this.manimAbort = renderAbort; this.error.textContent = text("animationRenderingManimVideo"); try { const result = await exportManimVideo(renderProject, { signal: renderAbort.signal, isCurrent, download: false }); if (isCurrent() && !result.discarded) { this.clearRenderedManimVideo({ keepElement: true }); this.manimVideoBlob = result.blob; this.manimVideoRevision = renderRevision; this.manimVideoUrl = URL.createObjectURL(result.blob); renderedVideo.src = this.manimVideoUrl; renderedVideo.hidden = false; renderedVideo.load(); downloadRendered.hidden = false; this.error.textContent = text("animationManimVideoReady"); } } catch (error) { if (error.name !== "AbortError" && isCurrent()) this.error.textContent = error.message; } finally { manimVideo.disabled = false; if (this.manimAbort === renderAbort) this.manimAbort = null; } }); this.projectActions.append(manimVideo);
       const capability = videoCapability();
       if (capability.supported) { const video = button(text("animationDownloadVideo")); video.addEventListener("click", async () => { video.disabled = true; this.exportAbort?.abort(); this.exportAbort = new AbortController(); this.error.textContent = text("animationEncodingVideo"); try { await exportVideo(this.project, (progress) => { this.error.textContent = text("animationEncodingProgress", { percent: Math.round(progress * 100) }); }, { signal: this.exportAbort.signal }); this.error.textContent = text("animationVideoReady"); } catch (error) { this.error.textContent = error.message; } finally { video.disabled = false; this.exportAbort = null; } }); this.projectActions.append(video); }
       else { const note = document.createElement("p"); note.className = "animation-export-note"; note.textContent = text("animationVideoUnavailable"); this.projectActions.append(note); }
@@ -795,13 +803,14 @@
       });
     }
     moveScene(index, delta) { const target = index + delta; if (target < 0 || target >= this.project.scenes.length) return; const updated = clone(this.project); [updated.scenes[index], updated.scenes[target]] = [updated.scenes[target], updated.scenes[index]]; updated.updated_at = new Date().toISOString(); this.project = saveProject(updated); this.projectRevision += 1; this.player.updateProject(this.project); this.renderProjectActions(); this.renderEditor(); this.options.onProject?.(this.project); }
+    clearRenderedManimVideo({ keepElement = false } = {}) { this.renderedManimVideo?.pause?.(); if (this.renderedManimVideo) { this.renderedManimVideo.removeAttribute("src"); this.renderedManimVideo.load?.(); if (!keepElement) this.renderedManimVideo = null; } if (this.manimVideoUrl) URL.revokeObjectURL(this.manimVideoUrl); this.manimVideoUrl = null; this.manimVideoBlob = null; this.manimVideoRevision = null; }
     async importSelected() {
       const file = this.file.files?.[0]; this.file.value = ""; if (!file) return;
       if (file.size > MAX_PROJECT_BYTES) { this.error.textContent = text("animationImportTooLarge"); return; }
       const token = ++this.operationToken; this.clearTimers(); this.pendingProject = null; this.plannerAbort?.abort(); this.plannerAbort = null; this.generate.disabled = false; this.cancelGenerate.hidden = true; this.progress.hidden = true;
       try { const parsed = JSON.parse(await file.text()); if (this.destroyed || token !== this.operationToken) return; const result = validateProject(parsed); if (!result.ok) throw new Error(result.error); this.topic.value = result.project.topic; this.level.value = result.project.level; this.concept.value = result.project.title; this.requirements.value = result.project.summary; this.updatePrompt(); this.showProject(result.project, { persist: true }); this.error.textContent = text("animationImported"); } catch (error) { if (!this.destroyed && token === this.operationToken) this.error.textContent = `${text("animationImportFailed")} ${error.message}`; }
     }
-    destroy() { if (this.destroyed) return; this.destroyed = true; this.operationToken += 1; this.exportAbort?.abort(); this.plannerAbort?.abort(); this.sourceAbort?.abort(); this.manimAbort?.abort(); this.clearTimers(); this.player?.destroy(); mounted.delete(this); }
+    destroy() { if (this.destroyed) return; this.destroyed = true; this.operationToken += 1; this.exportAbort?.abort(); this.plannerAbort?.abort(); this.sourceAbort?.abort(); this.manimAbort?.abort(); this.clearRenderedManimVideo(); this.clearTimers(); this.player?.destroy(); mounted.delete(this); }
   }
 
   function mountStudio(root, options = {}) { return new Studio(root, options); }

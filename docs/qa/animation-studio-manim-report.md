@@ -26,16 +26,21 @@ derivative/tangent, and definite-integral scenes. The browser generated the same
 
 Final automated gates after the review fixes:
 
-- Python: 2,375 tests collected; the full default suite reached 100% with expected platform skips
+- Python: 2,385 tests collected; the full default suite reached 100% with expected platform skips
   and zero failures.
-- Browser modules: 184/184 Node tests passed, including same-ID edit/reorder source races.
+- Browser modules: 187/187 Node tests passed, including same-ID edit/reorder source and render races.
 - Rust/Tauri: 12/12 launcher tests passed after a clean rebuild with temporary resource fixtures;
   the fixtures were removed after the run.
-- Focused planner/render/contract gate: 59/59 passed; Ruff and diff whitespace checks passed.
+- Focused planner/render/contract gate: 69/69 passed; Ruff and diff whitespace checks passed.
 - Real browser: desktop, 375 px portrait, and phone landscape screenshots; real authenticated
-  trusted-source and MP4 requests; zero console errors. The captures are
+  trusted-source and MP4 requests; zero console errors. The rendered H.264 MP4 was decoded and
+  played inside Muta with native controls and no autoplay. Its time scrubber appeared, the playback
+  state advanced after Play, the explicit `Download rendered MP4` action remained distinct from
+  browser-native export, and the layout had no horizontal overflow. Applying a scene edit removed
+  the player and left zero blob video sources, proving stale playback was revoked. The captures are
   `animation-studio-desktop.png`, `animation-studio-mobile-375.png`, and
-  `animation-studio-landscape.png`.
+  `animation-studio-landscape.png`; `animation-studio-inline-mp4.png` records the final in-app
+  playback state.
 
 ## Artifacts and hashes
 
@@ -45,7 +50,9 @@ Final automated gates after the review fixes:
 | `animation-studio-manim-math.mp4` | `b8744d4674de94017b00b0d63c1e3caff95696eef8359eacdd43ccc0f0100485` | Final rendered H.264 video |
 | `animation-studio-manim-contact.png` | `23c0858208d6ccb39df1f4c9462964aab64ab8839e15ba9e5edc734ea0220cc8` | One-second visual sampling across the complete video |
 | `animation-studio-manim-long-copy.png` | `1a2c5d98507ae0f4290bf883eb6c195f056a7a9f85a8aafc09339d38ca9edd3b` | Long title/caption and short process-label layout |
-| `animation-studio-manim-scientific.png` | `da2ae6f3233353e71d846ecbefdb3310c497d9d0610aaa4c41fc191892599233` | Settled real-Manim frame proving `0.000001 × x` is typeset as `1 × 10⁻⁶ · x` while its sampled curve uses the same value |
+| `animation-studio-manim-scientific.png` | `582f7850369018b1ae008e1102aefe9d23434dd29b65b94adc4bc913231f5b01` | Settled real-Manim frame proving `0.000001 × x` is typeset as grouped `1 × 10⁻⁶ · x` while its sampled curve uses the same value |
+| `animation-studio-manim-scientific-powers.png` | `c6388a2caeb3772e218a0b8f8447740100c9ca29f23fde1c49deedf73ff08a73` | Settled real-Manim frames proving the scientific literal remains grouped as both exponent and exponent base |
+| `animation-studio-inline-mp4.png` | `ed8fb13584696d1f19308370816e279243213246755f45495e778c0a52e183bd` | Real Muta browser showing decoded trusted MP4 playback, native controls, and the distinct rendered-MP4 download action |
 
 `ffprobe` result for the final MP4:
 
@@ -74,10 +81,16 @@ clipping.
 - Undefined curve samples become segment gaps rather than zero values.
 - Scientific-notation formula text is compiled from the same numeric typed AST used to sample its
   curve; exponent text is never passed through as an ambiguous literal such as `1e-06`.
-- Process labels are individually capped at 120 visible, non-control characters at the public
-  request/import boundary before Pango or source generation sees them.
+- Process labels are individually capped at 120 characters, reject Unicode control/format
+  characters, and require a letter, number, punctuation mark, or symbol at both browser import and
+  public request boundaries before Pango or source generation sees them.
 - Every saved project edit/reorder increments an in-memory revision, aborts the old source request,
   refreshes both disclosures, and rejects a late response even when the project ID is unchanged.
+- The same revision invalidates an in-flight Manim render before playback or download and prevents
+  an older completion handler from clearing the controller or status of a newer render.
+- Trusted MP4 object URLs are revoked on edit, regeneration, replacement, and teardown; the player
+  never autoplays, and its explicit rendered-MP4 download action cannot be confused with the browser
+  canvas encoder's separate fallback action.
 - A second concurrent render receives immediate busy admission instead of queueing.
 - Client cancellation and timeout terminate the complete worker process group.
 - Final output selection accepts exactly one `MutaLesson.mp4` outside Manim partial files.

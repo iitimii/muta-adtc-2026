@@ -207,6 +207,45 @@ test("trusted render endpoints fail closed on invalid files and empty video", as
   );
 });
 
+test("a stale same-ID Manim render is discarded before download", async () => {
+  const project = plan("Explain 3/4", "early-primary");
+  let current = true;
+  let clicks = 0;
+  const originalDocument = global.document; const originalCreate = URL.createObjectURL; const originalRevoke = URL.revokeObjectURL;
+  global.document = { body: { appendChild() {} }, createElement: () => ({ click() { clicks += 1; }, remove() {} }) };
+  URL.createObjectURL = () => "blob:stale"; URL.revokeObjectURL = () => {};
+  try {
+    const result = await animator.exportManimVideo(project, {
+      isCurrent: () => current,
+      fetchImpl: async () => ({
+        ok: true,
+        headers: { get: () => "video/mp4" },
+        blob: async () => { current = false; return new Blob(["old video"]); },
+      }),
+    });
+    assert.equal(result.discarded, true);
+    assert.equal(clicks, 0);
+  } finally { global.document = originalDocument; URL.createObjectURL = originalCreate; URL.revokeObjectURL = originalRevoke; }
+});
+
+test("Studio Manim rendering can return an inline MP4 blob without forced download", async () => {
+  const project = plan("Explain 3/4", "early-primary");
+  let clicks = 0;
+  const originalDocument = global.document; const originalCreate = URL.createObjectURL; const originalRevoke = URL.revokeObjectURL;
+  global.document = { body: { appendChild() {} }, createElement: () => ({ click() { clicks += 1; }, remove() {} }) };
+  URL.createObjectURL = () => "blob:inline"; URL.revokeObjectURL = () => {};
+  try {
+    const result = await animator.exportManimVideo(project, {
+      download: false,
+      isCurrent: () => true,
+      fetchImpl: async () => ({ ok: true, headers: { get: () => "video/mp4" }, blob: async () => new Blob(["video"]) }),
+    });
+    assert.ok(result.blob instanceof Blob);
+    assert.equal(result.mime, "video/mp4");
+    assert.equal(clicks, 0);
+  } finally { global.document = originalDocument; URL.createObjectURL = originalCreate; URL.revokeObjectURL = originalRevoke; }
+});
+
 test("Manim source requests reject stale same-ID revisions and preserve edited scene order", async () => {
   const original = plan("Explain 3/4", "early-primary");
   const edited = structuredClone(original);
@@ -242,6 +281,14 @@ test("strict schema rejects unknown fields, invalid dimensions, and over-budget 
   assert.equal(animator.validateProject(invalid).ok, false);
   const long = structuredClone(project); long.scenes = Array.from({ length: 10 }, (_, index) => ({ ...structuredClone(project.scenes[0]), id: `long-${index}`, duration_ms: 10000 }));
   assert.equal(animator.validateProject(long).ok, false);
+});
+
+test("process-step imports reject control format and invisible-only text", () => {
+  const project = plan("Photosynthesis", "secondary", "water enters -> glucose forms");
+  for (const step of ["A\u0000B", "\u200b", "\u2060", "\u0301", "   "]) {
+    const invalid = structuredClone(project); invalid.scenes[0].data.steps[0] = step;
+    assert.equal(animator.validateProject(invalid).ok, false, JSON.stringify(step));
+  }
 });
 
 test("source-shaped multilingual labels remain inert data", () => {
@@ -288,4 +335,8 @@ test("production module contains no executable source sink", () => {
   assert.doesNotMatch(source, /\.innerHTML\s*=/);
   assert.doesNotMatch(source, /document\.write\s*\(/);
   assert.doesNotMatch(source, /https?:\/\//);
+  assert.match(source, /renderedVideo\.controls = true/);
+  assert.match(source, /renderedVideo\.playsInline = true/);
+  assert.match(source, /URL\.revokeObjectURL\(this\.manimVideoUrl\)/);
+  assert.doesNotMatch(source, /renderedVideo\.autoplay/);
 });

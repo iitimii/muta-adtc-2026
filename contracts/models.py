@@ -326,8 +326,11 @@ class AnimationProcessData(BaseModel):
             value = value.strip()
             if not value:
                 raise ValueError("process steps must contain visible text")
-            if any(unicodedata.category(character) == "Cc" for character in value):
-                raise ValueError("process steps cannot contain control characters")
+            categories = [unicodedata.category(character) for character in value]
+            if any(category in {"Cc", "Cf"} for category in categories):
+                raise ValueError("process steps cannot contain control or format characters")
+            if not any(category[0] in {"L", "N", "P", "S"} for category in categories):
+                raise ValueError("process steps must contain a visible base character")
             normalized.append(value)
         return normalized
 

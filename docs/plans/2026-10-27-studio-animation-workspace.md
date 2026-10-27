@@ -88,7 +88,10 @@ resources, plugins, shell expansion, or arbitrary scene name. Source generation 
 when Manim is not installed; rendering returns an explicit capability error.
 
 The browser shows the generated Manim source in an accessible disclosure, downloads it as `.py`,
-and requests a real MP4 from the bounded worker. The existing deterministic canvas player remains
+requests a real MP4 from the bounded worker, and exposes that result in an in-app HTML video player
+with native controls plus an explicitly named MP4 download action. A project revision change pauses
+the player, removes its source, and revokes its object URL before rebuilding the workspace. The
+existing deterministic canvas player remains
 the immediate preview and browser-native video export remains a fast fallback, but neither is
 misrepresented as the requested Manim render.
 
@@ -105,8 +108,9 @@ Runtime/package contract:
   may explicitly identify that frozen gateway/worker executable when packaging stages it elsewhere.
 - The gateway passes `--silent`, uses a fixed scene name and argument vector, selects only the final
   `MutaLesson.mp4`, and never accepts a caller-controlled command or output path.
-- Process labels are bounded to 120 visible, non-control characters at schema validation, matching
-  the browser and planner budgets before any text reaches source emission or Pango.
+- Process labels are bounded to 120 characters, reject Unicode control/format characters, and
+  require a visible base character at schema validation, matching the browser and planner budgets
+  before any text reaches source emission or Pango.
 - Production video uses Manim's fixed medium-quality profile (1280 × 720 at 30 fps); the browser
   canvas remains the immediate low-cost preview.
 - Formulae use Manim 0.22's offline `MathTypst`; numeric tick labels use inert `Text`, so the runtime
@@ -136,6 +140,11 @@ Runtime/package contract:
 - Editing or reordering a saved project refreshes both JSON and Manim-source disclosures. Source
   responses carry a local revision guard, so an older same-ID request cannot replace the current
   project source or be downloaded as if it matched the rendered video.
+- The same project revision guard aborts in-flight Manim requests and checks again after the video
+  blob arrives, so an old same-ID render cannot populate playback, download, or clear the controller
+  for a newer render.
+- A successful trusted render appears in-app with native play/pause, seek, volume, and platform
+  fullscreen controls and never autoplays; the separate download action is unambiguous.
 - Reduced-motion users do not receive automatic motion; hidden/offscreen previews stop scheduling frames.
 - Desktop, 375 px and 430 px portrait, and phone landscape layouts have no horizontal overflow or composer obstruction.
 - Light and dark themes preserve contrast and readable diagrams.

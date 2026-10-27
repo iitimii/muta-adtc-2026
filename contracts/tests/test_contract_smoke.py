@@ -149,7 +149,8 @@ def test_request_id_is_echoed_or_minted():
     assert r2.headers.get("X-Request-ID")
 
 
-def test_animation_source_rejects_oversized_process_step_at_api_boundary():
+@pytest.mark.parametrize("step", ["x" * 121, "A\u0000B", "\u200b", "\u2060", "\u0301", "   "])
+def test_animation_source_rejects_non_visible_process_step_at_api_boundary(step: str):
     project = {
         "version": 1,
         "kind": "lesson-animation",
@@ -167,7 +168,7 @@ def test_animation_source_rejects_oversized_process_step_at_api_boundary():
                 "title": "Process",
                 "narration": "Follow each step.",
                 "duration_ms": 900,
-                "data": {"steps": ["x" * 121, "Finish safely"], "active": 0},
+                "data": {"steps": [step, "Finish safely"], "active": 0},
             }
         ],
     }
@@ -177,7 +178,7 @@ def test_animation_source_rejects_oversized_process_step_at_api_boundary():
         json={"project": project},
     )
     assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"][-2:] == ["steps", 0]
+    assert "steps" in response.json()["detail"][0]["loc"]
 
 
 def test_ready_shape():
