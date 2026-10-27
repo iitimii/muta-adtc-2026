@@ -4,6 +4,7 @@ import argparse
 import base64
 import json
 import stat
+import subprocess
 import tarfile
 import zipfile
 from pathlib import Path
@@ -194,6 +195,25 @@ def test_macos_private_test_seal_signs_then_strictly_verifies(tmp_path: Path, mo
             str(app),
         ],
     ]
+
+
+def test_macos_macho_scan_tolerates_non_utf8_file_metadata(
+    tmp_path: Path, monkeypatch
+):
+    app = tmp_path / "Muta.app"
+    candidate = app / "Contents/Resources/non-utf8-metadata"
+    candidate.parent.mkdir(parents=True)
+    candidate.write_bytes(b"binary")
+
+    def fake_run(command, **kwargs):
+        assert command == ["/usr/bin/file", "-b", str(candidate)]
+        assert kwargs["text"] is True
+        assert kwargs["errors"] == "replace"
+        return subprocess.CompletedProcess(command, 0, "Mach-O 64-bit arm64 \ufffd\n", "")
+
+    monkeypatch.setattr(package.subprocess, "run", fake_run)
+
+    assert package._mach_o_files(app) == [candidate]
 
 
 def test_macos_private_test_refreshes_manifests_after_nested_signing(

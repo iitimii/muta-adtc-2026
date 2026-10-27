@@ -53,6 +53,7 @@ def _mach_o_files(app: Path) -> list[Path]:
             ["/usr/bin/file", "-b", str(path)],
             capture_output=True,
             text=True,
+            errors="replace",
             check=False,
         )
         if probe.returncode == 0 and "Mach-O" in probe.stdout:
