@@ -159,8 +159,8 @@
     if (!intent) return null;
     if (/\b(?:polynomial|algebraic|long\s+division|synthetic\s+division|decimal|fractional)\b/.test(value)) throw new Error("This equal-sharing model uses whole objects. Use a concrete division such as 12 ÷ 3; algebraic or long-division procedures need a different visual model.");
     const token = "(?:[+-]?(?:\\d+(?:\\.\\d+)?|\\.\\d+)(?:e[+-]?\\d+)?|zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)";
-    const operation = new RegExp(`(?<![\\w.+/-])(${token})\\s*(?:÷|divided\\s+by|/|by)\\s*(${token})(?![\\w/+-]|\\.\\d)`, "g");
-    const sharing = new RegExp(`(?<![\\w.+/-])(${token})\\s+(?:blocks?|objects?|items?|apples?|counters?|sweets?)\\s+(?:equally\\s+)?(?:among|between|into)\\s+(${token})(?![\\w/+-]|\\.\\d)`, "g");
+    const operation = new RegExp(`(?:^|[^\\w.+/-])(${token})\\s*(?:÷|divided\\s+by|/|by)\\s*(${token})(?![\\w/+-]|\\.\\d)`, "g");
+    const sharing = new RegExp(`(?:^|[^\\w.+/-])(${token})\\s+(?:blocks?|objects?|items?|apples?|counters?|sweets?)\\s+(?:equally\\s+)?(?:among|between|into)\\s+(${token})(?![\\w/+-]|\\.\\d)`, "g");
     const operations = [...value.matchAll(operation)]; const matches = [...operations, ...value.matchAll(sharing)];
     if ((value.match(/÷|divided\s+by/g) || []).length !== operations.filter((match) => /÷|divided\s+by/.test(match[0])).length) throw new Error("Muta could not read the complete division. Use one whole-number relationship such as 12 ÷ 3, without an extra arithmetic tail.");
     if (!matches.length) {

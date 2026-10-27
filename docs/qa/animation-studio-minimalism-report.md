@@ -48,6 +48,8 @@ certify unrelated model-written explanations; the review-before-sharing notice r
 - Added shared schema/renderer tests and small-width object containment checks (375, 640, 960).
 - Generated OpenAPI and localisation inventory refreshed; authored/built UI parity checked.
 - Touched-file Ruff and whitespace checks pass.
+- Division boundaries use a consuming prefix rather than regular-expression lookbehind, so the
+  draft/source fallback does not require newer WebKit than the supported older macOS shell.
 
 ## Real UI and media evidence
 

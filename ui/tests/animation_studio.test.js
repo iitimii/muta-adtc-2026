@@ -623,6 +623,7 @@ test("production module contains no executable source sink", () => {
   assert.doesNotMatch(source, /\.innerHTML\s*=/);
   assert.doesNotMatch(source, /document\.write\s*\(/);
   assert.doesNotMatch(source, /https?:\/\//);
+  assert.doesNotMatch(source, /\(\?<\!?=/, "Keep the Studio parser usable on the older supported WebKit fallback.");
   assert.match(source, /renderedVideo\.controls = true/);
   assert.match(source, /renderedVideo\.playsInline = true/);
   assert.match(source, /URL\.revokeObjectURL\(this\.manimVideoUrl\)/);
