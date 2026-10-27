@@ -9,7 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from stage_desktop import StageError, verify_root
+from stage_desktop import StageError, sha256_file, verify_root
 
 FORBIDDEN = {"bench", "muta-iq", "model-development", ".git", "tests", "__pycache__"}
 DEFAULT_MODEL_ID = "qwen2.5-1.5b-instruct-q4_k_m"
@@ -39,6 +39,42 @@ def verify_required_heartbeat(product: dict) -> None:
         fail("release heartbeat URL is missing or is not HTTPS")
     if not str(heartbeat.get("ingest_key", "")).strip():
         fail("release heartbeat ingest key is missing")
+
+
+def verify_manim_worker(
+    app: Path, product: dict, target_os: str, target_arch: str, *, required: bool
+) -> None:
+    selected = product.get("manim_worker")
+    if target_os != "macos":
+        if selected:
+            fail("a non-macOS package unexpectedly contains the macOS Manim worker")
+        return
+    if not selected:
+        if required:
+            fail("macOS Animator package has no bundled offline Manim worker")
+        return
+    if selected.get("path") != "bin/muta-manim/muta-manim":
+        fail("packaged Manim worker is not at the fixed application-resource path")
+    worker = (app / str(selected["path"])).resolve()
+    if worker != app and app not in worker.parents:
+        fail("packaged Manim worker path escapes application resources")
+    if not worker.is_file() or worker.is_symlink():
+        fail("packaged Manim worker executable is missing or unsafe")
+    if worker.stat().st_size != int(selected.get("size_bytes", -1)):
+        fail("packaged Manim worker executable has the wrong byte size")
+    if sha256_file(worker) != selected.get("sha256"):
+        fail("packaged Manim worker executable has the wrong SHA-256")
+    manifest = app / "bin" / "muta-manim" / "MUTA-MANIM-MANIFEST.json"
+    if selected.get("manifest") != manifest.relative_to(app).as_posix():
+        fail("packaged Manim worker manifest path is inconsistent")
+    command(
+        sys.executable,
+        str(Path(__file__).with_name("verify_manim_worker.py")),
+        "--root",
+        str(worker.parent),
+        "--target-arch",
+        target_arch,
+    )
 
 
 def verify_core_models(product: dict, catalog: dict, pack: dict) -> None:
@@ -138,6 +174,13 @@ def inspect(args: argparse.Namespace) -> None:
     if product["model_pack_id"] != pack["pack_id"]:
         fail("application and model-pack identities differ")
     verify_core_models(product, catalog, pack)
+    verify_manim_worker(
+        app,
+        product,
+        args.target_os,
+        args.target_arch,
+        required=args.require_manim_worker,
+    )
     if args.require_heartbeat:
         verify_required_heartbeat(product)
     if args.release and not (models / "model-pack.json.sig").is_file():
@@ -190,6 +233,7 @@ def main() -> int:
     parser.add_argument("--target-arch", choices=("x86_64", "aarch64"), required=True)
     parser.add_argument("--release", action="store_true")
     parser.add_argument("--require-heartbeat", action="store_true")
+    parser.add_argument("--require-manim-worker", action="store_true")
     args = parser.parse_args()
     try:
         inspect(args)

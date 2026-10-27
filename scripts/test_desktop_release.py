@@ -167,6 +167,7 @@ def test_macos_private_test_seal_signs_then_strictly_verifies(tmp_path: Path, mo
 
     monkeypatch.setattr(package.sys, "platform", "darwin")
     monkeypatch.setattr(package.shutil, "which", lambda command: f"/usr/bin/{command}")
+    monkeypatch.setattr(package, "_mach_o_files", lambda _app: [])
     monkeypatch.setattr(
         package.subprocess,
         "run",
@@ -179,7 +180,6 @@ def test_macos_private_test_seal_signs_then_strictly_verifies(tmp_path: Path, mo
         [
             "/usr/bin/codesign",
             "--force",
-            "--deep",
             "--sign",
             "-",
             "--timestamp=none",
@@ -193,6 +193,74 @@ def test_macos_private_test_seal_signs_then_strictly_verifies(tmp_path: Path, mo
             "--verbose=2",
             str(app),
         ],
+    ]
+
+
+def test_macos_private_test_refreshes_manifests_after_nested_signing(
+    tmp_path: Path, monkeypatch
+):
+    app = tmp_path / "Muta.app"
+    resources = app / "Contents/Resources/resources"
+    resources.mkdir(parents=True)
+    (resources / "desktop-product.json").write_text("{}", encoding="utf-8")
+    nested = resources / "bin/muta-manim/muta-manim"
+    nested.parent.mkdir(parents=True)
+    nested.write_bytes(b"worker")
+    events: list[str] = []
+
+    monkeypatch.setattr(package.sys, "platform", "darwin")
+    monkeypatch.setattr(package.shutil, "which", lambda _command: "/usr/bin/codesign")
+    monkeypatch.setattr(package, "_mach_o_files", lambda _app: [nested])
+    monkeypatch.setattr(
+        package,
+        "refresh_desktop_manifests",
+        lambda root: events.append(f"refresh:{root}"),
+    )
+
+    def fake_run(command, **_kwargs):
+        events.append("sign:" + command[-1])
+
+    monkeypatch.setattr(package.subprocess, "run", fake_run)
+
+    package._adhoc_sign_macos_app(app)
+
+    assert events == [
+        f"sign:{nested}",
+        f"refresh:{resources}",
+        f"sign:{app}",
+        f"sign:{app}",
+    ]
+
+
+def test_macos_private_test_refreshes_workerless_package_before_outer_seal(
+    tmp_path: Path, monkeypatch
+):
+    app = tmp_path / "Muta.app"
+    resources = app / "Contents/Resources/resources"
+    resources.mkdir(parents=True)
+    (resources / "desktop-product.json").write_text("{}", encoding="utf-8")
+    events: list[str] = []
+
+    monkeypatch.setattr(package.sys, "platform", "darwin")
+    monkeypatch.setattr(package.shutil, "which", lambda _command: "/usr/bin/codesign")
+    monkeypatch.setattr(package, "_mach_o_files", lambda _app: [])
+    monkeypatch.setattr(
+        package,
+        "refresh_desktop_manifests",
+        lambda root: events.append(f"refresh:{root}"),
+    )
+
+    def fake_run(command, **_kwargs):
+        events.append("sign:" + command[-1])
+
+    monkeypatch.setattr(package.subprocess, "run", fake_run)
+
+    package._adhoc_sign_macos_app(app)
+
+    assert events == [
+        f"refresh:{resources}",
+        f"sign:{app}",
+        f"sign:{app}",
     ]
 
 

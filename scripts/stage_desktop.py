@@ -76,15 +76,29 @@ def _manifest_entries(root: Path, *, exclude: set[str] | None = None) -> list[di
     excluded = exclude or set()
     entries = []
     for item in sorted(root.rglob("*")):
-        if item.is_symlink():
-            raise StageError(f"staged output contains a symlink: {item}")
-        if not item.is_file():
-            continue
         relative = item.relative_to(root).as_posix()
         if relative in excluded:
             continue
+        if item.is_symlink():
+            target = os.readlink(item)
+            if Path(target).is_absolute():
+                raise StageError(f"staged output contains an absolute symlink: {item} -> {target}")
+            resolved = (item.parent / target).resolve()
+            if resolved != root and root not in resolved.parents:
+                raise StageError(f"staged symlink escapes its root: {item} -> {target}")
+            if not resolved.is_file():
+                raise StageError(f"staged symlink does not resolve to a file: {item} -> {target}")
+            entries.append({"path": relative, "type": "symlink", "target": target})
+            continue
+        if not item.is_file():
+            continue
         entries.append(
-            {"path": relative, "size_bytes": item.stat().st_size, "sha256": sha256_file(item)}
+            {
+                "path": relative,
+                "type": "file",
+                "size_bytes": item.stat().st_size,
+                "sha256": sha256_file(item),
+            }
         )
     return entries
 
@@ -192,6 +206,54 @@ def _stage_ffmpeg(ffmpeg_bin: Path | None, app_root: Path, target_os: str) -> No
     _copy_file(source.resolve(), app_root / "bin" / executable_name, executable=True)
 
 
+def _stage_manim_worker(
+    worker_root: Path | None, app_root: Path, target_os: str, target_arch: str
+) -> dict[str, Any] | None:
+    if target_os != "macos":
+        if worker_root is not None:
+            raise StageError("the bundled Manim worker is currently supported only on macOS")
+        return None
+    if worker_root is None:
+        return None
+    source = worker_root.resolve()
+    manifest_path = source / "MUTA-MANIM-MANIFEST.json"
+    if not manifest_path.is_file():
+        raise StageError(f"Manim worker manifest is missing: {manifest_path}")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("schema") != 1:
+        raise StageError("unsupported Manim worker manifest schema")
+    if manifest.get("target") != {"os": "macos", "arch": target_arch}:
+        raise StageError("Manim worker architecture does not match the desktop target")
+    destination = app_root / "bin" / "muta-manim"
+    for item in sorted(source.rglob("*")):
+        relative = item.relative_to(source)
+        output = destination / relative
+        if item.is_symlink():
+            target = os.readlink(item)
+            if Path(target).is_absolute():
+                raise StageError(f"absolute symlink in Manim worker: {item} -> {target}")
+            resolved = (item.parent / target).resolve()
+            if resolved != source and source not in resolved.parents:
+                raise StageError(f"Manim worker symlink escapes its root: {item} -> {target}")
+            if not resolved.is_file():
+                raise StageError(f"broken Manim worker symlink: {item} -> {target}")
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.symlink_to(target)
+        elif item.is_dir():
+            output.mkdir(parents=True, exist_ok=True)
+        elif item.is_file():
+            _copy_file(item, output, executable=item.name == "muta-manim")
+    executable = destination / "muta-manim"
+    _assert_regular_source(executable)
+    return {
+        "path": "bin/muta-manim/muta-manim",
+        "size_bytes": executable.stat().st_size,
+        "sha256": sha256_file(executable),
+        "manifest": "bin/muta-manim/MUTA-MANIM-MANIFEST.json",
+        "runtime": manifest.get("runtime", {}),
+    }
+
+
 def stage(args: argparse.Namespace) -> None:
     app_root = args.app_output.resolve()
     model_root = args.model_output.resolve()
@@ -245,6 +307,9 @@ def stage(args: argparse.Namespace) -> None:
         _copy_tree(index_source, app_root / "index")
     _stage_engine(args.engine_dir.resolve(), app_root, args.target_os)
     _stage_ffmpeg(args.ffmpeg_bin, app_root, args.target_os)
+    manim_worker = _stage_manim_worker(
+        args.manim_worker_dir, app_root, args.target_os, args.target_arch
+    )
 
     catalog = {"schema_version": 1, "models": specs}
     catalog_path = app_root / "runtime" / "model-catalog.json"
@@ -281,6 +346,8 @@ def stage(args: argparse.Namespace) -> None:
             if key in spec
         },
     }
+    if manim_worker is not None:
+        product["manim_worker"] = manim_worker
     if args.heartbeat_url or args.heartbeat_ingest_key:
         if not args.heartbeat_url or not args.heartbeat_ingest_key:
             raise StageError("heartbeat URL and ingest key must be supplied together")
@@ -322,8 +389,21 @@ def verify_root(root: Path, manifest_name: str) -> None:
     for relative, entry in expected.items():
         _safe_relative(relative)
         item = root / relative
-        if item.is_symlink():
-            raise StageError(f"manifest member is a symlink: {relative}")
+        kind = entry.get("type", "file")
+        if kind == "symlink":
+            if not item.is_symlink():
+                raise StageError(f"manifest member is not the expected symlink: {relative}")
+            target = os.readlink(item)
+            if target != entry.get("target"):
+                raise StageError(f"manifest symlink target mismatch: {relative}")
+            resolved = (item.parent / target).resolve()
+            if resolved != root and root not in resolved.parents:
+                raise StageError(f"manifest symlink escapes staged root: {relative}")
+            if not resolved.is_file():
+                raise StageError(f"manifest symlink target is missing: {relative}")
+            continue
+        if kind != "file" or item.is_symlink():
+            raise StageError(f"manifest member is not the expected regular file: {relative}")
         if item.stat().st_size != int(entry["size_bytes"]):
             raise StageError(f"manifest byte size mismatch: {relative}")
         if sha256_file(item) != entry["sha256"]:
@@ -338,6 +418,7 @@ def _parser() -> argparse.ArgumentParser:
     stage_parser.add_argument("--model-output", type=Path, required=True)
     stage_parser.add_argument("--engine-dir", type=Path, required=True)
     stage_parser.add_argument("--ffmpeg-bin", type=Path)
+    stage_parser.add_argument("--manim-worker-dir", type=Path)
     stage_parser.add_argument("--model-id", default=DEFAULT_MODEL_ID)
     stage_parser.add_argument(
         "--bundled-model-id", action="append", default=[],

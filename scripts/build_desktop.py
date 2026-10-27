@@ -67,6 +67,22 @@ def build(args: argparse.Namespace) -> None:
     )
     if args.release and not ffmpeg.is_file():
         raise BuildError("a release build requires the pinned native FFmpeg binary")
+    manim_worker: Path | None = None
+    if target_os == "macos":
+        if args.manim_worker_dir is not None:
+            manim_worker = args.manim_worker_dir.resolve()
+            run(
+                [
+                    sys.executable,
+                    str(REPO_ROOT / "scripts" / "verify_manim_worker.py"),
+                    "--root",
+                    str(manim_worker),
+                    "--target-arch",
+                    target_arch,
+                ]
+            )
+    elif args.manim_worker_dir is not None:
+        raise BuildError("the bundled Manim worker is currently supported only on macOS")
 
     stage_command = [
         sys.executable,
@@ -99,6 +115,8 @@ def build(args: argparse.Namespace) -> None:
         stage_command.append("--include-optional-models")
     if ffmpeg.is_file():
         stage_command += ["--ffmpeg-bin", str(ffmpeg)]
+    if manim_worker is not None:
+        stage_command += ["--manim-worker-dir", str(manim_worker)]
     heartbeat_url = os.environ.get("MUTA_DESKTOP_HEARTBEAT_URL", "")
     heartbeat_key = os.environ.get("MUTA_DESKTOP_HEARTBEAT_INGEST_KEY", "")
     if bool(heartbeat_url) != bool(heartbeat_key):
@@ -162,6 +180,14 @@ def build(args: argparse.Namespace) -> None:
                 "bash",
                 str(REPO_ROOT / "scripts" / "sign_macos_nested.sh"),
                 str(BUILD / "gateway"),
+                str(BUILD / "app-resources"),
+            ]
+        )
+        run(
+            [
+                sys.executable,
+                str(REPO_ROOT / "scripts" / "refresh_desktop_manifests.py"),
+                "--app-resources",
                 str(BUILD / "app-resources"),
             ]
         )
@@ -271,6 +297,7 @@ def parser() -> argparse.ArgumentParser:
     result = argparse.ArgumentParser(prog="build_desktop.py")
     result.add_argument("--engine-dir", type=Path, default=BUILD / "native")
     result.add_argument("--ffmpeg-bin", type=Path)
+    result.add_argument("--manim-worker-dir", type=Path)
     result.add_argument("--model-id", default="qwen2.5-1.5b-instruct-q4_k_m")
     result.add_argument("--model-file")
     result.add_argument("--mmproj-file")

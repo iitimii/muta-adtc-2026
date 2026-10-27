@@ -25,6 +25,7 @@ datas = [
 ]
 binaries = []
 hiddenimports = collect_submodules("uvicorn")
+hiddenimports += ["orchestrator.gateway.animation_worker"]
 
 # PyInstaller's built-in matplotlib hook collects mpl-data and the selected Agg backend.
 # collect_all(matplotlib) also drags its tests, Qt editor and docs into the product. Sherpa's

@@ -10,6 +10,8 @@ import argparse
 import hashlib
 import json
 import os
+import platform
+import re
 import signal
 import sys
 import threading
@@ -117,6 +119,63 @@ def _discover_model(model_root: Path, manifest: dict) -> tuple[Path, Path | None
     return model, mmproj
 
 
+def _version_tuple(value: str) -> tuple[int, ...]:
+    if not re.fullmatch(r"\d+(?:\.\d+){0,2}", value):
+        raise ValueError(f"invalid macOS version: {value!r}")
+    parts = [int(part) for part in value.split(".")]
+    return tuple(parts + [0] * (3 - len(parts)))
+
+
+def _macos_supports_worker(
+    minimum: str,
+    *,
+    platform_name: str | None = None,
+    system_version: str | None = None,
+) -> bool:
+    platform_name = sys.platform if platform_name is None else platform_name
+    if platform_name != "darwin":
+        return True
+    system_version = platform.mac_ver()[0] if system_version is None else system_version
+    if not system_version:
+        return False
+    return _version_tuple(system_version) >= _version_tuple(minimum)
+
+
+def _discover_manim_worker(resource_root: Path, manifest: dict) -> tuple[Path | None, str | None]:
+    selected = manifest.get("manim_worker")
+    if not selected:
+        return None, None
+    relative = selected.get("path")
+    if not relative:
+        raise ValueError("desktop-product.json declares an incomplete Manim worker")
+    worker = _safe_child(resource_root, str(relative), label="Manim worker")
+    _verify_file(
+        worker,
+        int(selected.get("size_bytes", -1)),
+        str(selected.get("sha256", "")),
+        label="Manim worker",
+    )
+    worker_manifest = selected.get("manifest")
+    if not worker_manifest:
+        raise ValueError("desktop-product.json does not identify the Manim runtime manifest")
+    manifest_path = _safe_child(
+        resource_root, str(worker_manifest), label="Manim worker manifest"
+    )
+    if not manifest_path.is_file():
+        raise FileNotFoundError(f"packaged Manim worker manifest is missing: {manifest_path}")
+    worker_manifest_body = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if worker_manifest_body.get("schema") != 1:
+        raise ValueError("unsupported packaged Manim worker manifest schema")
+    runtime = worker_manifest_body.get("runtime") or {}
+    minimum_macos = str(runtime.get("minimum_macos") or "")
+    if not minimum_macos:
+        raise ValueError("packaged Manim worker does not declare its minimum macOS version")
+    _version_tuple(minimum_macos)
+    if (selected.get("runtime") or {}).get("minimum_macos") != minimum_macos:
+        raise ValueError("desktop-product.json and Manim worker runtime metadata differ")
+    return worker, minimum_macos
+
+
 def _sqlite_dsn(path: Path) -> str:
     return "sqlite:///" + path.resolve().as_posix()
 
@@ -134,6 +193,7 @@ def configure(
 
     manifest = _load_product_manifest(resource)
     model, mmproj = _discover_model(models, manifest)
+    manim_worker, manim_minimum_macos = _discover_manim_worker(resource, manifest)
     executable = "llama-server.exe" if sys.platform == "win32" else "llama-server"
     llama = (args.llama_server or resource / "bin" / executable).expanduser().resolve()
     if not llama.is_file():
@@ -182,6 +242,16 @@ def configure(
     }
     if ffmpeg.is_file():
         values["MUTA_FFMPEG_BIN"] = str(ffmpeg)
+        values["MUTA_MANIM_FFMPEG_BIN"] = str(ffmpeg)
+    if manim_worker is not None and _macos_supports_worker(str(manim_minimum_macos)):
+        values["MUTA_MANIM_BIN"] = str(manim_worker)
+        values["MUTA_MANIM_RUNTIME_DIR"] = str(manim_worker.parent)
+    elif manim_worker is not None:
+        values["MUTA_MANIM_UNAVAILABLE_REASON"] = (
+            f"Offline Manim rendering requires macOS {manim_minimum_macos} or newer. "
+            "Animation preview, project export, transcript, and generated Manim source "
+            "remain available."
+        )
     draft_dir = models / "models" / "draft"
     drafts = sorted(draft_dir.glob("*.gguf")) if draft_dir.is_dir() else []
     # Never inherit developer-only engine or fleet settings into a signed application.
@@ -198,6 +268,11 @@ def configure(
         "MUTA_CLOUD_MODEL",
         "MUTA_CLOUD_API_KEY",
         "MUTA_SEARCH_URL",
+        "MUTA_MANIM_BIN",
+        "MUTA_MANIM_RUNTIME_DIR",
+        "MUTA_MANIM_FFMPEG_BIN",
+        "MUTA_MANIM_UNAVAILABLE_REASON",
+        "MUTA_ANIMATION_WORKER_BIN",
         "MUTA_RT_HF_REPO",
         "MUTA_RT_HF_FILENAME",
     ):
@@ -246,7 +321,14 @@ def _use_parent_watchdog(expected_pid: int, platform_name: str | None = None) ->
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = _parser().parse_args(argv)
+    raw_args = list(sys.argv[1:] if argv is None else argv)
+    # A frozen sidecar is the Python runtime for the constrained animation helper. Dispatch
+    # before argparse so Manim's own flags remain opaque and are forwarded byte-for-byte.
+    if raw_args and raw_args[0] == "--animation-worker":
+        from orchestrator.gateway.animation_worker import main as animation_worker_main
+
+        return animation_worker_main(raw_args)
+    args = _parser().parse_args(raw_args)
     if args.tool_worker:
         from orchestrator.tools._worker import main as worker_main
 
