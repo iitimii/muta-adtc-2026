@@ -1,5 +1,7 @@
 import hashlib
 import json
+import sys
+import types
 from pathlib import Path
 
 import pytest
@@ -170,6 +172,11 @@ def test_inherited_engine_and_heartbeat_settings_are_not_used(tmp_path):
         "MUTA_CLOUD_MODEL": "unexpected",
         "MUTA_CLOUD_API_KEY": "unexpected",
         "MUTA_SEARCH_URL": "https://unexpected.example",
+        "MUTA_MANIM_BIN": "/tmp/untrusted-manim",
+        "MUTA_MANIM_RUNTIME_DIR": "/tmp/untrusted-runtime",
+        "MUTA_MANIM_FFMPEG_BIN": "/tmp/untrusted-ffmpeg",
+        "MUTA_MANIM_UNAVAILABLE_REASON": "untrusted reason",
+        "MUTA_ANIMATION_WORKER_BIN": "/tmp/untrusted-animation-worker",
         "MUTA_RT_HF_REPO": "unexpected/repo",
     }
 
@@ -179,14 +186,179 @@ def test_inherited_engine_and_heartbeat_settings_are_not_used(tmp_path):
     assert "MUTA_FLEET_URL" not in environment
     assert "MUTA_CLOUD_URL" not in environment
     assert "MUTA_SEARCH_URL" not in environment
+    assert "MUTA_MANIM_BIN" not in environment
+    assert "MUTA_MANIM_RUNTIME_DIR" not in environment
+    assert "MUTA_MANIM_FFMPEG_BIN" not in environment
+    assert "MUTA_MANIM_UNAVAILABLE_REASON" not in environment
+    assert "MUTA_ANIMATION_WORKER_BIN" not in environment
     assert "MUTA_RT_HF_REPO" not in environment
     assert values["MUTA_RT_MMPROJ_PATH"].endswith("mmproj.gguf")
+
+
+def test_packaged_manim_worker_is_verified_and_exported(tmp_path):
+    resource, model_root, _model, engine = _bundle(tmp_path)
+    worker = resource / "bin" / "muta-manim" / "muta-manim"
+    worker.parent.mkdir(parents=True, exist_ok=True)
+    worker.write_bytes(b"trusted-worker")
+    worker.chmod(0o755)
+    worker_manifest = worker.parent / "MUTA-MANIM-MANIFEST.json"
+    worker_manifest.write_text(
+        json.dumps({"schema": 1, "runtime": {"minimum_macos": "14.0"}}),
+        encoding="utf-8",
+    )
+    ffmpeg = resource / "bin" / "ffmpeg"
+    ffmpeg.write_bytes(b"ffmpeg")
+    manifest_path = resource / "desktop-product.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["manim_worker"] = {
+        "path": "bin/muta-manim/muta-manim",
+        "size_bytes": worker.stat().st_size,
+        "sha256": _sha256(worker),
+        "manifest": "bin/muta-manim/MUTA-MANIM-MANIFEST.json",
+        "runtime": {"minimum_macos": "14.0"},
+    }
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    args = backend_entry._parser().parse_args(
+        [
+            "--print-config",
+            "--resource-root",
+            str(resource),
+            "--model-root",
+            str(model_root),
+            "--data-root",
+            str(tmp_path / "state"),
+            "--llama-server",
+            str(engine),
+        ]
+    )
+
+    values = backend_entry.configure(args, {})
+
+    assert values["MUTA_MANIM_BIN"] == str(worker)
+    assert values["MUTA_MANIM_RUNTIME_DIR"] == str(worker.parent)
+    assert values["MUTA_MANIM_FFMPEG_BIN"] == str(ffmpeg)
+
+
+def test_packaged_manim_worker_is_disabled_without_disabling_app_on_older_macos(
+    tmp_path, monkeypatch
+):
+    resource, model_root, _model, engine = _bundle(tmp_path)
+    worker = resource / "bin" / "muta-manim" / "muta-manim"
+    worker.parent.mkdir(parents=True, exist_ok=True)
+    worker.write_bytes(b"trusted-worker")
+    worker.chmod(0o755)
+    (worker.parent / "MUTA-MANIM-MANIFEST.json").write_text(
+        json.dumps({"schema": 1, "runtime": {"minimum_macos": "14.0"}}),
+        encoding="utf-8",
+    )
+    manifest_path = resource / "desktop-product.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["manim_worker"] = {
+        "path": "bin/muta-manim/muta-manim",
+        "size_bytes": worker.stat().st_size,
+        "sha256": _sha256(worker),
+        "manifest": "bin/muta-manim/MUTA-MANIM-MANIFEST.json",
+        "runtime": {"minimum_macos": "14.0"},
+    }
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    args = backend_entry._parser().parse_args(
+        [
+            "--print-config",
+            "--resource-root",
+            str(resource),
+            "--model-root",
+            str(model_root),
+            "--data-root",
+            str(tmp_path / "state"),
+            "--llama-server",
+            str(engine),
+        ]
+    )
+    monkeypatch.setattr(backend_entry, "_macos_supports_worker", lambda _minimum: False)
+
+    values = backend_entry.configure(args, {})
+
+    assert "MUTA_MANIM_BIN" not in values
+    assert "MUTA_MANIM_RUNTIME_DIR" not in values
+    assert values["MUTA_MANIM_UNAVAILABLE_REASON"].startswith(
+        "Offline Manim rendering requires macOS 14.0"
+    )
+
+
+def test_manim_worker_macos_capability_check_is_fail_closed():
+    assert backend_entry._macos_supports_worker(
+        "14.0", platform_name="darwin", system_version="14.0"
+    )
+    assert backend_entry._macos_supports_worker(
+        "14.0", platform_name="darwin", system_version="14"
+    )
+    assert not backend_entry._macos_supports_worker(
+        "14.0", platform_name="darwin", system_version="13.6.9"
+    )
+    assert not backend_entry._macos_supports_worker(
+        "14.0", platform_name="darwin", system_version=""
+    )
+    assert backend_entry._macos_supports_worker(
+        "14.0", platform_name="linux", system_version=""
+    )
+
+
+def test_packaged_manim_worker_hash_mismatch_fails_closed(tmp_path):
+    resource, model_root, _model, engine = _bundle(tmp_path)
+    worker = resource / "bin" / "muta-manim" / "muta-manim"
+    worker.parent.mkdir(parents=True, exist_ok=True)
+    worker.write_bytes(b"tampered")
+    (worker.parent / "MUTA-MANIM-MANIFEST.json").write_text(
+        json.dumps({"schema": 1, "runtime": {"minimum_macos": "14.0"}}),
+        encoding="utf-8",
+    )
+    manifest_path = resource / "desktop-product.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["manim_worker"] = {
+        "path": "bin/muta-manim/muta-manim",
+        "size_bytes": worker.stat().st_size,
+        "sha256": "0" * 64,
+        "manifest": "bin/muta-manim/MUTA-MANIM-MANIFEST.json",
+        "runtime": {"minimum_macos": "14.0"},
+    }
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    args = backend_entry._parser().parse_args(
+        [
+            "--resource-root",
+            str(resource),
+            "--model-root",
+            str(model_root),
+            "--data-root",
+            str(tmp_path / "state"),
+            "--llama-server",
+            str(engine),
+        ]
+    )
+
+    with pytest.raises(ValueError, match="SHA-256"):
+        backend_entry.configure(args, {})
 
 
 def test_windows_uses_native_job_instead_of_posix_parent_watchdog():
     assert backend_entry._use_parent_watchdog(1234, "nt") is False
     assert backend_entry._use_parent_watchdog(1234, "posix") is True
     assert backend_entry._use_parent_watchdog(0, "posix") is False
+
+
+def test_frozen_entrypoint_dispatches_animation_worker_before_argparse(monkeypatch):
+    received: list[list[str]] = []
+    module = types.ModuleType("orchestrator.gateway.animation_worker")
+    module.main = lambda argv: received.append(argv) or 23
+    monkeypatch.setitem(sys.modules, "orchestrator.gateway.animation_worker", module)
+
+    result = backend_entry.main(
+        ["--animation-worker", "/bundle/muta-manim", "-ql", "lesson.py", "MutaLesson"]
+    )
+
+    assert result == 23
+    assert received == [
+        ["--animation-worker", "/bundle/muta-manim", "-ql", "lesson.py", "MutaLesson"]
+    ]
 
 
 def test_packaged_heartbeat_overrides_inherited_fleet_and_printing_redacts_key(

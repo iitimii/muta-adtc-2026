@@ -42,6 +42,12 @@ NATIVE_INPUTS = (
     "scripts/verify_desktop_native.sh",
     "scripts/desktop_native_pins.env",
 )
+MANIM_INPUTS = (
+    "desktop/manim/*",
+    "scripts/build_manim_worker.py",
+    "scripts/manim_worker_metadata.py",
+    "scripts/verify_manim_worker.py",
+)
 
 
 class WorkerError(RuntimeError):
@@ -223,6 +229,86 @@ def prepare_native(platform_name: str, cache_root: Path, env: dict[str, str]) ->
     return cached
 
 
+def prepare_manim_worker(
+    platform_name: str, cache_root: Path, env: dict[str, str]
+) -> Path | None:
+    if not platform_name.startswith("darwin-"):
+        return None
+    _, _, target_arch = SUPPORTED[platform_name]
+    key = content_key(platform_name, MANIM_INPUTS)
+    cached = cache_root / "manim" / platform_name / key
+    verifier = [
+        sys.executable,
+        "scripts/verify_manim_worker.py",
+        "--root",
+        str(cached),
+        "--target-arch",
+        target_arch,
+    ]
+    if cached.is_dir():
+        run(verifier)
+        print(f"Manim worker cache hit: {key[:12]}")
+        return cached
+
+    temporary = cached.with_name(f".{key}.tmp-{os.getpid()}")
+    shutil.rmtree(temporary, ignore_errors=True)
+    temporary.parent.mkdir(parents=True, exist_ok=True)
+    prepared = env.get("MUTA_MANIM_WORKER_DIR", "").strip()
+    builder_python = env.get("MUTA_MANIM_BUILDER_PYTHON", "").strip()
+    if prepared:
+        source = Path(prepared).expanduser().resolve()
+        run(
+            [
+                sys.executable,
+                "scripts/verify_manim_worker.py",
+                "--root",
+                str(source),
+                "--target-arch",
+                target_arch,
+                "--smoke",
+            ]
+        )
+        shutil.copytree(source, temporary, symlinks=True)
+    elif builder_python:
+        run(
+            [
+                sys.executable,
+                "scripts/build_manim_worker.py",
+                "--builder-python",
+                builder_python,
+                "--target-arch",
+                target_arch,
+                "--output",
+                str(temporary),
+                "--work-root",
+                str(cache_root / "manim-work" / platform_name),
+                "--smoke",
+            ]
+        )
+    else:
+        raise WorkerError(
+            "Manim worker cache miss: set MUTA_MANIM_WORKER_DIR to a verified frozen worker "
+            "or MUTA_MANIM_BUILDER_PYTHON to the pinned architecture-matched build environment"
+        )
+    run(
+        [
+            sys.executable,
+            "scripts/verify_manim_worker.py",
+            "--root",
+            str(temporary),
+            "--target-arch",
+            target_arch,
+        ]
+    )
+    if cached.exists():
+        shutil.rmtree(temporary)
+    else:
+        temporary.replace(cached)
+    run(verifier)
+    print(f"Manim worker cache stored: {key[:12]}")
+    return cached
+
+
 def gateway_cache(platform_name: str, cache_root: Path) -> tuple[Path, bool]:
     key_result = subprocess.run(
         [sys.executable, "scripts/desktop_cache_key.py", "gateway"],
@@ -265,6 +351,7 @@ def build(args: argparse.Namespace) -> Path:
             run([sys.executable, "scripts/verify_desktop_models.py"])
         prepare_ui(cache_root)
         native = prepare_native(args.platform, cache_root, env)
+        manim_worker = prepare_manim_worker(args.platform, cache_root, env)
         cached_gateway, reuse_gateway = gateway_cache(args.platform, cache_root)
 
         target_bundle = bundle_root(env)
@@ -284,29 +371,32 @@ def build(args: argparse.Namespace) -> Path:
         ]
         if reuse_gateway:
             command.append("--reuse-frozen-gateway")
+        if manim_worker is not None:
+            command += ["--manim-worker-dir", str(manim_worker)]
         run(command, env=env)
         if not reuse_gateway:
             replace_tree(DESKTOP / "build" / "gateway", cached_gateway)
             run([sys.executable, "scripts/freeze_desktop_gateway.py", "--verify-only"])
 
         _, target_os, target_arch = SUPPORTED[args.platform]
-        run(
-            [
-                sys.executable,
-                "scripts/inspect_desktop_artifact.py",
-                "--app-resources",
-                "desktop/build/app-resources",
-                "--gateway",
-                "desktop/build/gateway",
-                "--model-pack",
-                "desktop/build/model-pack",
-                "--target-os",
-                target_os,
-                "--target-arch",
-                target_arch,
-                "--require-heartbeat",
-            ]
-        )
+        inspect_command = [
+            sys.executable,
+            "scripts/inspect_desktop_artifact.py",
+            "--app-resources",
+            "desktop/build/app-resources",
+            "--gateway",
+            "desktop/build/gateway",
+            "--model-pack",
+            "desktop/build/model-pack",
+            "--target-os",
+            target_os,
+            "--target-arch",
+            target_arch,
+            "--require-heartbeat",
+        ]
+        if args.platform.startswith("darwin-"):
+            inspect_command.append("--require-manim-worker")
+        run(inspect_command)
         run(
             [
                 sys.executable,

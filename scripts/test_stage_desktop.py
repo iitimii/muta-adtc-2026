@@ -75,6 +75,7 @@ def test_desktop_defaults_ship_only_qwen25():
 
     assert args.model_id == "qwen2.5-1.5b-instruct-q4_k_m"
     assert args.bundled_model_id == []
+    assert args.manim_worker_dir is None
 
 
 def test_stage_writes_only_qwen25_clean_start(tmp_path, monkeypatch):
@@ -106,6 +107,20 @@ def test_stage_writes_only_qwen25_clean_start(tmp_path, monkeypatch):
     engine = root / "engine/llama-server"
     engine.parent.mkdir()
     engine.write_bytes(b"engine")
+    manim_worker = root / "manim-worker"
+    manim_executable = manim_worker / "muta-manim"
+    manim_executable.parent.mkdir()
+    manim_executable.write_bytes(b"worker")
+    (manim_worker / "MUTA-MANIM-MANIFEST.json").write_text(
+        json.dumps(
+            {
+                "schema": 1,
+                "target": {"os": "macos", "arch": "aarch64"},
+                "runtime": {"manim": "0.22.0", "typst": "0.15.0"},
+                "files": [],
+            }
+        )
+    )
     app_output = tmp_path / "app"
     model_output = tmp_path / "model-pack"
     args = Namespace(
@@ -113,6 +128,7 @@ def test_stage_writes_only_qwen25_clean_start(tmp_path, monkeypatch):
         model_output=model_output,
         engine_dir=engine.parent,
         ffmpeg_bin=None,
+        manim_worker_dir=manim_worker,
         model_id=stage_desktop.DEFAULT_MODEL_ID,
         bundled_model_id=[],
         model_file=None,
@@ -139,6 +155,10 @@ def test_stage_writes_only_qwen25_clean_start(tmp_path, monkeypatch):
     assert {
         entry["path"] for entry in pack["files"] if entry["path"].endswith(".gguf")
     } == {"models/core/Muta-Tutor-Qwen2.5-1.5B-Finetuned-Q4_K_M.gguf"}
+    packaged_worker = app_output / "bin/muta-manim/muta-manim"
+    assert packaged_worker.read_bytes() == b"worker"
+    assert product["manim_worker"]["path"] == "bin/muta-manim/muta-manim"
+    assert product["manim_worker"]["sha256"] == hashlib.sha256(b"worker").hexdigest()
 
 
 def test_safe_relative_rejects_parent_escape():

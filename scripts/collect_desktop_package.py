@@ -11,6 +11,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from refresh_desktop_manifests import refresh as refresh_desktop_manifests
+
 
 class PackageError(RuntimeError):
     pass
@@ -41,16 +43,48 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _mach_o_files(app: Path) -> list[Path]:
+    candidates: list[Path] = []
+    main_bin = app / "Contents" / "MacOS"
+    for path in app.rglob("*"):
+        if path.is_symlink() or not path.is_file() or main_bin in path.parents:
+            continue
+        probe = subprocess.run(
+            ["/usr/bin/file", "-b", str(path)],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if probe.returncode == 0 and "Mach-O" in probe.stdout:
+            candidates.append(path)
+    return sorted(candidates, key=lambda path: len(path.parts), reverse=True)
+
+
 def _adhoc_sign_macos_app(app: Path) -> None:
-    """Seal the completely assembled private-test bundle after all resources are present."""
+    """Sign nested code, refresh byte manifests, then seal the private-test bundle."""
     if sys.platform != "darwin":
         raise PackageError("macOS packages must be collected and sealed on macOS")
     codesign = shutil.which("codesign")
     if not codesign:
         raise PackageError("codesign is required to seal a macOS private-test package")
     try:
+        for candidate in _mach_o_files(app):
+            subprocess.run(
+                [
+                    codesign,
+                    "--force",
+                    "--sign",
+                    "-",
+                    "--timestamp=none",
+                    str(candidate),
+                ],
+                check=True,
+            )
+        resources = app / "Contents" / "Resources" / "resources"
+        if (resources / "desktop-product.json").is_file():
+            refresh_desktop_manifests(resources)
         subprocess.run(
-            [codesign, "--force", "--deep", "--sign", "-", "--timestamp=none", str(app)],
+            [codesign, "--force", "--sign", "-", "--timestamp=none", str(app)],
             check=True,
         )
         subprocess.run(

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts import desktop_cache_changes, desktop_cache_key
+from scripts import desktop_cache_changes, desktop_cache_key, manual_desktop_worker
 from scripts import verify_desktop_models as models
 from scripts.freeze_desktop_gateway import FreezeError, validate_gateway
 
@@ -66,6 +66,25 @@ def test_gateway_cache_key_changes_with_backend_source(
     first = desktop_cache_key.gateway_key()
     source.write_text("VALUE = 2\n")
     assert desktop_cache_key.gateway_key() != first
+
+
+def test_manim_worker_cache_key_changes_with_packaging_recipe(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(manual_desktop_worker, "REPO_ROOT", tmp_path)
+    recipe = tmp_path / "desktop/manim/requirements.lock"
+    recipe.parent.mkdir(parents=True)
+    recipe.write_text("manim==0.22.0\n")
+    first = manual_desktop_worker.content_key("darwin-aarch64", ("desktop/manim/*",))
+    recipe.write_text("manim==0.22.1\n")
+    assert manual_desktop_worker.content_key(
+        "darwin-aarch64", ("desktop/manim/*",)
+    ) != first
+
+
+def test_mac_manual_packager_requires_manim_at_artifact_inspection() -> None:
+    source = (manual_desktop_worker.REPO_ROOT / "scripts/manual_desktop_worker.py").read_text()
+    assert 'inspect_command.append("--require-manim-worker")' in source
 
 
 def test_cache_change_classifier_keeps_layers_independent() -> None:
