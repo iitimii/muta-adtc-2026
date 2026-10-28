@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import math
+import re
 import threading
 from types import SimpleNamespace
 
@@ -47,6 +49,52 @@ VALID = source("c = Circle(radius=2, color=TEAL)\nself.play(Create(c), run_time=
 )
 def test_actual_composable_manim_programs_pass_without_scene_family_matching(body):
     assert validate_manim_program(source(body)) == source(body)
+
+
+@pytest.mark.parametrize("step", [0.01, 0, -1])
+def test_range_repair_feedback_identifies_call_and_preserves_domain(step):
+    candidate = source(
+        "axes = Axes(x_range=[-3.14,3.14,1])\n"
+        f"curve = axes.plot(lambda x: np.sin(x), x_range=[-3.14,3.14,{step}])\n"
+        "self.play(Create(curve), run_time=2)"
+    )
+    with pytest.raises(AnimationProgramError) as rejected:
+        validate_manim_program(candidate)
+    message = str(rejected.value)
+    assert "at most 256 intervals" in message
+    assert f"axes.plot has x_range=[-3.14, 3.14, {step}]" in message
+    assert f"at least {math.nextafter(6.28 / 256, math.inf)!r}" in message
+    assert "omit the third value: x_range=[-3.14, 3.14]" in message
+    assert "Keep the original endpoints and equation" in message
+
+
+def test_range_repair_does_not_recommend_an_invalid_default_step_span():
+    candidate = source("axes = Axes(x_range=[-100,100,0.1])")
+    with pytest.raises(AnimationProgramError) as rejected:
+        validate_manim_program(candidate)
+    assert "Axes has x_range=[-100, 100, 0.1]" in str(rejected.value)
+    assert "omit" not in str(rejected.value)
+
+
+def test_range_interval_limit_is_unchanged_and_source_is_not_rewritten():
+    candidate = source("axes = Axes(x_range=[0,256,1])\nself.play(Create(axes),run_time=2)")
+    assert validate_manim_program(candidate) == candidate
+    with pytest.raises(AnimationProgramError, match="at most 256 intervals"):
+        validate_manim_program(source("axes = Axes(x_range=[0,257,1])"))
+
+
+@pytest.mark.parametrize("end", ["1/3", "PI", "0.1", "3.14"])
+def test_reported_minimum_range_step_round_trips_with_original_endpoints(end):
+    with pytest.raises(AnimationProgramError) as rejected:
+        validate_manim_program(source(f"axes = Axes(x_range=[0,{end},0.0001])"))
+    message = str(rejected.value)
+    minimum = re.search(r"step at least ([^ ]+)", message).group(1)
+    candidate = source(
+        f"axes = Axes(x_range=[0,{end},{minimum}])\nself.play(Create(axes),run_time=2)"
+    )
+    assert validate_manim_program(candidate) == candidate
+    if end == "1/3":
+        assert "x_range=[0, 1 / 3]" in message
 
 
 @pytest.mark.parametrize(
@@ -187,6 +235,7 @@ def test_every_prompt_reaches_local_model_and_source_is_not_substituted():
     program = author_manim_program(engine, request())
     assert len(engine.local.calls) == 1
     assert "5.6" in json.dumps(engine.local.calls[0][0])
+    assert "Axis ticks are not plotting samples" in engine.local.calls[0][0][-1]["content"]
     assert program.source == VALID  # Even this intentionally different stub source is not replaced.
     assert program.source_sha256 == source_hash(VALID)
     assert program.model_id == "local-test-model"

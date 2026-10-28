@@ -1205,8 +1205,28 @@ class _Validator(ast.NodeVisitor):
                 if len(values) == 3 and (
                     values[2] <= 0 or (values[1] - values[0]) / values[2] > 256
                 ):
+                    span = values[1] - values[0]
+                    # Give the model an actionable compiler diagnostic, not a
+                    # rewritten scene. Keep the same range/resource acceptance.
+                    call = ast.unparse(node.func)
+                    endpoint_text = [ast.unparse(item) for item in keyword.value.elts]
+                    actual_range = ", ".join(endpoint_text)
+                    # Round upward and serialize losslessly so applying the
+                    # reported minimum cannot immediately repeat this error.
+                    minimum_step = repr(math.nextafter(span / 256, math.inf))
+                    example_step = repr(math.nextafter(span / 128, math.inf))
+                    omit_step = (
+                        f" Or omit the third value: {keyword.arg}=["
+                        f"{endpoint_text[0]}, {endpoint_text[1]}]."
+                        if span <= 64
+                        else ""
+                    )
                     raise AnimationProgramError(
-                        "Explicit sampling/tick ranges permit at most 256 intervals."
+                        "Explicit sampling/tick ranges permit at most 256 intervals. "
+                        f"{call} has {keyword.arg}=[{actual_range}]. "
+                        f"The third value is a positive step, not a sample count; "
+                        f"use a step at least {minimum_step} (for example {example_step})."
+                        f"{omit_step} Keep the original endpoints and equation."
                     )
                 if len(values) == 2 and values[1] - values[0] > 64:
                     raise AnimationProgramError("A default-step range may span at most 64 units.")
@@ -1368,6 +1388,7 @@ def author_manim_program(
         "from manim import *\nimport numpy as np\nclass MutaLesson(Scene):\n    def construct(self):\n        # Write your complete requested animation here.\n"
         "\nAPI notes: Axes(x_range=[minimum,maximum,tick_step], y_range=[minimum,maximum,tick_step], x_length=9, y_length=4). "
         "A range's third value is a STEP, not a sample count. Plot with axes.plot(lambda x: expression, x_range=[minimum,maximum], color=BLUE). "
+        "Choose readable axis tick steps: about 5 to 12 intervals per axis. Axis ticks are not plotting samples; use only two endpoints for a plot domain. "
         "axes.get_axis_labels(x_label=Text('x'), y_label=Text('y')). Do not call set_x_range, set_y_range, set_axis_labels or arange. Plot lambdas do not need precomputed arrays. "
         "For groups use VGroup with a range comprehension; loop only over range, never groups. "
         "Do not use '_' as a loop name. Use self.play(Create(object), run_time=2) and self.wait(1). "

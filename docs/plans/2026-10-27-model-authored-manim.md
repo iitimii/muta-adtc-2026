@@ -74,6 +74,21 @@ only the learner may choose which saved project to remove. Test that the origina
 library is byte-identical after rejection, including mixed legacy/program documents. Do not
 exercise a ninth native save until the corrected source has been reviewed and rebuilt.
 
+### Range-feedback refinement from native acceptance
+
+The exact 00e096 native sine test failed all three bounded model attempts on the explicit
+256-interval range guard. A generic limit message did not identify the offending call, range,
+or required step. Improve compiler diagnostics to identify the range keyword, its endpoints
+and step, interval count and minimum admissible step, with the option to omit the third value.
+Keep the same numerical/resource acceptance limits and original model source; do not rewrite
+the program, its equation or domain. Test detailed feedback for ordinary axes/plot ranges,
+then repeat actual installed-model generation before authorising another package rebuild.
+The first successful repair rendered the right curve but left visually dense ticks on the
+other axis. Add generic API guidance distinguishing readable axis ticks (roughly 5–12
+intervals) from plot sampling. This is prompt guidance, not a deterministic scene substitution
+or a changed validator threshold. Inspect rendered frames rather than accepting MP4 creation
+alone. Minimum-step diagnostics must round upward losslessly; preserve endpoint AST expressions.
+
 ## Public contract (freeze before UI/backend split)
 
 - POST /v1/animation/program: authenticated learner brief and optional bounded previous source /
