@@ -271,6 +271,29 @@ def test_blocking_contract_call_releases_its_lane_when_operation_fails():
     assert manager.run_when_idle(lambda: "ready") == "ready"
 
 
+def test_blocking_cancel_before_registration_does_not_wait_for_busy_lane():
+    gate = threading.Event()
+    manager = GenerationManager(max_active=1, max_queued=2)
+
+    def producer():
+        yield 'data: {"delta":"busy"}\n\n'
+        gate.wait(2)
+
+    running = manager.start(student_id="owner", conversation_id="busy", producer=producer())
+    cancel = threading.Event()
+    cancel.set()  # Disconnect happened before execute could register its job.
+    started = threading.Event()
+    try:
+        with pytest.raises(GenerationCapacityError, match="stopped"):
+            manager.execute(student_id="other", cancel_event=cancel, operation=lambda: started.set())
+        assert not started.is_set()
+        assert manager.status()["queued"] == 0
+        assert running.snapshot().state == "running"
+    finally:
+        gate.set()
+        running.wait(1)
+
+
 def test_client_request_id_finds_a_completed_replay_after_refresh():
     manager = GenerationManager()
     job = manager.start(

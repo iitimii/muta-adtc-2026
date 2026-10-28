@@ -33,6 +33,9 @@ from fastapi.responses import Response, StreamingResponse
 from contracts.models import (
     AnimationPlanRequest,
     AnimationPlanResponse,
+    AnimationProgramRenderRequest,
+    AnimationProgramRequest,
+    AnimationProgramResponse,
     AnimationRenderCapability,
     AnimationSourceRequest,
     AnimationSourceResponse,
@@ -94,6 +97,13 @@ from contracts.models import (
 )
 from orchestrator import bench_metrics
 from orchestrator.gateway.animation_planner import AnimationPlanBriefError, plan_animation_project
+from orchestrator.gateway.animation_program import (
+    AnimationProgramError,
+    author_manim_program,
+    isolated_program_capability,
+    program_origin,
+    render_authored_program,
+)
 from orchestrator.gateway.animation_render import (
     AnimationRenderBusyError,
     AnimationRenderError,
@@ -456,7 +466,9 @@ def _align_resumed_citations(engine: ChatEngine, resume: dict) -> dict:
     if not numbers or max(numbers) <= len(cited):
         return resume
     stripped = re.sub(r"[ \t]*\[\s*R[1-9]\d*\s*\]", "", resume["partial"])
-    log.info("resumed answer had %d markers for %d citations; markers removed", len(numbers), len(cited))
+    log.info(
+        "resumed answer had %d markers for %d citations; markers removed", len(numbers), len(cited)
+    )
     engine.store.update_message(resume["assistant_message_id"], stripped)
     return {**resume, "partial": stripped, "resource_citations": []}
 
@@ -963,15 +975,165 @@ def animation_source(
     response_model=AnimationRenderCapability,
     tags=["tutor"],
 )
-def animation_render_capability(
+async def animation_render_capability(
+    request: Request,
     caller: str = Depends(require_caller),
 ) -> AnimationRenderCapability:
     """Report whether this offline build includes the bounded Manim worker."""
     del caller
     capability = manim_capability()
+    program_capability = await _program_capability_for_request(request)
     return AnimationRenderCapability(
         available=capability.available,
         detail=capability.detail,
+        program_available=bool(program_capability["available"]),
+        program_detail=str(program_capability["detail"]),
+    )
+
+
+async def _program_capability_for_request(request: Request) -> dict[str, object]:
+    """Cold staging/probing must never block the HTTP event loop or outlive cancellation."""
+    cancel_event = threading.Event()
+    execution = asyncio.create_task(run_in_threadpool(lambda: isolated_program_capability(cancel_event=cancel_event)))
+    try:
+        while not execution.done():
+            await asyncio.sleep(0.05)
+            if await request.is_disconnected():
+                cancel_event.set()
+        result = await execution
+        if cancel_event.is_set():
+            raise HTTPException(status_code=499, detail="Animation capability check cancelled")
+        return result
+    except asyncio.CancelledError:
+        cancel_event.set()
+        with contextlib.suppress(Exception):
+            await asyncio.shield(execution)
+        raise
+
+
+@router.post("/animation/program", response_model=AnimationProgramResponse, tags=["tutor"])
+async def animation_program(
+    request: Request,
+    req: AnimationProgramRequest,
+    engine: ChatEngine = Depends(get_engine),
+    sessions: SessionManager = Depends(get_sessions),
+    ladder: DegradationLadder = Depends(get_ladder),
+    generations: GenerationManager = Depends(get_generation_manager),
+    caller: str = Depends(require_caller),
+) -> AnimationProgramResponse:
+    """Ask the installed local model for real Manim source, never a fixed scene substitution."""
+    if caller != req.student_id:
+        raise HTTPException(status_code=403, detail="you can only author your own animation")
+    capability = await _program_capability_for_request(request)
+    if not capability["available"]:
+        raise HTTPException(status_code=503, detail=str(capability["detail"]))
+    await run_in_threadpool(_await_local_tutor)
+    cancel_event = threading.Event()
+    admission_id = f"generation:manim:{uuid.uuid4().hex}"
+    client_request_id = f"manim:{uuid.uuid4().hex}"
+
+    def stop_matching_job() -> None:
+        cancel_event.set()
+        for snapshot in generations.matching(caller, client_request_id):
+            job = generations.get(snapshot.job_id, student_id=caller)
+            if job is not None and snapshot.state in {"queued", "running"}:
+                job.request_stop()
+
+    def claim() -> bool:
+        decision = sessions.acquire(admission_id)
+        if decision.admission is Admission.REFUSED:
+            raise HTTPException(status_code=503, detail=decision.message or ladder.busy_message())
+        return decision.admitted
+
+    def operation():
+        try:
+            return author_manim_program(engine, req, cancel_event=cancel_event)
+        finally:
+            sessions.release(admission_id)
+
+    execution = asyncio.create_task(
+        run_in_threadpool(
+            lambda: generations.execute(
+                student_id=caller,
+                allow_parallel=False,
+                client_request_id=client_request_id,
+                queued_cleanup=lambda: sessions.release(admission_id),
+                before_start=claim,
+                cancel_event=cancel_event,
+                operation=operation,
+            )
+        )
+    )
+    try:
+        while not execution.done():
+            await asyncio.sleep(0.05)
+            if await request.is_disconnected():
+                stop_matching_job()
+        program, _queued, _position = await execution
+    except asyncio.CancelledError:
+        stop_matching_job()
+        with contextlib.suppress(Exception):
+            await asyncio.shield(execution)
+        raise
+    except GenerationCapacityError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except AnimationProgramError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": str(exc),
+                "source": exc.source,
+                "repairable": bool(exc.source),
+            },
+        ) from exc
+    except Exception as exc:
+        log.warning("local Manim authoring failed", exc_info=True)
+        raise HTTPException(
+            status_code=503, detail="The installed local model could not finish this Manim program."
+        ) from exc
+    return AnimationProgramResponse(program=program)
+
+
+@router.post(
+    "/animation/program/render",
+    tags=["tutor"],
+    responses={200: {"content": {"video/mp4": {}}, "description": "Isolated model-code video"}},
+)
+async def animation_program_render(
+    req: AnimationProgramRenderRequest,
+    request: Request,
+    caller: str = Depends(require_caller),
+) -> Response:
+    """Validate submitted source again and execute only in the proven offline OS sandbox."""
+    del caller
+    cancel_event = threading.Event()
+    execution = asyncio.create_task(
+        run_in_threadpool(lambda: render_authored_program(req.program, cancel_event=cancel_event))
+    )
+    try:
+        while not execution.done():
+            await asyncio.sleep(0.05)
+            if await request.is_disconnected():
+                cancel_event.set()
+        video = await execution
+    except asyncio.CancelledError:
+        cancel_event.set()
+        with contextlib.suppress(Exception):
+            await asyncio.shield(execution)
+        raise
+    except AnimationRenderBusyError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except (AnimationProgramError, AnimationRenderError) as exc:
+        raise HTTPException(status_code=422, detail=str(exc)[:1200]) from exc
+    return Response(
+        video,
+        media_type="video/mp4",
+        headers={
+            "Content-Disposition": f'attachment; filename="{req.program.id}-manim.mp4"',
+            "Cache-Control": "no-store",
+            "X-Muta-Code-Origin": program_origin(req.program),
+            "X-Muta-Source-SHA256": req.program.source_sha256,
+        },
     )
 
 
@@ -1667,9 +1829,7 @@ def chat(
         consulted_only = False
         if req.use_rag:
             chat_result.reply, final_resource_sources = finalize_resource_reply(
-                attribute_claims(
-                    chat_result.reply, resource_passages, embed=_attribution_embed()
-                ),
+                attribute_claims(chat_result.reply, resource_passages, embed=_attribution_embed()),
                 resource_sources,
             )
             final_resource_sources, consulted_only = _consulted_fallback(

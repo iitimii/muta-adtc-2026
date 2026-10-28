@@ -90,9 +90,7 @@ class ProductAnalyticsStatus(BaseModel):
     configured: bool = Field(
         description="True when this build has a fleet collector URL and ingest credential."
     )
-    manageable: bool = Field(
-        description="True only on the laptop operator's local surface."
-    )
+    manageable: bool = Field(description="True only on the laptop operator's local surface.")
     consent: Literal["unknown", "granted", "declined"]
     prompt_required: bool = False
     location_mode: Literal["none", "approximate_ip"] = "none"
@@ -431,8 +429,10 @@ class AnimationFunctionData(BaseModel):
             if self.bounds is not None:
                 raise ValueError("derivative scenes do not accept integral bounds")
         elif self.mode == "integral":
-            if self.bounds is None or self.bounds[0] == self.bounds[1] or not all(
-                self.domain[0] <= value <= self.domain[1] for value in self.bounds
+            if (
+                self.bounds is None
+                or self.bounds[0] == self.bounds[1]
+                or not all(self.domain[0] <= value <= self.domain[1] for value in self.bounds)
             ):
                 raise ValueError("integral bounds must be distinct points inside the domain")
             if self.parameter is not None:
@@ -573,6 +573,44 @@ class AnimationRenderCapability(BaseModel):
     available: bool
     renderer: Literal["manim"] = "manim"
     detail: str
+    program_available: bool = False
+    program_detail: str = "Isolated model-authored Manim is not available in this build."
+
+
+class AnimationProgramRequest(AnimationPlanRequest):
+    """One local-model Manim authoring/repair turn; source is never trusted for execution."""
+
+    concept: str = Field(default="", max_length=1600)
+    previous_source: str = Field(default="", max_length=24000)
+    feedback: str = Field(default="", max_length=1200)
+
+
+class AnimationProgram(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    version: Literal[1] = 1
+    kind: Literal["manim-program"] = "manim-program"
+    id: str = Field(pattern=r"^program-[a-f0-9]{24}$")
+    title: str = Field(min_length=1, max_length=180)
+    level: Literal["early-primary", "upper-primary", "secondary", "tertiary"]
+    source: str = Field(min_length=1, max_length=24000)
+    source_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    model_id: str = Field(default="", max_length=180)
+    generation_token: str = Field(default="", pattern=r"^(?:[a-f0-9]{64})?$")
+    created_at: str = Field(min_length=1, max_length=64)
+    brief: str = Field(min_length=1, max_length=20000)
+
+
+class AnimationProgramResponse(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    program: AnimationProgram
+
+
+class AnimationProgramRenderRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    program: AnimationProgram
 
 
 class AnimationPlanResponse(BaseModel):

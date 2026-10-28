@@ -1,7 +1,8 @@
-"""Trusted Manim source generation and bounded offline rendering.
+"""Legacy typed-project Manim source generation and bounded offline rendering.
 
-The local model never writes Python.  It can only produce the closed project models in
-``contracts.models``; this module converts those validated values into fixed Manim constructs.
+This legacy path accepts only closed project models in ``contracts.models`` and converts
+those validated values into fixed Manim constructs. New Studio model-written Python uses
+``animation_program`` and the separate fail-closed ``animation_sandbox``, never this emitter.
 Proposal-controlled strings are emitted with ``repr`` and reach only Manim ``Text`` objects.
 """
 

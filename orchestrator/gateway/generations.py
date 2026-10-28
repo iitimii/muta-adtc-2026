@@ -640,7 +640,18 @@ class GenerationManager:
         except Exception:
             self.cancel_reservation(reservation_id)
             raise
-        job.wait()
+        # A disconnect can precede registration: observing only the job registry
+        # from the request thread misses that race and leaves a queued waiter.
+        # The owner of this blocking adapter keeps cancellation/cleanup ownership
+        # through registration and until the producer is actually terminal.
+        while True:
+            if cancel_event is not None and cancel_event.is_set():
+                job.request_stop()
+            try:
+                job.wait(timeout_s=0.05)
+                break
+            except TimeoutError:
+                continue
         error = result.get("error")
         if isinstance(error, BaseException):
             raise error

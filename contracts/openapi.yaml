@@ -206,6 +206,92 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HTTPValidationError'
+  /v1/animation/program:
+    post:
+      tags:
+      - tutor
+      summary: Animation Program
+      description: Ask the installed local model for real Manim source, never a fixed scene substitution.
+      operationId: animation_program_v1_animation_program_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      - name: muta_share_session
+        in: cookie
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Muta Share Session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnimationProgramRequest'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnimationProgramResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /v1/animation/program/render:
+    post:
+      tags:
+      - tutor
+      summary: Animation Program Render
+      description: Validate submitted source again and execute only in the proven offline OS sandbox.
+      operationId: animation_program_render_v1_animation_program_render_post
+      parameters:
+      - name: authorization
+        in: header
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Authorization
+      - name: muta_share_session
+        in: cookie
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Muta Share Session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnimationProgramRenderRequest'
+      responses:
+        '200':
+          description: Isolated model-code video
+          content:
+            application/json:
+              schema: {}
+            video/mp4: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
   /v1/animation/render:
     post:
       tags:
@@ -3476,6 +3562,140 @@ components:
       - duration_ms
       - data
       title: AnimationProcessScene
+    AnimationProgram:
+      properties:
+        version:
+          type: integer
+          const: 1
+          title: Version
+          default: 1
+        kind:
+          type: string
+          const: manim-program
+          title: Kind
+          default: manim-program
+        id:
+          type: string
+          pattern: ^program-[a-f0-9]{24}$
+          title: Id
+        title:
+          type: string
+          maxLength: 180
+          minLength: 1
+          title: Title
+        level:
+          type: string
+          enum:
+          - early-primary
+          - upper-primary
+          - secondary
+          - tertiary
+          title: Level
+        source:
+          type: string
+          maxLength: 24000
+          minLength: 1
+          title: Source
+        source_sha256:
+          type: string
+          pattern: ^[a-f0-9]{64}$
+          title: Source Sha256
+        model_id:
+          type: string
+          maxLength: 180
+          title: Model Id
+          default: ''
+        generation_token:
+          type: string
+          pattern: ^(?:[a-f0-9]{64})?$
+          title: Generation Token
+          default: ''
+        created_at:
+          type: string
+          maxLength: 64
+          minLength: 1
+          title: Created At
+        brief:
+          type: string
+          maxLength: 20000
+          minLength: 1
+          title: Brief
+      additionalProperties: false
+      type: object
+      required:
+      - id
+      - title
+      - level
+      - source
+      - source_sha256
+      - created_at
+      - brief
+      title: AnimationProgram
+    AnimationProgramRenderRequest:
+      properties:
+        program:
+          $ref: '#/components/schemas/AnimationProgram'
+      additionalProperties: false
+      type: object
+      required:
+      - program
+      title: AnimationProgramRenderRequest
+    AnimationProgramRequest:
+      properties:
+        student_id:
+          type: string
+          maxLength: 128
+          title: Student Id
+        topic:
+          type: string
+          maxLength: 240
+          minLength: 1
+          title: Topic
+        level:
+          type: string
+          enum:
+          - early-primary
+          - upper-primary
+          - secondary
+          - tertiary
+          title: Level
+        concept:
+          type: string
+          maxLength: 1600
+          title: Concept
+          default: ''
+        requirements:
+          type: string
+          maxLength: 1000
+          title: Requirements
+          default: ''
+        previous_source:
+          type: string
+          maxLength: 24000
+          title: Previous Source
+          default: ''
+        feedback:
+          type: string
+          maxLength: 1200
+          title: Feedback
+          default: ''
+      additionalProperties: false
+      type: object
+      required:
+      - student_id
+      - topic
+      - level
+      title: AnimationProgramRequest
+      description: One local-model Manim authoring/repair turn; source is never trusted for execution.
+    AnimationProgramResponse:
+      properties:
+        program:
+          $ref: '#/components/schemas/AnimationProgram'
+      additionalProperties: false
+      type: object
+      required:
+      - program
+      title: AnimationProgramResponse
     AnimationRenderCapability:
       properties:
         available:
@@ -3489,6 +3709,14 @@ components:
         detail:
           type: string
           title: Detail
+        program_available:
+          type: boolean
+          title: Program Available
+          default: false
+        program_detail:
+          type: string
+          title: Program Detail
+          default: Isolated model-authored Manim is not available in this build.
       additionalProperties: false
       type: object
       required:
