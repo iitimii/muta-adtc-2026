@@ -34,33 +34,36 @@ function fixture(fetchImpl) {
   global.cancelAnimationFrame = () => {};
   global.localStorage = { getItem: () => null, setItem() {} };
   global.fetch = fetchImpl;
+  global.MutaChat = { studentId: "test-learner" };
   const studio = animator.mountStudio(root);
   studio.concept.value = "Explain 12 ÷ 3";
   studio.level.value = "upper-primary";
   return studio;
 }
 
-const capability = (available = true) => ({ ok: true, json: async () => ({ available, detail: available ? "Ready" : "Requires macOS 14 or later." }) });
+const capability = (available = true) => ({ ok: true, json: async () => ({ available, detail: available ? "Ready" : "Requires macOS 14 or later.", program_available: available, program_detail: "Verified sandbox unavailable" }) });
 const video = () => ({ ok: true, headers: { get: () => "video/mp4" }, blob: async () => new Blob(["real video fixture"], { type: "video/mp4" }) });
 const project = () => animator.planProject({ topic: "Division", concept: "14 ÷ 4", level: "upper-primary" });
 const settle = () => new Promise((resolve) => setImmediate(resolve));
+const program = (caption = "Model scene") => ({ version: 1, kind: "manim-program", id: "program-0123456789abcdef01234567", title: caption, level: "secondary", source: `from manim import *\nclass MutaLesson(Scene):\n    def construct(self):\n        self.play(Write(Text("${caption}")), run_time=2)\n`, source_sha256: "a".repeat(64), model_id: "test-local-model", generation_token: "b".repeat(64), created_at: new Date().toISOString(), brief: "Original brief" });
+const authored = (value = program()) => ({ ok: true, json: async () => ({ program: value }) });
 
 test("Generate finishes in one MP4 stage, without Canvas or automatic playback", async () => {
   const calls = [];
-  const studio = fixture(async (url) => { calls.push(url); return url.endsWith("render-capability") ? capability() : video(); });
+  const studio = fixture(async (url) => { calls.push(url); return url.endsWith("render-capability") ? capability() : url.endsWith("/program") ? authored() : video(); });
   assert.equal(studio.tools.hidden, true);
   await studio.generateProject();
-  assert.equal(studio.project.scenes[0].kind, "division");
-  assert.deepEqual(calls, ["/v1/animation/render-capability", "/v1/animation/render"]);
+  assert.equal(studio.project.kind, "manim-program");
+  assert.deepEqual(calls, ["/v1/animation/render-capability", "/v1/animation/program", "/v1/animation/program/render"]);
   assert.equal(studio.renderedManimVideo.parentElement, studio.previewRoot);
   assert.equal(studio.renderedManimVideo.hidden, false);
   assert.equal(studio.renderedManimVideo.controls, true);
   assert.equal(studio.renderedManimVideo.autoplay, undefined);
-  assert.equal(studio.draftRoot.hidden, true);
+  assert.equal(studio.draftRoot, undefined);
   assert.equal(studio.player, null);
   assert.equal(studio.downloadRendered.hidden, false);
   assert.equal(studio.renderButton.hidden, true);
-  assert.equal(studio.tools.open, undefined);
+  assert.equal(studio.tools.open, false);
   assert.equal(studio.generate.disabled, false);
   studio.destroy();
 });
@@ -147,13 +150,13 @@ test("source requests are lazy, and a stale opened disclosure cannot overwrite r
   studio.destroy();
 });
 
-test("visible concept alone supplies the required topic for a novel local-tutor plan", async () => {
+test("visible concept alone supplies the required topic for actual model-code authoring", async () => {
   let requestBody;
   global.MutaChat = { studentId: "test-learner" };
   const studio = fixture(async (url, options) => {
-    if (url.endsWith("/plan")) {
+    if (url.endsWith("/program")) {
       requestBody = JSON.parse(options.body);
-      return { ok: true, json: async () => ({ project: animator.planProject({ topic: "Growing a seed", requirements: "Seed absorbs water -> Root emerges -> Leaves open" }) }) };
+      return authored();
     }
     return url.endsWith("render-capability") ? capability() : video();
   });
@@ -166,11 +169,95 @@ test("visible concept alone supplies the required topic for a novel local-tutor 
 });
 
 test("regenerating from the visible concept does not reintroduce a hidden stale equation", async () => {
-  const studio = fixture(async (url) => url.endsWith("render-capability") ? capability() : video());
+  const briefs = [];
+  const studio = fixture(async (url, options) => {
+    if (url.endsWith("/program")) { const brief = JSON.parse(options.body); briefs.push(brief); return authored(program(brief.concept)); }
+    return url.endsWith("render-capability") ? capability() : video();
+  });
   studio.concept.value = "Plot sin(x)"; await studio.generateProject();
   studio.concept.value = "Plot cos(x)"; await studio.generateProject();
-  assert.equal(studio.project.scenes[0].data.expression_text, "cos(x)");
+  assert.equal(studio.project.title, "Plot cos(x)");
+  assert.equal(briefs.length, 2); assert.equal(briefs[1].concept, "Plot cos(x)"); assert.equal(briefs[1].previous_source, "");
   assert.equal(studio.topic.value, ""); studio.destroy();
+});
+
+test("a simple radius prompt always calls the model and shows exactly its returned source", async () => {
+  const calls = []; const returned = program("A novel offset circle");
+  const studio = fixture(async (url, options) => { calls.push([url, options]); return url.endsWith("render-capability") ? capability() : url.endsWith("/program") ? authored(returned) : video(); });
+  studio.concept.value = "Draw a circle radius 5.6 centred at (2, -1)";
+  await studio.generateProject();
+  assert.equal(calls.filter(([url]) => url.endsWith("/program")).length, 1);
+  assert.equal(studio.project.source, returned.source);
+  assert.equal(studio.toolsBody.querySelector("pre").textContent, returned.source);
+  assert.equal(studio.tools.open, false); assert.equal(studio.player, null);
+  studio.destroy();
+});
+
+test("render feedback reaches bounded model repair with the original brief and actual rejected source", async () => {
+  const requests = []; let renders = 0; const original = program();
+  const studio = fixture(async (url, options) => {
+    if (url.endsWith("render-capability")) return capability();
+    if (url.endsWith("/program")) { requests.push(JSON.parse(options.body)); return authored(original); }
+    if (++renders === 1) return { ok: false, status: 422, json: async () => ({ detail: "NameError in scene" }) };
+    return video();
+  });
+  studio.concept.value = "Draw a circle radius 5.6"; await studio.generateProject();
+  assert.equal(requests.length, 2); assert.equal(requests[1].concept, requests[0].concept);
+  assert.equal(requests[1].previous_source, original.source); assert.equal(requests[1].feedback, "NameError in scene");
+  assert.equal(studio.renderedManimVideo.hidden, false); studio.destroy();
+});
+
+test("three failed code attempts stop honestly with no substitute Canvas or video", async () => {
+  let attempts = 0;
+  const studio = fixture(async (url) => {
+    if (url.endsWith("render-capability")) return capability();
+    attempts += 1; return { ok: false, status: 422, json: async () => ({ detail: { message: "Invalid source", source: "actual rejected source", repairable: true } }) };
+  });
+  await studio.generateProject(); assert.equal(attempts, 3); assert.equal(studio.player, null);
+  assert.equal(studio.renderedManimVideo == null, true); assert.equal(studio.generate.disabled, false);
+  assert.equal(studio.error.textContent, "Invalid source"); studio.destroy();
+});
+
+test("missing isolation fails closed before model calls and never shows the legacy draft", async () => {
+  const calls = []; const studio = fixture(async (url) => { calls.push(url); return capability(false); });
+  await studio.generateProject(); assert.equal(calls.length, 1); assert.equal(studio.player, null);
+  assert.equal(studio.error.textContent, "Verified sandbox unavailable"); studio.destroy();
+});
+
+test("choosing an example cancels authoring and refuses a late old response", async () => {
+  let resolve, signal;
+  const studio = fixture(async (url, options) => {
+    if (url.endsWith("render-capability")) return capability();
+    signal = options.signal; return new Promise((finish) => { resolve = finish; });
+  });
+  const pending = studio.generateProject(); await settle();
+  function find(node) { if (node.dataset?.example === "cubic") return node; return node.children.map(find).find(Boolean); }
+  find(studio.root).fire("click");
+  assert.equal(signal.aborted, true); assert.equal(studio.concept.value, "Plot y = x^3");
+  resolve(authored()); await pending;
+  assert.equal(studio.manimVideoBlob, null); assert.equal(studio.generate.disabled, false); studio.destroy();
+});
+
+test("multiline visible concept uses a single-line fallback title without losing the prompt", async () => {
+  let sent;
+  const studio = fixture(async (url, options) => {
+    if (url.endsWith("render-capability")) return capability();
+    if (url.endsWith("/program")) { sent = JSON.parse(options.body); return authored(program(sent.topic)); }
+    return video();
+  });
+  studio.concept.value = "Draw a circle\nLabel its radius"; await studio.generateProject();
+  assert.equal(sent.topic, "Draw a circle Label its radius"); assert.equal(sent.concept, "Draw a circle\nLabel its radius");
+  assert.equal(studio.renderedManimVideo.hidden, false); studio.destroy();
+});
+
+test("imported program restores its complete editable brief for regeneration", async () => {
+  const studio = fixture(async () => video());
+  const imported = program("Circle lesson");
+  imported.brief = JSON.stringify({ topic: "Circle lesson", concept: "Radius 5.6 cm centred at (2,-1)", requirements: "Show cm units and centre", level: "secondary" });
+  studio.file.files = [{ size: 3000, text: async () => JSON.stringify(imported) }];
+  await studio.importSelected();
+  assert.equal(studio.concept.value, "Radius 5.6 cm centred at (2,-1)");
+  assert.equal(studio.requirements.value, "Show cm units and centre"); assert.equal(studio.topic.value, "Circle lesson"); studio.destroy();
 });
 
 test("a corrupt import cancels current work rather than hiding the only cancel control", async () => {

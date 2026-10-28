@@ -625,6 +625,49 @@
     return { "content-type": "application/json", ...(options.headers || global.MutaChat?.authHeaders?.() || {}) };
   }
 
+  function validateProgram(value) {
+    const keys = ["version", "kind", "id", "title", "level", "source", "source_sha256", "model_id", "generation_token", "created_at", "brief"];
+    if (!onlyKeys(value, keys) || value.version !== 1 || value.kind !== "manim-program"
+      || !/^program-[a-f0-9]{24}$/.test(value.id) || !LEVELS.has(value.level)
+      || !boundedVisibleText(value.title, 180) || !boundedText(value.source, 24000)
+      || !/^[a-f0-9]{64}$/.test(value.source_sha256)
+      || !boundedText(value.model_id, 180, false) || !/^(?:[a-f0-9]{64})?$/.test(value.generation_token || "")
+      || !boundedText(value.created_at, 64) || !boundedText(value.brief, 20000)) {
+      return { ok: false, error: "Invalid Manim program document." };
+    }
+    return { ok: true, project: clone(value) };
+  }
+
+  const validateStoredProject = (value) => value?.kind === "manim-program" ? validateProgram(value) : validateProject(value);
+
+  async function programRequest(path, body, options = {}, binary = false) {
+    const fetchImpl = options.fetchImpl || global.fetch;
+    const response = await fetchImpl(`/v1/animation/${path}`, { method: "POST", signal: options.signal, headers: requestHeaders(options), body: JSON.stringify(body) });
+    if (!response.ok) {
+      let payload; try { payload = await response.json(); } catch { /* generic failure below */ }
+      const detail = payload?.detail;
+      const error = new Error(typeof detail === "string" ? detail : detail?.message || text("animationProgramFailed"));
+      error.source = typeof detail?.source === "string" ? detail.source.slice(0, 24000) : "";
+      error.repairable = response.status === 422 && (binary || detail?.repairable === true);
+      throw error;
+    }
+    if (binary) {
+      if (!(response.headers.get("content-type") || "").includes("video/mp4")) throw new Error(text("animationProgramFailed"));
+      const blob = await response.blob();
+      if (!blob.size || blob.size > 96 * 1024 * 1024) throw new Error(text("animationProgramFailed"));
+      return blob;
+    }
+    const payload = await response.json(); const result = validateProgram(payload?.program);
+    if (!result.ok) throw new Error(result.error);
+    return result.project;
+  }
+
+  async function requestAnimationProgram(values, options = {}) {
+    const studentId = options.studentId || global.MutaChat?.studentId;
+    if (!studentId) throw new Error(text("animationProgramNotReady"));
+    return programRequest("program", { student_id: studentId, topic: String(values.topic || values.concept || "Animation").replace(/\s+/g, " ").trim().slice(0, 240), level: values.level, concept: String(values.concept || "").trim(), requirements: String(values.requirements || "").trim(), previous_source: options.previousSource || "", feedback: options.feedback || "" }, options);
+  }
+
   async function requestManimSource(project, options = {}) {
     const validated = validateProject(project); if (!validated.ok) throw new Error(validated.error);
     const fetchImpl = options.fetchImpl || global.fetch;
@@ -647,7 +690,7 @@
     if (!response.ok) throw new Error("Muta could not check the offline Manim renderer.");
     const payload = await response.json();
     if (typeof payload?.available !== "boolean" || typeof payload?.detail !== "string" || !payload.detail.trim()) throw new Error("Muta received an invalid Manim capability response.");
-    return { available: payload.available, detail: payload.detail, renderer: "manim" };
+    return { available: payload.available, detail: payload.detail, renderer: "manim", program_available: payload.program_available === true, program_detail: payload.program_detail || text("animationProgramUnavailable") };
   }
 
   async function requestManimSourceRevision(project, revision, currentRevision, options = {}) {
@@ -737,6 +780,7 @@
   }
 
   function projectDescription(project) {
+    if (project.kind === "manim-program") return `${project.title}. ${project.brief}`;
     return `${project.title}. ${project.summary} ${project.scenes.map((scene, index) => `Scene ${index + 1}: ${scene.title}. ${scene.narration}`).join(" ")}`;
   }
 
@@ -744,12 +788,12 @@
     try {
       const parsed = JSON.parse(global.localStorage?.getItem(STORAGE_KEY) || "[]");
       if (!Array.isArray(parsed)) return [];
-      return parsed.map((item) => validateProject(item)).filter((item) => item.ok).map((item) => item.project).slice(0, MAX_PROJECTS);
+      return parsed.map((item) => validateStoredProject(item)).filter((item) => item.ok).map((item) => item.project).slice(0, MAX_PROJECTS);
     } catch { return []; }
   }
 
   function saveProject(project) {
-    const result = validateProject(project);
+    const result = validateStoredProject(project);
     if (!result.ok) throw new Error(result.error);
     const clean = result.project;
     const projects = loadProjects().filter((item) => item.id !== clean.id);
@@ -774,11 +818,15 @@
   }
 
   function exportProject(project) {
-    const result = validateProject(project); if (!result.ok) throw new Error(result.error);
+    const result = validateStoredProject(project); if (!result.ok) throw new Error(result.error);
     downloadBlob(new Blob([`${JSON.stringify(result.project, null, 2)}\n`], { type: "application/vnd.muta.animation+json" }), `${result.project.id}.mutaanim`);
   }
 
   function exportTranscript(project) {
+    if (project.kind === "manim-program") {
+      const result = validateProgram(project); if (!result.ok) throw new Error(result.error);
+      downloadBlob(new Blob([projectDescription(result.project)], { type: "text/plain;charset=utf-8" }), `${project.id}-brief.txt`); return;
+    }
     const result = validateProject(project); if (!result.ok) throw new Error(result.error);
     const lines = [result.project.title, result.project.summary, "", ...result.project.scenes.flatMap((scene, index) => [`${index + 1}. ${scene.title}`, scene.narration, ""])];
     downloadBlob(new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" }), `${result.project.id}-transcript.txt`);
@@ -1050,7 +1098,19 @@
     constructor(root, options = {}) {
       this.root = root; this.options = options; this.player = null; this.project = null; this.projectRevision = 0; this.timers = []; this.destroyed = false; this.operationToken = 0;
       this.build(); mounted.add(this);
-      if (options.project) { this.concept.value = options.project.title; this.level.value = options.project.level; this.updatePrompt(); this.showProject(options.project, { persist: false }); }
+      if (options.project) { this.restoreBrief(options.project); this.showProject(options.project, { persist: false }); }
+    }
+    restoreBrief(project) {
+      this.topic.value = ""; this.concept.value = project.title; this.level.value = project.level; this.requirements.value = "";
+      if (project.kind === "manim-program") {
+        try {
+          const brief = JSON.parse(project.brief);
+          if (plainRecord(brief) && boundedText(brief.topic, 240, false) && boundedText(brief.concept, 1600, false) && boundedText(brief.requirements, 1000, false)) {
+            this.topic.value = brief.topic; this.concept.value = brief.concept || project.title; this.requirements.value = brief.requirements;
+          }
+        } catch { /* Old or imported human-readable brief remains preserved in the document. */ }
+      }
+      this.updatePrompt();
     }
     build() {
       this.root.replaceChildren(); this.root.classList.add("animation-studio-workspace"); this.root.dataset.animationMount = "true";
@@ -1062,7 +1122,7 @@
         ["six-by-four", text("animationExampleArray"), { topic: "Six groups of four", level: "upper-primary", concept: "Build 6 × 4", requirements: "Build six rows of four -> connect repeated addition -> write the multiplication equation" }],
         ["cubic", text("animationExampleGraph"), { topic: "How a cubic function changes", level: "secondary", concept: "Plot y = x^3", requirements: "Trace the curve -> read the axes and scale" }],
         ["calculus", text("animationExampleCalculus"), { topic: "Tangent and derivative of a cubic", level: "tertiary", concept: "Plot y = x^3 and show the tangent at x = 2", requirements: "Trace the function -> reveal the tangent -> interpret the local rate of change" }],
-      ].forEach(([id, label, values]) => { const chip = button(label, "animation-chip"); chip.dataset.example = id; chip.addEventListener("click", () => { this.topic.value = values.topic; this.level.value = values.level; this.concept.value = values.concept; this.requirements.value = values.requirements; this.updatePrompt(); this.concept.focus(); }); exampleChips.append(chip); });
+      ].forEach(([id, label, values]) => { const chip = button(label, "animation-chip"); chip.dataset.example = id; chip.addEventListener("click", () => { this.cancelWork(); this.topic.value = values.topic; this.level.value = values.level; this.concept.value = values.concept; this.requirements.value = values.requirements; this.updatePrompt(); this.concept.focus(); }); exampleChips.append(chip); });
 
       const layout = document.createElement("div"); layout.className = "animation-authoring-layout";
       const brief = document.createElement("section"); brief.className = "animation-brief"; brief.setAttribute("aria-labelledby", "animation-brief-title");
@@ -1071,7 +1131,7 @@
       this.topic = document.createElement("input"); this.topic.id = "animation-topic"; this.topic.maxLength = 240; this.topic.placeholder = text("animationTopicPlaceholder");
       this.level = document.createElement("select"); this.level.id = "animation-level";
       [["early-primary", text("animationLevelEarly")], ["upper-primary", text("animationLevelUpper")], ["secondary", text("animationLevelSecondary")], ["tertiary", text("animationLevelTertiary")]].forEach(([value, label]) => { const option = document.createElement("option"); option.value = value; option.textContent = label; if (value === "secondary") option.selected = true; this.level.append(option); });
-      this.concept = document.createElement("textarea"); this.concept.id = "animation-concept"; this.concept.maxLength = 240; this.concept.rows = 4; this.concept.placeholder = text("animationConceptPlaceholder");
+      this.concept = document.createElement("textarea"); this.concept.id = "animation-concept"; this.concept.maxLength = 1600; this.concept.rows = 4; this.concept.placeholder = text("animationConceptPlaceholder");
       this.requirements = document.createElement("textarea"); this.requirements.id = "animation-requirements"; this.requirements.maxLength = 1000; this.requirements.rows = 5; this.requirements.placeholder = text("animationRequirementsPlaceholder");
       const prompt = document.createElement("details"); prompt.className = "animation-prompt"; const promptSummary = document.createElement("summary"); promptSummary.textContent = text("animationPromptShow"); this.promptText = document.createElement("pre"); prompt.append(promptSummary, this.promptText);
       this.generate = button(text("animationGenerate"), "animation-primary animation-generate"); this.generate.addEventListener("click", () => this.generateProject());
@@ -1100,46 +1160,107 @@
       this.tools.append(toolsSummary, this.toolsBody, this.editor);
       preview.append(previewTitle, this.previewRoot, this.projectActions, this.tools);
       layout.append(brief, preview); this.root.append(layout);
-      [this.topic, this.level, this.concept, this.requirements].forEach((node) => node.addEventListener("input", () => this.updatePrompt())); this.updatePrompt();
+      [this.topic, this.level, this.concept, this.requirements].forEach((node) => node.addEventListener("input", () => { if (this.plannerAbort || this.manimAbort) this.cancelWork(); this.updatePrompt(); })); this.updatePrompt();
     }
     updatePrompt() {
       const level = this.level.options[this.level.selectedIndex]?.textContent || this.level.value;
-      this.promptText.textContent = `Topic: ${this.topic.value || "—"}\nLearner level: ${level}\nConcept or relationship: ${this.concept.value || "—"}\nRequired sequence: ${this.requirements.value || "—"}\nOutput: a validated local lesson-animation project; no executable code.`;
+      this.promptText.textContent = `Topic: ${this.topic.value || "—"}\nLearner level: ${level}\nConcept or relationship: ${this.concept.value || "—"}\nRequired sequence: ${this.requirements.value || "—"}\n${text("animationProgramFlow")}`;
     }
     setProgress(copy, percent) { this.progress.hidden = false; this.progressCopy.textContent = copy; this.progressBar.style.width = `${percent}%`; }
     clearTimers() { this.timers.forEach((timer) => global.clearTimeout(timer)); this.timers = []; }
     async generateProject() {
-      const token = ++this.operationToken; this.clearTimers(); this.plannerAbort?.abort(); this.error.textContent = ""; this.generate.disabled = true; this.cancelGenerate.hidden = false; this.setProgress(text("animationProgressUnderstand"), 22);
+      return this.generateProgram();
+    }
+    async generateProgram() {
+      this.cancelWork(); this.exportAbort?.abort(); this.sourceAbort?.abort(); this.projectRevision += 1; const token = ++this.operationToken;
+      const controller = new AbortController(); this.plannerAbort = controller;
+      const current = () => !this.destroyed && token === this.operationToken && !controller.signal.aborted;
       const values = { topic: this.topic.value, level: this.level.value, concept: this.concept.value, requirements: this.requirements.value };
+      this.error.textContent = ""; this.generate.disabled = true; this.cancelGenerate.hidden = false;
+      this.clearRenderedManimVideo(); this.player?.destroy(); this.player = null;
+      this.projectActions.hidden = true; this.tools.hidden = true;
+      this.previewRoot.replaceChildren(); this.stageMessage = document.createElement("div"); this.stageMessage.className = "animation-preview-empty"; this.stageMessage.setAttribute("role", "status"); this.stageMessage.textContent = text("animationProgressModelCode"); this.previewRoot.append(this.stageMessage);
       try {
         if (!values.topic.trim() && !values.concept.trim()) throw new Error(text("animationEnterConcept"));
-        await new Promise((resolve) => this.timers.push(global.setTimeout(resolve, 80)));
-        if (this.destroyed || token !== this.operationToken) return;
-        this.setProgress(text("animationProgressCompose"), 56);
-        let project;
-        try { project = planProject(values); }
-        catch (error) {
-          if (error.code !== "planner_required") throw error;
-          this.setProgress(text("animationProgressLocalTutor"), 68); this.plannerAbort = new AbortController();
-          project = await requestAnimationPlan(values, { signal: this.plannerAbort.signal });
+        this.setProgress(text("animationRenderCapabilityChecking"), 10);
+        const capability = await requestManimCapability({ signal: controller.signal });
+        if (!current()) return;
+        if (!capability.program_available) throw new Error(capability.program_detail);
+        let previousSource = ""; let feedback = "";
+        for (let attempt = 0; attempt < 3; attempt += 1) {
+          this.setProgress(text(attempt ? "animationProgressRepairCode" : "animationProgressModelCode"), 20 + attempt * 20);
+          try {
+            const program = await requestAnimationProgram(values, { signal: controller.signal, previousSource, feedback });
+            if (!current()) return;
+            previousSource = program.source;
+            await this.showProgram(program, { persist: false, autoRender: false });
+            this.generate.disabled = true; this.cancelGenerate.hidden = false;
+            this.setProgress(text("animationRenderingManimVideo"), 40 + attempt * 20);
+            const blob = await programRequest("program/render", { program }, { signal: controller.signal }, true);
+            if (!current()) return;
+            this.installProgramVideo(blob);
+            try { saveProject(program); this.options.onProject?.(program); }
+            catch (error) { this.error.textContent = `${text("animationSaveFailed")} ${error.message}`; }
+            return;
+          } catch (error) {
+            if (!current() || error.name === "AbortError") return;
+            if (attempt === 2 || !error.repairable) throw error;
+            previousSource = error.source || previousSource;
+            if (!previousSource) throw error;
+            feedback = error.message.slice(0, 1200);
+          }
         }
-        if (this.destroyed || token !== this.operationToken) return;
-        this.setProgress(text("animationProgressValidate"), 88); const result = validateProject(project); if (!result.ok) throw new Error(result.error);
-        await this.showProject(result.project, { persist: true, autoRender: true });
-        if (this.destroyed || token !== this.operationToken) return;
-        this.timers.push(global.setTimeout(() => { if (!this.destroyed && token === this.operationToken) this.progress.hidden = true; }, 500));
       } catch (error) {
-        if (this.destroyed || token !== this.operationToken || error.name === "AbortError") return;
-        this.progress.hidden = true; this.error.textContent = error.message;
+        if (current() && error.name !== "AbortError") { this.error.textContent = error.message; this.stageMessage.hidden = false; this.stageMessage.textContent = text("animationProgramFailed"); }
       } finally {
-        if (!this.destroyed && token === this.operationToken) { this.generate.disabled = false; this.cancelGenerate.hidden = true; this.plannerAbort = null; }
+        if (current()) { this.generate.disabled = false; this.cancelGenerate.hidden = true; this.progress.hidden = true; this.plannerAbort = null; }
       }
     }
     showProject(project, { persist = true, autoRender = true } = {}) {
+      if (project?.kind === "manim-program") return this.showProgram(project, { persist, autoRender });
       const result = validateProject(project); if (!result.ok) { this.error.textContent = result.error; return; }
       this.project = result.project; this.projectRevision += 1; if (persist) saveProject(this.project);
       this.projectActions.hidden = false; this.editor.hidden = false; this.tools.hidden = false;
       const ready = this.renderProjectActions({ autoRender }); this.renderEditor(); this.options.onProject?.(this.project); return ready;
+    }
+    showProgram(program, { persist = true, autoRender = true } = {}) {
+      const result = validateProgram(program); if (!result.ok) throw new Error(result.error);
+      this.clearRenderedManimVideo(); this.sourceAbort?.abort(); this.manimAbort?.abort(); this.manimAbort = null;
+      this.player?.destroy(); this.player = null; this.project = result.project; this.projectRevision += 1;
+      if (persist) saveProject(this.project);
+      this.previewRoot.replaceChildren(); this.projectActions.replaceChildren(); this.toolsBody.replaceChildren(); this.editor.hidden = true;
+      this.tools.hidden = false; this.tools.open = false; this.projectActions.hidden = false;
+      this.stageMessage = document.createElement("div"); this.stageMessage.className = "animation-preview-empty"; this.stageMessage.setAttribute("role", "status"); this.stageMessage.textContent = text("animationRenderingManimVideo");
+      this.renderedManimVideo = document.createElement("video"); this.renderedManimVideo.className = "animation-rendered-video"; this.renderedManimVideo.controls = true; this.renderedManimVideo.playsInline = true; this.renderedManimVideo.preload = "metadata"; this.renderedManimVideo.hidden = true; this.renderedManimVideo.setAttribute("aria-label", program.title);
+      this.previewRoot.append(this.stageMessage, this.renderedManimVideo);
+      this.downloadRendered = button(text("animationDownloadVideo")); this.downloadRendered.hidden = true; this.downloadRendered.addEventListener("click", () => { if (this.manimVideoBlob && this.manimVideoRevision === this.projectRevision) downloadBlob(this.manimVideoBlob, `${this.project.id}-manim.mp4`); });
+      this.renderButton = button(text("animationRenderUpdatedVideo")); this.renderButton.addEventListener("click", () => this.renderProgramVideo());
+      this.projectActions.append(this.downloadRendered, this.renderButton);
+      const note = document.createElement("p"); note.className = "animation-review-notice"; note.textContent = text("animationReviewBeforeRender"); this.projectActions.append(note);
+      const projectExport = button(text("animationExport")); projectExport.addEventListener("click", () => exportProject(this.project)); this.toolsBody.append(projectExport);
+      const details = document.createElement("details"); details.className = "animation-project-source animation-manim-source";
+      const summary = document.createElement("summary"); summary.textContent = text("animationManimSource"); const code = document.createElement("pre"); code.textContent = this.project.source;
+      const sourceNote = document.createElement("p"); sourceNote.textContent = text("animationProgramSourceNote");
+      const sourceDownload = button(text("animationDownloadManimSource")); sourceDownload.addEventListener("click", () => downloadBlob(new Blob([this.project.source], { type: "text/x-python;charset=utf-8" }), `${this.project.id}.py`));
+      details.append(summary, sourceNote, code, sourceDownload); this.toolsBody.append(details);
+      if (autoRender) return this.renderProgramVideo();
+      this.renderButton.hidden = true; return Promise.resolve();
+    }
+    installProgramVideo(blob) {
+      this.clearRenderedManimVideo({ keepElement: true }); this.manimVideoBlob = blob; this.manimVideoRevision = this.projectRevision; this.manimVideoUrl = URL.createObjectURL(blob);
+      this.renderedManimVideo.src = this.manimVideoUrl; this.renderedManimVideo.hidden = false; this.renderedManimVideo.load(); this.stageMessage.hidden = true; this.downloadRendered.hidden = false; this.renderButton.hidden = true;
+    }
+    async renderProgramVideo() {
+      if (this.destroyed || this.manimAbort || this.plannerAbort) return;
+      const controller = new AbortController(); this.manimAbort = controller; const revision = this.projectRevision; const program = clone(this.project);
+      const current = () => !this.destroyed && this.projectRevision === revision && this.manimAbort === controller;
+      this.generate.disabled = true; this.cancelGenerate.hidden = false; this.renderButton.hidden = true; this.error.textContent = "";
+      try {
+        const blob = await programRequest("program/render", { program }, { signal: controller.signal }, true);
+        if (current()) this.installProgramVideo(blob);
+      } catch (error) {
+        if (current() && error.name !== "AbortError") { this.error.textContent = error.message; this.stageMessage.textContent = text("animationProgramFailed"); this.renderButton.hidden = false; }
+      } finally { if (current()) { this.manimAbort = null; this.generate.disabled = false; this.cancelGenerate.hidden = true; } }
     }
     renderProjectActions({ autoRender = false } = {}) {
       this.clearRenderedManimVideo();
@@ -1226,7 +1347,8 @@
       this.operationToken += 1; this.plannerAbort?.abort(); this.plannerAbort = null;
       const wasRendering = Boolean(this.manimAbort); this.manimAbort?.abort(); this.manimAbort = null;
       this.generate.disabled = false; this.cancelGenerate.hidden = true; this.progress.hidden = true;
-      if (wasRendering && this.project) this.showDraft(text("animationGenerationCancelled"));
+      if (wasRendering && this.project?.kind !== "manim-program" && this.project) this.showDraft(text("animationGenerationCancelled"));
+      else if (this.project?.kind === "manim-program" && this.stageMessage) { this.stageMessage.hidden = false; this.stageMessage.textContent = text("animationGenerationCancelled"); if (this.renderButton) this.renderButton.hidden = false; }
       this.error.textContent = wasRendering ? "" : text("animationGenerationCancelled");
     }
     renderEditor() {
@@ -1246,7 +1368,7 @@
       const file = this.file.files?.[0]; this.file.value = ""; if (!file) return;
       if (file.size > MAX_PROJECT_BYTES) { this.error.textContent = text("animationImportTooLarge"); return; }
       this.cancelWork(); const token = ++this.operationToken; this.clearTimers(); this.pendingProject = null;
-      try { const parsed = JSON.parse(await file.text()); if (this.destroyed || token !== this.operationToken) return; const result = validateProject(parsed); if (!result.ok) throw new Error(result.error); this.topic.value = ""; this.level.value = result.project.level; this.concept.value = result.project.title; this.requirements.value = ""; this.updatePrompt(); await this.showProject(result.project, { persist: true }); } catch (error) { if (!this.destroyed && token === this.operationToken) this.error.textContent = `${text("animationImportFailed")} ${error.message}`; }
+      try { const parsed = JSON.parse(await file.text()); if (this.destroyed || token !== this.operationToken) return; const result = validateStoredProject(parsed); if (!result.ok) throw new Error(result.error); this.restoreBrief(result.project); await this.showProject(result.project, { persist: true }); } catch (error) { if (!this.destroyed && token === this.operationToken) this.error.textContent = `${text("animationImportFailed")} ${error.message}`; }
     }
     destroy() { if (this.destroyed) return; this.destroyed = true; this.operationToken += 1; this.exportAbort?.abort(); this.plannerAbort?.abort(); this.sourceAbort?.abort(); this.manimAbort?.abort(); this.manimCapabilityAbort?.abort(); this.clearRenderedManimVideo(); this.clearTimers(); this.player?.destroy(); mounted.delete(this); }
   }
@@ -1260,7 +1382,7 @@
   }
 
   global.MutaAnimator = Object.freeze({
-    VERSION, KIND, validateProject, planProject, requestAnimationPlan, parseFraction, parseArray, parseCircle, parseDivision, parsePolynomial, parseFunction, formatMathValue, formatCircleRadius,
+    VERSION, KIND, validateProject, validateProgram, validateStoredProject, planProject, requestAnimationPlan, requestAnimationProgram, parseFraction, parseArray, parseCircle, parseDivision, parsePolynomial, parseFunction, formatMathValue, formatCircleRadius,
     parseVector, parseProcess, polynomialValue, expressionValue, numericalDerivative, numericalIntegral, projectDescription, loadProjects, saveProject,
     removeProject, exportProject, exportTranscript, deliverBrowserVideo, exportVideo, videoCapability, requestManimCapability, requestManimSource, requestManimSourceRevision, downloadManimSource, exportManimVideo, drawFrame, drawExportCaption,
     mountPlayer, mountStudio, cleanup,

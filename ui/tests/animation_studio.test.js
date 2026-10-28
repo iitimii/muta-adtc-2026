@@ -620,7 +620,9 @@ test("Manim capability keeps source available while disabling only unsupported r
       return { ok: true, json: async () => ({ available: false, renderer: "manim", detail: "Offline Manim rendering requires macOS 14 or later." }) };
     },
   });
-  assert.deepEqual(unavailable, { available: false, renderer: "manim", detail: "Offline Manim rendering requires macOS 14 or later." });
+  assert.equal(unavailable.available, false);
+  assert.equal(unavailable.detail, "Offline Manim rendering requires macOS 14 or later.");
+  assert.equal(unavailable.program_available, false);
   await assert.rejects(
     animator.requestManimCapability({ fetchImpl: async () => ({ ok: true, json: async () => ({ available: "yes", detail: "bad" }) }) }),
     /invalid Manim capability/,
@@ -789,7 +791,9 @@ test("production module contains no executable source sink", () => {
   assert.match(source, /this\.manimCapabilityAbort\?\.abort\(\); this\.manimCapabilityAbort = null/);
   assert.match(source, /if \(!capability\.available\) \{ this\.showDraft\(capability\.detail\)/);
   assert.match(source, /this\.previewRoot\.append\(this\.stageMessage, this\.draftRoot, renderedVideo\)/);
-  assert.match(source, /await this\.showProject\(result\.project, \{ persist: true, autoRender: true \}\)/);
+  assert.match(source, /await requestAnimationProgram\(values/);
+  assert.match(source, /return this\.generateProgram\(\)/);
+  assert.doesNotMatch(source, /project = planProject\(values\)/);
   assert.match(source, /this\.toolsBody\.append\(projectSource\)/);
   assert.match(source, /item\.setAttribute\("role", "listitem"\)/);
   assert.doesNotMatch(source, /node\.setAttribute\("role", "listitem"\)/);

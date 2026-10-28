@@ -36,7 +36,7 @@
     ]
   },
   "catalog": {
-    "english_key_count": 720,
+    "english_key_count": 730,
     "english_keys": [
       "access.awaitApproval",
       "access.choosePassword",
@@ -280,9 +280,18 @@
       "learning.animationPreview",
       "learning.animationPreviewTitle",
       "learning.animationPrevious",
+      "learning.animationProgramFailed",
+      "learning.animationProgramFlow",
+      "learning.animationProgramLabel",
+      "learning.animationProgramNotReady",
+      "learning.animationProgramSaved",
+      "learning.animationProgramSourceNote",
+      "learning.animationProgramUnavailable",
       "learning.animationProgressCompose",
       "learning.animationProgressLocalTutor",
+      "learning.animationProgressModelCode",
       "learning.animationProgressReady",
+      "learning.animationProgressRepairCode",
       "learning.animationProgressUnderstand",
       "learning.animationProgressValidate",
       "learning.animationProjectSource",
@@ -298,6 +307,7 @@
       "learning.animationRestart",
       "learning.animationReviewBeforeRender",
       "learning.animationSave",
+      "learning.animationSaveFailed",
       "learning.animationSaved",
       "learning.animationSceneCount",
       "learning.animationSceneDuration",
@@ -1399,6 +1409,16 @@
       "learning.animationProgressCompose": [],
       "learning.animationProgressLocalTutor": [],
       "learning.animationProgressValidate": [],
+      "learning.animationProgramFlow": [],
+      "learning.animationProgressModelCode": [],
+      "learning.animationProgressRepairCode": [],
+      "learning.animationProgramFailed": [],
+      "learning.animationProgramNotReady": [],
+      "learning.animationProgramUnavailable": [],
+      "learning.animationProgramLabel": [],
+      "learning.animationProgramSaved": [],
+      "learning.animationProgramSourceNote": [],
+      "learning.animationSaveFailed": [],
       "learning.animationProgressReady": [],
       "learning.animationPreviewTitle": [],
       "learning.animationEmptyTitle": [],
@@ -1771,447 +1791,549 @@
   "key_references": [
     {
       "file": "ui/animation-studio.js",
-      "line": 1009,
-      "kind": "js:text",
-      "key": "animationPause"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1010,
-      "kind": "js:text",
-      "key": "animationPlay"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1058,
-      "kind": "js:text",
-      "key": "animationTryLesson"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1061,
-      "kind": "js:text",
-      "key": "animationExampleFraction"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1062,
-      "kind": "js:text",
-      "key": "animationExampleArray"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1063,
-      "kind": "js:text",
-      "key": "animationExampleGraph"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1064,
-      "kind": "js:text",
-      "key": "animationExampleCalculus"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1069,
-      "kind": "js:text",
-      "key": "animationBriefTitle"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1070,
-      "kind": "js:text",
-      "key": "animationBriefHelp"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1071,
-      "kind": "js:text",
-      "key": "animationTopicPlaceholder"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1073,
-      "kind": "js:text",
-      "key": "animationLevelEarly"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1073,
-      "kind": "js:text",
-      "key": "animationLevelSecondary"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1073,
-      "kind": "js:text",
-      "key": "animationLevelTertiary"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1073,
-      "kind": "js:text",
-      "key": "animationLevelUpper"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1074,
-      "kind": "js:text",
-      "key": "animationConceptPlaceholder"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1075,
-      "kind": "js:text",
-      "key": "animationRequirementsPlaceholder"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1076,
-      "kind": "js:text",
-      "key": "animationPromptShow"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1077,
-      "kind": "js:text",
-      "key": "animationGenerate"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1078,
-      "kind": "js:text",
-      "key": "animationCancelGeneration"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1079,
-      "kind": "js:text",
-      "key": "animationImport"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1083,
-      "kind": "js:text",
-      "key": "animationLessonOptions"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1085,
-      "kind": "js:text",
-      "key": "animationRequirements"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1085,
-      "kind": "js:text",
-      "key": "animationTopic"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1089,
-      "kind": "js:text",
-      "key": "animationConcept"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1089,
-      "kind": "js:text",
-      "key": "animationLevel"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1092,
-      "kind": "js:text",
-      "key": "animationPreviewTitle"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1094,
-      "kind": "js:text",
-      "key": "animationEmptyHelp"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1094,
-      "kind": "js:text",
-      "key": "animationEmptyTitle"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1096,
-      "kind": "js:text",
-      "key": "animationEditScenes"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1098,
-      "kind": "js:text",
-      "key": "animationProjectTools"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1112,
-      "kind": "js:text",
-      "key": "animationProgressUnderstand"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1115,
-      "kind": "js:text",
-      "key": "animationEnterConcept"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1118,
-      "kind": "js:text",
-      "key": "animationProgressCompose"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1123,
-      "kind": "js:text",
-      "key": "animationProgressLocalTutor"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1127,
-      "kind": "js:text",
-      "key": "animationProgressValidate"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1153,
-      "kind": "js:text",
-      "key": "animationRenderingManimVideo"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1159,
-      "kind": "js:text",
-      "key": "animationDownloadVideo"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1162,
-      "kind": "js:text",
-      "key": "animationRenderUpdatedVideo"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1164,
-      "kind": "js:text",
-      "key": "animationReviewBeforeRender"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1165,
-      "kind": "js:text",
-      "key": "animationSave"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1165,
-      "kind": "js:text",
-      "key": "animationSaved"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1166,
-      "kind": "js:text",
-      "key": "animationExport"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1167,
-      "kind": "js:text",
-      "key": "animationTranscriptDownload"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1169,
-      "kind": "js:text",
-      "key": "animationProjectSource"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1170,
-      "kind": "js:text",
-      "key": "animationManimSource"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1170,
-      "kind": "js:text",
-      "key": "animationManimSourceLoading"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1181,
-      "kind": "js:text",
-      "key": "animationManimSourceUnavailable"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1182,
-      "kind": "js:text",
-      "key": "animationDownloadManimSource"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1184,
-      "kind": "js:text",
-      "key": "animationDownloadDraft"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1187,
-      "kind": "js:text",
-      "key": "animationDraftNeedsRender"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1204,
-      "kind": "js:text",
-      "key": "animationRenderingManimVideo"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1207,
-      "kind": "js:text",
-      "key": "animationRenderCapabilityChecking"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1212,
-      "kind": "js:text",
-      "key": "animationRenderingManimVideo"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1220,
-      "kind": "js:text",
-      "key": "animationRenderFailed"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1229,
-      "kind": "js:text",
-      "key": "animationGenerationCancelled"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1230,
-      "kind": "js:text",
-      "key": "animationGenerationCancelled"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1234,
-      "kind": "js:text",
-      "key": "animationSceneLabel"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1237,
-      "kind": "js:text",
-      "key": "animationMoveDown"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1237,
-      "kind": "js:text",
-      "key": "animationMoveUp"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1238,
-      "kind": "js:text",
-      "key": "animationApplyScene"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1240,
-      "kind": "js:text",
-      "key": "animationSceneDuration"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1240,
-      "kind": "js:text",
-      "key": "animationSceneNarration"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1240,
-      "kind": "js:text",
-      "key": "animationSceneTitle"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1247,
-      "kind": "js:text",
-      "key": "animationImportTooLarge"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 1249,
-      "kind": "js:text",
-      "key": "animationImportFailed"
-    },
-    {
-      "file": "ui/animation-studio.js",
-      "line": 976,
+      "line": 1024,
       "kind": "js:text",
       "key": "animationPreview"
     },
     {
       "file": "ui/animation-studio.js",
-      "line": 978,
+      "line": 1026,
       "kind": "js:text",
       "key": "animationSceneCount"
     },
     {
       "file": "ui/animation-studio.js",
-      "line": 984,
+      "line": 1032,
       "kind": "js:text",
       "key": "animationRestart"
     },
     {
       "file": "ui/animation-studio.js",
-      "line": 985,
+      "line": 1033,
       "kind": "js:text",
       "key": "animationPrevious"
     },
     {
       "file": "ui/animation-studio.js",
-      "line": 986,
+      "line": 1034,
       "kind": "js:text",
       "key": "animationPlay"
     },
     {
       "file": "ui/animation-studio.js",
-      "line": 987,
+      "line": 1035,
       "kind": "js:text",
       "key": "animationNext"
     },
     {
       "file": "ui/animation-studio.js",
-      "line": 988,
+      "line": 1036,
       "kind": "js:text",
       "key": "animationSeek"
     },
     {
       "file": "ui/animation-studio.js",
-      "line": 989,
+      "line": 1037,
       "kind": "js:text",
       "key": "animationSpeed"
     },
     {
       "file": "ui/animation-studio.js",
-      "line": 992,
+      "line": 1040,
       "kind": "js:text",
       "key": "animationTranscript"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1057,
+      "kind": "js:text",
+      "key": "animationPause"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1058,
+      "kind": "js:text",
+      "key": "animationPlay"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1118,
+      "kind": "js:text",
+      "key": "animationTryLesson"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1121,
+      "kind": "js:text",
+      "key": "animationExampleFraction"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1122,
+      "kind": "js:text",
+      "key": "animationExampleArray"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1123,
+      "kind": "js:text",
+      "key": "animationExampleGraph"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1124,
+      "kind": "js:text",
+      "key": "animationExampleCalculus"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1129,
+      "kind": "js:text",
+      "key": "animationBriefTitle"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1130,
+      "kind": "js:text",
+      "key": "animationBriefHelp"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1131,
+      "kind": "js:text",
+      "key": "animationTopicPlaceholder"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1133,
+      "kind": "js:text",
+      "key": "animationLevelEarly"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1133,
+      "kind": "js:text",
+      "key": "animationLevelSecondary"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1133,
+      "kind": "js:text",
+      "key": "animationLevelTertiary"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1133,
+      "kind": "js:text",
+      "key": "animationLevelUpper"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1134,
+      "kind": "js:text",
+      "key": "animationConceptPlaceholder"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1135,
+      "kind": "js:text",
+      "key": "animationRequirementsPlaceholder"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1136,
+      "kind": "js:text",
+      "key": "animationPromptShow"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1137,
+      "kind": "js:text",
+      "key": "animationGenerate"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1138,
+      "kind": "js:text",
+      "key": "animationCancelGeneration"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1139,
+      "kind": "js:text",
+      "key": "animationImport"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1143,
+      "kind": "js:text",
+      "key": "animationLessonOptions"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1145,
+      "kind": "js:text",
+      "key": "animationRequirements"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1145,
+      "kind": "js:text",
+      "key": "animationTopic"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1149,
+      "kind": "js:text",
+      "key": "animationConcept"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1149,
+      "kind": "js:text",
+      "key": "animationLevel"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1152,
+      "kind": "js:text",
+      "key": "animationPreviewTitle"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1154,
+      "kind": "js:text",
+      "key": "animationEmptyHelp"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1154,
+      "kind": "js:text",
+      "key": "animationEmptyTitle"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1156,
+      "kind": "js:text",
+      "key": "animationEditScenes"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1158,
+      "kind": "js:text",
+      "key": "animationProjectTools"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1167,
+      "kind": "js:text",
+      "key": "animationProgramFlow"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1182,
+      "kind": "js:text",
+      "key": "animationProgressModelCode"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1184,
+      "kind": "js:text",
+      "key": "animationEnterConcept"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1185,
+      "kind": "js:text",
+      "key": "animationRenderCapabilityChecking"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1198,
+      "kind": "js:text",
+      "key": "animationRenderingManimVideo"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1203,
+      "kind": "js:text",
+      "key": "animationSaveFailed"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1214,
+      "kind": "js:text",
+      "key": "animationProgramFailed"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1233,
+      "kind": "js:text",
+      "key": "animationRenderingManimVideo"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1236,
+      "kind": "js:text",
+      "key": "animationDownloadVideo"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1237,
+      "kind": "js:text",
+      "key": "animationRenderUpdatedVideo"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1239,
+      "kind": "js:text",
+      "key": "animationReviewBeforeRender"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1240,
+      "kind": "js:text",
+      "key": "animationExport"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1242,
+      "kind": "js:text",
+      "key": "animationManimSource"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1243,
+      "kind": "js:text",
+      "key": "animationProgramSourceNote"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1244,
+      "kind": "js:text",
+      "key": "animationDownloadManimSource"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1262,
+      "kind": "js:text",
+      "key": "animationProgramFailed"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1274,
+      "kind": "js:text",
+      "key": "animationRenderingManimVideo"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1280,
+      "kind": "js:text",
+      "key": "animationDownloadVideo"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1283,
+      "kind": "js:text",
+      "key": "animationRenderUpdatedVideo"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1285,
+      "kind": "js:text",
+      "key": "animationReviewBeforeRender"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1286,
+      "kind": "js:text",
+      "key": "animationSave"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1286,
+      "kind": "js:text",
+      "key": "animationSaved"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1287,
+      "kind": "js:text",
+      "key": "animationExport"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1288,
+      "kind": "js:text",
+      "key": "animationTranscriptDownload"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1290,
+      "kind": "js:text",
+      "key": "animationProjectSource"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1291,
+      "kind": "js:text",
+      "key": "animationManimSource"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1291,
+      "kind": "js:text",
+      "key": "animationManimSourceLoading"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1302,
+      "kind": "js:text",
+      "key": "animationManimSourceUnavailable"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1303,
+      "kind": "js:text",
+      "key": "animationDownloadManimSource"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1305,
+      "kind": "js:text",
+      "key": "animationDownloadDraft"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1308,
+      "kind": "js:text",
+      "key": "animationDraftNeedsRender"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1325,
+      "kind": "js:text",
+      "key": "animationRenderingManimVideo"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1328,
+      "kind": "js:text",
+      "key": "animationRenderCapabilityChecking"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1333,
+      "kind": "js:text",
+      "key": "animationRenderingManimVideo"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1341,
+      "kind": "js:text",
+      "key": "animationRenderFailed"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1350,
+      "kind": "js:text",
+      "key": "animationGenerationCancelled"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1351,
+      "kind": "js:text",
+      "key": "animationGenerationCancelled"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1352,
+      "kind": "js:text",
+      "key": "animationGenerationCancelled"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1356,
+      "kind": "js:text",
+      "key": "animationSceneLabel"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1359,
+      "kind": "js:text",
+      "key": "animationMoveDown"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1359,
+      "kind": "js:text",
+      "key": "animationMoveUp"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1360,
+      "kind": "js:text",
+      "key": "animationApplyScene"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1362,
+      "kind": "js:text",
+      "key": "animationSceneDuration"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1362,
+      "kind": "js:text",
+      "key": "animationSceneNarration"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1362,
+      "kind": "js:text",
+      "key": "animationSceneTitle"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1369,
+      "kind": "js:text",
+      "key": "animationImportTooLarge"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 1371,
+      "kind": "js:text",
+      "key": "animationImportFailed"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 649,
+      "kind": "js:text",
+      "key": "animationProgramFailed"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 655,
+      "kind": "js:text",
+      "key": "animationProgramFailed"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 657,
+      "kind": "js:text",
+      "key": "animationProgramFailed"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 667,
+      "kind": "js:text",
+      "key": "animationProgramNotReady"
+    },
+    {
+      "file": "ui/animation-studio.js",
+      "line": 693,
+      "kind": "js:text",
+      "key": "animationProgramUnavailable"
     },
     {
       "file": "ui/app.js",
@@ -5601,7 +5723,19 @@
       "file": "ui/learning-platform.js",
       "line": 642,
       "kind": "js:learningText",
+      "key": "learning.animationProgramLabel"
+    },
+    {
+      "file": "ui/learning-platform.js",
+      "line": 642,
+      "kind": "js:learningText",
       "key": "learning.animationSceneCount"
+    },
+    {
+      "file": "ui/learning-platform.js",
+      "line": 644,
+      "kind": "js:learningText",
+      "key": "learning.animationProgramSaved"
     },
     {
       "file": "ui/learning-platform.js",

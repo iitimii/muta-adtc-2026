@@ -639,9 +639,9 @@
     }
     animations.forEach((project) => {
       const card = document.createElement("article"); card.className = "playground-card animation-library-card";
-      const meta = document.createElement("span"); meta.className = "course-subject"; meta.textContent = learningText("animationSceneCount", { count: project.scenes.length });
+      const meta = document.createElement("span"); meta.className = "course-subject"; meta.textContent = project.kind === "manim-program" ? learningText("animationProgramLabel") : learningText("animationSceneCount", { count: project.scenes.length });
       const h4 = document.createElement("h4"); h4.textContent = project.title;
-      const p = document.createElement("p"); p.textContent = project.summary;
+      const p = document.createElement("p"); p.textContent = project.kind === "manim-program" ? learningText("animationProgramSaved") : project.summary;
       const actions = document.createElement("div"); actions.className = "animation-library-actions";
       const open = button(learningText("openAnimation"), "course-open", () => openSavedAnimation(project));
       const exportButton = button(learningText("animationExport"), "course-export", () => global.MutaAnimator.exportProject(project));
