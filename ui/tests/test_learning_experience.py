@@ -202,7 +202,7 @@ def test_animation_studio_is_safe_offline_editable_and_packaged() -> None:
     css = (UI / "learning-platform.css").read_text()
     i18n = (UI / "i18n.js").read_text()
 
-    assert 'animation-studio.js?v=20261028-model-manim-1' in html
+    assert 'animation-studio.js?v=20261028-model-manim-2' in html
     assert 'return this.generateProgram()' in animator
     assert '/v1/animation/${path}' in animator
     assert html.index("animation-studio.js") < html.index("learning-platform.js")

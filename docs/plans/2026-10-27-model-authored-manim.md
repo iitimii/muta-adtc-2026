@@ -64,6 +64,16 @@ division source used a count grid rather than a clearly staged sharing explanati
 visible review-before-sharing warning and report such limitations. Do not claim universal STEM
 correctness, conceal failures, or replace rejected model code with trusted example scenes.
 
+### Native data-preservation gate
+
+Before generating a new native test lesson, inspection found the eight-project library silently
+discarded the oldest entry on a ninth save. Keep the bounded storage budget, but reject a new
+project when all eight slots are occupied, before any write or event. Existing-ID updates must
+still work. The finished video remains available with an explicit save warning and export;
+only the learner may choose which saved project to remove. Test that the original serialized
+library is byte-identical after rejection, including mixed legacy/program documents. Do not
+exercise a ninth native save until the corrected source has been reviewed and rebuilt.
+
 ## Public contract (freeze before UI/backend split)
 
 - POST /v1/animation/program: authenticated learner brief and optional bounded previous source /

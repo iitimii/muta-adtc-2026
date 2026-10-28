@@ -797,8 +797,9 @@
     if (!result.ok) throw new Error(result.error);
     const clean = result.project;
     const projects = loadProjects().filter((item) => item.id !== clean.id);
+    if (projects.length >= MAX_PROJECTS) throw new Error("Saved animation library is full. Export or remove an older project first.");
     projects.unshift(clean);
-    const encoded = JSON.stringify(projects.slice(0, MAX_PROJECTS));
+    const encoded = JSON.stringify(projects);
     if (new TextEncoder().encode(encoded).length > MAX_PROJECT_BYTES) throw new Error("Saved animation library is full. Export or remove an older project first.");
     global.localStorage?.setItem(STORAGE_KEY, encoded);
     global.dispatchEvent?.(new CustomEvent("muta:animation-projects", { detail: { id: clean.id } }));

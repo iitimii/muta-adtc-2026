@@ -748,12 +748,20 @@ test("source-shaped multilingual labels remain inert data", () => {
   assert.equal(result.project.scenes[0].narration, project.scenes[0].narration);
 });
 
-test("saved-project roundtrip validates and keeps a bounded recent library", () => {
+test("full saved library refuses a ninth project without deleting or changing existing projects", () => {
   storage.clear();
   const first = animator.saveProject(plan("Explain 3/4", "early-primary"));
   assert.equal(animator.loadProjects()[0].id, first.id);
-  for (let index = 0; index < 11; index += 1) animator.saveProject(plan(`plot y = ${index + 1}x^2`, "secondary"));
+  for (let index = 0; index < 7; index += 1) animator.saveProject(plan(`plot y = ${index + 1}x^2`, "secondary"));
   assert.equal(animator.loadProjects().length, 8);
+  const before = JSON.stringify(Array.from(storage));
+  assert.throws(() => animator.saveProject(plan("plot y = x^3")), /library is full/);
+  assert.equal(JSON.stringify(Array.from(storage)), before);
+  assert.ok(animator.loadProjects().some((project) => project.id === first.id));
+  animator.saveProject({ ...first, title: "Updated existing lesson" });
+  assert.equal(animator.loadProjects().length, 8);
+  assert.equal(animator.loadProjects()[0].id, first.id);
+  assert.equal(animator.loadProjects()[0].title, "Updated existing lesson");
   animator.removeProject(animator.loadProjects()[0].id);
   assert.equal(animator.loadProjects().length, 7);
 });

@@ -68,6 +68,21 @@ test("Generate finishes in one MP4 stage, without Canvas or automatic playback",
   studio.destroy();
 });
 
+test("a full library preserves every saved project while the new video stays downloadable and exportable", async () => {
+  const studio = fixture(async (url) => url.endsWith("render-capability") ? capability() : url.endsWith("/program") ? authored() : video());
+  const saved = Array.from({ length: 8 }, (_, index) => ({ ...program(`Saved ${index}`), id: `program-${String(index).padStart(24, "0")}` }));
+  saved[0] = project(); // Preserve a mixed library of legacy lessons and model-authored programs.
+  const before = JSON.stringify(saved); let encoded = before; let writes = 0;
+  global.localStorage = { getItem: () => encoded, setItem: (key, value) => { writes += 1; encoded = value; } };
+  await studio.generateProject();
+  assert.equal(encoded, before); assert.equal(writes, 0); assert.equal(animator.loadProjects().length, 8);
+  assert.equal(studio.renderedManimVideo.hidden, false); assert.equal(studio.downloadRendered.hidden, false);
+  assert.equal(studio.tools.hidden, false); assert.equal(studio.generate.disabled, false);
+  assert.match(studio.error.textContent, /library is full/);
+  assert.ok(studio.toolsBody.children.some((node) => node.textContent === "animationExport" && node.listeners.has("click")));
+  studio.destroy();
+});
+
 test("unavailable renderer and render failure use the same stage, with honest fallback and retry", async () => {
   for (const mode of ["unavailable", "failed"]) {
     let retry = false;
